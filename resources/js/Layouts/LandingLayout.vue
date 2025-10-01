@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, h } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, usePage, Head } from '@inertiajs/vue3';
 import AplicationLogo from '@/Components/ApplicationLogo.vue';
 import Button from 'primevue/button';
 
@@ -9,7 +9,8 @@ const props = defineProps({
     welcomeMessage: {
         type: String,
         default: '' // Mensaje de bienvenida opcional
-    }
+    },
+    title: String,
 });
 
 // --- Estado del Notch ---
@@ -27,6 +28,30 @@ const isTyping = ref(false);        // Para controlar la visibilidad del cursor
 
 // El notch se considera expandido si CUALQUIERA de estas condiciones es verdadera.
 const isNotchExpanded = computed(() => isHovering.value || showFlash.value || showWelcome.value || isToggledOpen.value);
+
+// --- Clases dinámicas para Borde y Sombra del Notch ---
+const notchDynamicClasses = computed(() => {
+    // 1. Animación de bienvenida: un brillo para la sombra y un borde con movimiento.
+    if (showWelcome.value) {
+        return 'animate-welcome-glow animated-border-welcome';
+    }
+    // 2. Colores para mensajes flash según el tipo.
+    if (showFlash.value) {
+        switch (flashData.value.type) {
+            case 'success':
+                return 'shadow-green-500/50 border-green-400';
+            case 'error': // Tipo 'danger'
+                return 'shadow-red-500/50 border-red-400';
+            case 'warning':
+                return 'shadow-amber-500/50 border-amber-400';
+            default:
+                return 'shadow-indigo-500/30 border-white/10'; // Color por defecto
+        }
+    }
+    // 3. Estado normal por defecto.
+    return 'shadow-indigo-500/30 border-white/10';
+});
+
 
 // --- Lógica de Mensaje de Bienvenida ---
 onMounted(() => {
@@ -93,7 +118,7 @@ const handleMouseLeave = () => {
     if (window.innerWidth < 1024) return; // No activar con hover en pantallas pequeñas
     collapseTimer.value = setTimeout(() => {
         isHovering.value = false;
-    }, 2000); // Retraso de 3 segundos para plegarse
+    }, 2000); // Retraso de 2 segundos para plegarse
 };
 
 const handleNotchClick = () => {
@@ -108,19 +133,27 @@ const handleClickOutside = (event) => {
     }
 };
 
-// --- Estado de Idioma ---
+// --- Lógica de Idioma y Navegación ---
 const currentLang = ref('es');
 const toggleLang = () => {
     currentLang.value = currentLang.value === 'es' ? 'en' : 'es';
 };
 
-// --- Enlaces de Navegación ---
 const navLinks = ref([
-    { name: 'Inicio', href: '/#inicio' },
-    { name: 'Servicios', href: '/#servicios' },
-    { name: 'Proyectos', href: '/#proyectos' },
-    { name: 'Contacto', href: '/#contacto' },
+    { id: 'home', es: 'Inicio', en: 'Home', href: '/#inicio' },
+    { id: 'services', es: 'Servicios', en: 'Services', href: '/#servicios' },
+    { id: 'projects', es: 'Proyectos', en: 'Projects', href: '/#proyectos' },
+    { id: 'contact', es: 'Contacto', en: 'Contact', href: '/#contacto' },
 ]);
+
+// Propiedad computada para obtener los enlaces en el idioma actual
+const localizedNavLinks = computed(() => {
+    return navLinks.value.map(link => ({
+        ...link,
+        name: link[currentLang.value]
+    }));
+});
+
 
 // --- Iconos SVG (Refactorizados como Componentes Funcionales) ---
 const commonSvgProps = (className) => ({
@@ -157,6 +190,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
 </script>
 
 <template>
+    <Head :title="title" />
     <div class="bg-gray-800 min-h-screen text-gray-200 font-sans">
         <!-- =========== Notch Interactivo =========== -->
         <header
@@ -167,7 +201,8 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
             :class="[
                 'fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center',
                 'transition-all duration-500 ease-in-out',
-                'bg-black/30 backdrop-blur-xl border border-white/10 shadow-2xl shadow-indigo-500/30',
+                'bg-black/30 backdrop-blur-xl border-2 shadow-2xl',
+                notchDynamicClasses, // Clase computada para color y animación de borde y sombra
                 {
                     'w-32 h-10 rounded-full': !isNotchExpanded,
                     'w-[90vw] max-w-4xl h-16 rounded-3xl': isNotchExpanded,
@@ -180,7 +215,6 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
 
                 <!-- 1. Mensaje de Bienvenida (Máxima prioridad) -->
                 <div v-if="showWelcome" class="w-full flex items-center justify-center gap-4 animate-fade-in">
-                    <!-- <HandWaveIcon/> -->
                     <span class="text-white font-medium font-mono">{{ typedMessage }}</span>
                     <span v-if="isTyping" class="typing-cursor text-indigo-500 text-lg">_</span>
                 </div>
@@ -188,8 +222,8 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
                 <!-- 2. Mensaje Flash (Segunda prioridad) -->
                 <div v-else-if="showFlash" class="w-full flex items-center justify-center gap-4 animate-fade-in">
                     <CheckCircleIcon v-if="flashData.type === 'success'" />
-                    <AlertTriangleIcon v-if="flashData.type === 'error'" />
-                    <span class="text-white font-medium">{{ 'flashData.message' }}</span>
+                    <AlertTriangleIcon v-if="['error', 'warning'].includes(flashData.type)" />
+                    <span class="text-white font-medium">{{ flashData.message }}</span>
                 </div>
 
                 <!-- 3. Contenido Normal (se muestra si no hay mensajes) -->
@@ -201,7 +235,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
 
                     <!-- Enlaces de Navegación -->
                     <nav class="flex-1 flex justify-center items-center space-x-2 sm:space-x-4 md:space-x-6">
-                        <a v-for="link in navLinks" :key="link.name" :href="link.href"
+                        <a v-for="link in localizedNavLinks" :key="link.id" :href="link.href"
                            class="text-xs sm:text-sm font-medium pb-1 border-b-2 border-transparent hover:border-indigo-500 hover:text-white transition-all duration-300">
                             {{ link.name }}
                         </a>
@@ -233,13 +267,13 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
             <slot />
         </main>
 
-        <!-- FOOTER (Sin cambios) -->
+        <!-- FOOTER -->
         <footer class="bg-black/30 backdrop-blur-lg border-t border-white/10 mt-20">
             <div class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
                 <div class="grid lg:grid-cols-3 gap-8 text-center lg:text-left">
                     <div class="flex flex-col items-center lg:items-start">
                         <Link href="/" class="text-2xl font-bold tracking-wider">
-                            <span class="text-indigo-500">DEV</span>SOLUTION
+                            <AplicationLogo height="16" />
                         </Link>
                         <p class="mt-4 text-sm text-gray-400 max-w-xs">
                             Construyendo el futuro digital, una línea de código a la vez.
@@ -248,7 +282,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
                     <div class="flex flex-col items-center">
                         <h3 class="font-semibold text-white tracking-wider">Navegación</h3>
                         <ul class="mt-4 space-y-2">
-                            <li v-for="link in navLinks" :key="link.name">
+                            <li v-for="link in localizedNavLinks" :key="link.id">
                                 <a :href="link.href" class="text-gray-400 hover:text-indigo-500 transition-colors">
                                     {{ link.name }}
                                 </a>
@@ -265,7 +299,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
                     </div>
                 </div>
                 <div class="mt-12 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-                    &copy; {{ new Date().getFullYear() }} DEVSOLUTION. Todos los derechos reservados.
+                    &copy; {{ new Date().getFullYear() }} DTW. Todos los derechos reservados.
                 </div>
             </div>
         </footer>
@@ -298,7 +332,52 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
   animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* NUEVA animación para el cursor de escritura */
+/* Animación de brillo para la SOMBRA del mensaje de bienvenida */
+@keyframes welcome-glow {
+  0%   { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); } /* Indigo */
+  25%  { box-shadow: 0 25px 50px -12px rgba(236, 72, 153, 0.4); } /* Pink */
+  50%  { box-shadow: 0 25px 50px -12px rgba(22, 237, 244, 0.4); } /* Cyan */
+  75%  { box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.4); } /* Violet */
+  100% { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); } /* Indigo */
+}
+
+.animate-welcome-glow {
+  animation: welcome-glow 5s ease-in-out infinite;
+}
+
+/* --- NUEVA ANIMACIÓN DE BORDE --- */
+.animated-border-welcome {
+  position: relative; /* Necesario para el posicionamiento del pseudo-elemento */
+  border-color: transparent; /* Oculta el borde base para mostrar el animado */
+}
+
+.animated-border-welcome::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  background: linear-gradient(120deg, #6215C0, #17EDF4, #6215C0);
+  background-size: 400% 400%;
+  border-radius: inherit;
+  animation: borderGradientMove 5s linear infinite;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+}
+
+@keyframes borderGradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+/* --- FIN NUEVA ANIMACIÓN DE BORDE --- */
+
+/* Animación para el cursor de escritura */
 @keyframes blink {
   50% { opacity: 0; }
 }
