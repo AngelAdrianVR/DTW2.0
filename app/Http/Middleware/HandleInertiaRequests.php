@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\App;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -35,9 +37,31 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
-            //
-        ];
+        return array_merge(parent::share($request), [
+            'auth' => [
+                'user' => $request->user(),
+            ],
+            // Compartimos el idioma actual y las traducciones
+            'locale' => function () {
+                return App::getLocale();
+            },
+            'translations' => function () {
+                $locale = App::getLocale();
+                // --- CAMBIO CLAVE AQUÍ ---
+                // Ajustamos la ruta para que coincida con tu estructura de carpetas (ej. lang/es/es.json)
+                $jsonPath = lang_path("{$locale}/{$locale}.json");
+
+                if (!File::exists($jsonPath)) {
+                    // Si el archivo de idioma no existe, intentamos la ruta estándar (ej. lang/es.json) como respaldo.
+                    $jsonPath = lang_path("{$locale}.json");
+                    if (!File::exists($jsonPath)) {
+                        return [];
+                    }
+                }
+                
+                // Lee el archivo JSON y lo convierte en un array asociativo
+                return json_decode(File::get($jsonPath), true);
+            },
+        ]);
     }
 }

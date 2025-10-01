@@ -1,70 +1,83 @@
 <script>
 import LandingLayout from '@/Layouts/LandingLayout.vue';
+import InteractiveHero from '@/Components/MyComponents/InteractiveHero.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 
 export default {
-
-  // Registra los componentes de PrimeVue que se usarán
+  // Registra los componentes
   components: {
     Card,
     Button,
     InputText,
     Textarea,
     LandingLayout,
+    InteractiveHero,
   },
 
-  // Datos del componente
+  // ELIMINAMOS EL MÉTODO `setup()`
+  // La función `t()` ahora se obtiene de las propiedades globales de la app,
+  // configurada en `resources/js/app.js`.
+
+  // Los datos contienen las CLAVES de traducción
   data() {
     return {
-      // Lista de servicios para mostrar en tarjetas
       services: [
-        { icon: 'pi pi-code', title: 'Desarrollo Web a Medida', description: 'Soluciones web robustas y escalables, desde landing pages hasta aplicaciones complejas.' },
-        { icon: 'pi pi-mobile', title: 'Aplicaciones Móviles', description: 'Apps nativas e híbridas para iOS y Android, centradas en la experiencia de usuario.' },
-        { icon: 'pi pi-cloud', title: 'Soluciones en la Nube', description: 'Infraestructura cloud, microservicios y despliegue continuo para máxima eficiencia.' },
+        { icon: 'pi pi-code', title: 'Custom Web Development', description: 'Robust and scalable web solutions, from landing pages to complex applications.' },
+        { icon: 'pi pi-mobile', title: 'Mobile Applications', description: 'Native and hybrid apps for iOS and Android, focused on user experience.' },
+        { icon: 'pi pi-cloud', title: 'Cloud Solutions', description: 'Cloud infrastructure, microservices, and continuous deployment for maximum efficiency.' },
       ],
-      // Lista de proyectos de ejemplo
       projects: [
-        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Proyecto+Alfa', title: 'Plataforma de E-learning', description: 'Sistema de gestión de aprendizaje con gamificación.' },
-        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Proyecto+Beta', title: 'Dashboard de Analítica', description: 'Visualización de datos en tiempo real para inteligencia de negocios.' },
-        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Proyecto+Gamma', title: 'App de Fitness Social', description: 'Red social para deportistas con seguimiento de actividades.' },
+        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Alpha', title: 'E-learning Platform', description: 'Learning management system with gamification.' },
+        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Beta', title: 'Analytics Dashboard', description: 'Real-time data visualization for business intelligence.' },
+        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Gamma', title: 'Social Fitness App', description: 'Social network for athletes with activity tracking.' },
       ],
-      // Modelo de datos para el formulario de contacto
       contactForm: {
         name: '',
         email: '',
         message: '',
       }
     };
+  },
+
+  // Las propiedades computadas ahora usan `this.t()`, que es el helper global.
+  computed: {
+    translatedServices() {
+      return this.services.map(service => ({
+        ...service,
+        title: this.t(service.title),
+        description: this.t(service.description)
+      }));
+    },
+    translatedProjects() {
+        return this.projects.map(project => ({
+        ...project,
+        title: this.t(project.title),
+        description: this.t(project.description)
+      }));
+    }
   }
 }
 </script>
 
 <template>
-    <LandingLayout title="Inicio DTW" welcomeMessage="Bienvenido a DTW - Innovación Digital Sin Límites">
+    <!-- El template usa `t()` directamente, que ahora es una función global reconocida. -->
+    <LandingLayout 
+      :title="t('Home') + ' DTW'" 
+      :welcomeMessage="t('Welcome to DTW - Digital Innovation')"
+    >
         <div class="page-container selection:bg-cyan-300/50">
             <!-- SECCIÓN INICIO (HERO) -->
-            <section id="inicio" class="hero-section min-h-screen flex items-center justify-center text-center px-4">
-            <div class="hero-content">
-                <h1 class="text-5xl md:text-7xl font-bold mb-4 text-glow">Innovación Digital Sin Límites</h1>
-                <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-                Transformamos ideas en soluciones tecnológicas de vanguardia. Impulsamos tu visión hacia el futuro digital.
-                </p>
-                <a href="#servicios">
-                    <Button label="Explorar Servicios" icon="pi pi-arrow-down" severity="info" raised />
-                </a>
-            </div>
-            <div class="grid-background"></div>
-            </section>
+            <InteractiveHero />
 
             <!-- SECCIÓN SERVICIOS -->
             <section id="servicios" class="py-20 px-4">
             <div class="container mx-auto">
-                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>Nuestros Servicios</span></h2>
+                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>{{ t('Our Services') }}</span></h2>
                 <div class="grid md:grid-cols-3 gap-8">
-                <Card v-for="service in services" :key="service.title" class="service-card">
+                <Card v-for="service in translatedServices" :key="service.title" class="service-card">
                     <template #header>
                     <div class="p-4 text-center">
                         <i :class="service.icon" style="font-size: 3rem; color: #17EDF4;"></i>
@@ -84,9 +97,9 @@ export default {
             <!-- SECCIÓN PROYECTOS -->
             <section id="proyectos" class="py-20 px-4 bg-gray-900/50">
             <div class="container mx-auto">
-                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>Proyectos Destacados</span></h2>
+                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>{{ t('Featured Projects') }}</span></h2>
                 <div class="grid md:grid-cols-3 gap-8">
-                <Card v-for="project in projects" :key="project.title" class="project-card">
+                <Card v-for="project in translatedProjects" :key="project.title" class="project-card">
                     <template #header>
                     <img :src="project.image" :alt="project.title" class="rounded-t-lg">
                     </template>
@@ -104,23 +117,23 @@ export default {
             <!-- SECCIÓN CONTACTO -->
             <section id="contacto" class="py-20 px-4">
             <div class="container mx-auto max-w-2xl">
-                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>Hablemos</span></h2>
+                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>{{ t("Let's Talk") }}</span></h2>
                 <div class="contact-form p-8">
                 <form @submit.prevent>
                     <div class="flex flex-col gap-6">
                     <span class="p-float-label">
                         <InputText id="name" v-model="contactForm.name" class="w-full" />
-                        <label for="name">Nombre</label>
+                        <label for="name">{{ t('Name') }}</label>
                     </span>
                     <span class="p-float-label">
                         <InputText id="email" v-model="contactForm.email" type="email" class="w-full" />
-                        <label for="email">Email</label>
+                        <label for="email">{{ t('Email') }}</label>
                     </span>
                     <span class="p-float-label">
                         <Textarea id="message" v-model="contactForm.message" rows="5" class="w-full" />
-                        <label for="message">Mensaje</label>
+                        <label for="message">{{ t('Message') }}</label>
                     </span>
-                    <Button type="submit" label="Enviar Mensaje" severity="info" raised class="w-full" />
+                    <Button type="submit" :label="t('Send Message')" severity="info" raised class="w-full" />
                     </div>
                 </form>
                 </div>
@@ -251,3 +264,4 @@ export default {
 }
 
 </style>
+
