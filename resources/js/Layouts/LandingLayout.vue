@@ -14,50 +14,51 @@ const props = defineProps({
 });
 
 // --- Estado del Notch ---
-const isHovering = ref(false);      // Para el hover en desktop
-const isToggledOpen = ref(false);   // Para el clic en móvil
+const isHovering = ref(false);
+const isToggledOpen = ref(false);
 const showFlash = ref(false);
-const showWelcome = ref(false);     // Para el mensaje de bienvenida al inicio
+const showWelcome = ref(false);
 const flashData = ref({ message: '', type: 'success' });
-const collapseTimer = ref(null);    // Timer para el retraso al plegarse
-const notchRef = ref(null);         // Ref para el elemento <header> del notch
+const collapseTimer = ref(null);
+const notchRef = ref(null);
+const isMobileMenuOpen = ref(false); // **NUEVO:** Estado para el menú móvil
 
 // --- Estado del Mensaje de Bienvenida ---
-const typedMessage = ref('');       // El texto que se va mostrando
-const isTyping = ref(false);        // Para controlar la visibilidad del cursor
+const typedMessage = ref('');
+const isTyping = ref(false);
 
-// El notch se considera expandido si CUALQUIERA de estas condiciones es verdadera.
 const isNotchExpanded = computed(() => isHovering.value || showFlash.value || showWelcome.value || isToggledOpen.value);
 
-// --- Clases dinámicas para Borde y Sombra del Notch ---
+const headerPositionClass = computed(() => {
+    return showWelcome.value ? 'absolute' : 'fixed';
+});
+
 const notchDynamicClasses = computed(() => {
-    // 1. Animación de bienvenida: un brillo para la sombra y un borde con movimiento.
     if (showWelcome.value) {
         return 'animate-welcome-glow animated-border-welcome';
     }
-    // 2. Colores para mensajes flash según el tipo.
     if (showFlash.value) {
         switch (flashData.value.type) {
             case 'success':
                 return 'shadow-green-500/50 border-green-400';
-            case 'error': // Tipo 'danger'
+            case 'error':
                 return 'shadow-red-500/50 border-red-400';
             case 'warning':
                 return 'shadow-amber-500/50 border-amber-400';
             default:
-                return 'shadow-indigo-500/30 border-white/10'; // Color por defecto
+                return 'shadow-indigo-500/30 border-white/10';
         }
     }
-    // 3. Estado normal por defecto.
     return 'shadow-indigo-500/30 border-white/10';
 });
 
 
 // --- Lógica de Mensaje de Bienvenida ---
 onMounted(() => {
-    // Si se pasó un mensaje de bienvenida, inicia el efecto de escritura.
     if (props.welcomeMessage) {
-        showWelcome.value = true;
+        setTimeout(() => {
+            showWelcome.value = true;
+        }, 100)
         isTyping.value = true;
         let i = 0;
         const typingInterval = setInterval(() => {
@@ -67,15 +68,13 @@ onMounted(() => {
             } else {
                 clearInterval(typingInterval);
                 isTyping.value = false;
-                // Espera 2 segundos después de terminar de escribir y luego oculta.
                 setTimeout(() => {
                     showWelcome.value = false;
-                }, 2000);
+                }, 1500);
             }
-        }, 100); // Velocidad de escritura (milisegundos por caracter)
+        }, 70);
     }
 
-    // Agrega el listener para clics fuera del notch en móvil
     watch(isToggledOpen, (newValue) => {
         if (newValue) {
             document.addEventListener('click', handleClickOutside, true);
@@ -85,7 +84,6 @@ onMounted(() => {
     });
 });
 
-// Limpieza del listener al desmontar el componente
 onBeforeUnmount(() => {
     document.removeEventListener('click', handleClickOutside, true);
 });
@@ -104,25 +102,31 @@ watch(() => page.props.flash, (newFlash) => {
             showFlash.value = false;
         }, 5000);
     }
-}, { deep: true });
+}, { deep: true, immediate: true });
 
+// **NUEVO:** Watcher para cerrar el menú móvil si el notch se contrae.
+watch(isNotchExpanded, (newValue) => {
+    if (!newValue) {
+        isMobileMenuOpen.value = false;
+    }
+});
 
 // --- Lógica de Interacción (Desktop/Móvil) ---
 const handleMouseEnter = () => {
-    if (window.innerWidth < 1024) return; // No activar con hover en pantallas pequeñas
+    if (window.innerWidth < 1024) return;
     clearTimeout(collapseTimer.value);
     isHovering.value = true;
 };
 
 const handleMouseLeave = () => {
-    if (window.innerWidth < 1024) return; // No activar con hover en pantallas pequeñas
+    if (window.innerWidth < 1024) return;
     collapseTimer.value = setTimeout(() => {
         isHovering.value = false;
-    }, 2000); // Retraso de 2 segundos para plegarse
+    }, 2000);
 };
 
 const handleNotchClick = () => {
-    if (window.innerWidth < 1024) { // Solo funciona con clic en pantallas pequeñas
+    if (window.innerWidth < 1024) {
         isToggledOpen.value = !isToggledOpen.value;
     }
 };
@@ -133,48 +137,20 @@ const handleClickOutside = (event) => {
     }
 };
 
-// --- Lógica de Idioma y Navegación ---
-const currentLang = ref('es');
-const toggleLang = () => {
-    currentLang.value = currentLang.value === 'es' ? 'en' : 'es';
-};
-
+// --- Lógica de Navegación ---
 const navLinks = ref([
-    { id: 'home', es: 'Inicio', en: 'Home', href: '/#inicio' },
-    { id: 'services', es: 'Servicios', en: 'Services', href: '/#servicios' },
-    { id: 'projects', es: 'Proyectos', en: 'Projects', href: '/#proyectos' },
-    { id: 'contact', es: 'Contacto', en: 'Contact', href: '/#contacto' },
+    { id: 'home', key: 'Home', href: '/#inicio' },
+    { id: 'services', key: 'Services', href: '/#servicios' },
+    { id: 'projects', key: 'Projects', href: '/#proyectos' },
+    { id: 'contact', key: 'Contact', href: '/#contacto' },
 ]);
 
-// Propiedad computada para obtener los enlaces en el idioma actual
-const localizedNavLinks = computed(() => {
-    return navLinks.value.map(link => ({
-        ...link,
-        name: link[currentLang.value]
-    }));
-});
-
-
-// --- Iconos SVG (Refactorizados como Componentes Funcionales) ---
+// --- Iconos SVG ---
 const commonSvgProps = (className) => ({
     xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24",
     fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round",
     "stroke-linejoin": "round", class: className
 });
-
-const HandWaveIcon = () => h('svg', commonSvgProps('h-6 w-6 text-indigo-300'), [
-    h('path', { d: "M18 18.5a.5.5 0 0 1-1 0V7.5a.5.5 0 0 1 1 0v11Z" }),
-    h('path', { d: "M13.5 18.5a.5.5 0 0 1-1 0V11a.5.5 0 0 1 1 0v7.5Z" }),
-    h('path', { d: "M9.5 18.5a.5.5 0 0 1-1 0V9.5a.5.5 0 0 1 1 0v9Z" }),
-    h('path', { d: "M6 18.5a.5.5 0 0 1-1 0V14a.5.5 0 0 1 1 0v4.5Z" }),
-    h('path', { d: "M2 14h12.5a2 2 0 0 0 1.9-2.9l-3.3-6.4a2 2 0 0 0-3.8.1L6.7 12H2Z" })
-]);
-
-const GlobeIcon = () => h('svg', commonSvgProps('h-5 w-5'), [
-    h('circle', { cx: "12", cy: "12", r: "10" }),
-    h('line', { x1: "2", y1: "12", x2: "22", y2: "12" }),
-    h('path', { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
-]);
 
 const CheckCircleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-green-400'), [
     h('path', { d: "M22 11.08V12a10 10 0 1 1-5.93-9.14" }),
@@ -185,6 +161,18 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
     h('path', { d: "m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" }),
     h('line', { x1: "12", y1: "9", y2: "13" }),
     h('line', { x1: "12", y1: "17", x2: "12.01", y2: "17" })
+]);
+
+// **NUEVO:** Iconos para el menú móvil.
+const MenuIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
+    h('line', { x1: "3", y1: "12", x2: "21", y2: "12" }),
+    h('line', { x1: "3", y1: "6", x2: "21", y2: "6" }),
+    h('line', { x1: "3", y1: "18", x2: "21", y2: "18" })
+]);
+
+const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
+    h('line', { x1: "18", y1: "6", x2: "6", y2: "18" }),
+    h('line', { x1: "6", y1: "6", x2: "18", y2: "18" })
 ]);
 
 </script>
@@ -199,10 +187,11 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
             @mouseleave="handleMouseLeave"
             @click="handleNotchClick"
             :class="[
-                'fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center',
+                headerPositionClass,
+                'top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center',
                 'transition-all duration-500 ease-in-out',
                 'bg-black/30 backdrop-blur-xl border-2 shadow-2xl',
-                notchDynamicClasses, // Clase computada para color y animación de borde y sombra
+                notchDynamicClasses,
                 {
                     'w-32 h-10 rounded-full': !isNotchExpanded,
                     'w-[90vw] max-w-4xl h-16 rounded-3xl': isNotchExpanded,
@@ -213,59 +202,92 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
             <div class="w-full h-full flex items-center justify-between px-5 transition-opacity duration-300"
                  :class="{ 'opacity-0': !isNotchExpanded, 'opacity-100 delay-200': isNotchExpanded }">
 
-                <!-- 1. Mensaje de Bienvenida (Máxima prioridad) -->
-                <div v-if="showWelcome" class="w-full flex items-center justify-center gap-4 animate-fade-in">
-                    <span class="text-white font-medium font-mono">{{ typedMessage }}</span>
-                    <span v-if="isTyping" class="typing-cursor text-indigo-500 text-lg">_</span>
-                </div>
-
-                <!-- 2. Mensaje Flash (Segunda prioridad) -->
-                <div v-else-if="showFlash" class="w-full flex items-center justify-center gap-4 animate-fade-in">
+                <!-- Mensaje flash -->
+                <div v-if="showFlash" class="w-full flex items-center justify-center gap-4 animate-fade-in">
                     <CheckCircleIcon v-if="flashData.type === 'success'" />
                     <AlertTriangleIcon v-if="['error', 'warning'].includes(flashData.type)" />
                     <span class="text-white font-medium">{{ flashData.message }}</span>
                 </div>
 
-                <!-- 3. Contenido Normal (se muestra si no hay mensajes) -->
+                <!-- Mensaje de bienvenida -->
+                <div v-else-if="showWelcome" class="w-full flex items-center justify-center gap-4 animate-fade-in">
+                    <span class="text-white font-medium font-mono">{{ typedMessage }}</span>
+                    <span v-if="isTyping" class="typing-cursor text-indigo-500 text-lg">_</span>
+                </div>
+
+                <!-- Contenido Normal -->
                 <template v-else-if="isNotchExpanded">
-                    <!-- Logo -->
-                    <Link href="/" class="text-xl font-bold tracking-wider hover:text-indigo-500 transition-colors hidden sm:inline">
-                        <AplicationLogo />
+                    <!-- Izquierda: Logo -->
+                    <Link href="/" class="shrink-0">
+                        <AplicationLogo class="h-8 w-auto" />
                     </Link>
 
-                    <!-- Enlaces de Navegación -->
-                    <nav class="flex-1 flex justify-center items-center space-x-2 sm:space-x-4 md:space-x-6">
-                        <a v-for="link in localizedNavLinks" :key="link.id" :href="link.href"
+                    <!-- Centro: Navegación Desktop -->
+                    <nav class="hidden sm:flex flex-1 justify-center items-center space-x-2 sm:space-x-4 md:space-x-6">
+                        <a v-for="link in navLinks" :key="link.id" :href="link.href"
                            class="text-xs sm:text-sm font-medium pb-1 border-b-2 border-transparent hover:border-indigo-500 hover:text-white transition-all duration-300">
-                            {{ link.name }}
+                            {{ t(link.key) }}
                         </a>
                     </nav>
 
-                    <!-- Controles y Acciones -->
-                    <div class="hidden md:flex items-center gap-4">
-                        <button @click.stop="toggleLang" class="flex items-center gap-2 p-2 rounded-full hover:bg-white/10 transition-colors">
-                            <GlobeIcon />
-                            <span class="text-sm font-semibold uppercase">{{ currentLang }}</span>
+                    <!-- Centro: Botón de Menú Móvil -->
+                    <div class="flex-1 flex justify-center items-center sm:hidden">
+                        <!-- **CAMBIO:** Se agrega el modificador .stop para evitar que el evento de clic se propague al header. -->
+                        <button @click.stop="isMobileMenuOpen = !isMobileMenuOpen" class="p-2 rounded-full hover:bg-white/10 transition-colors z-10">
+                            <XIcon v-if="isMobileMenuOpen" />
+                            <MenuIcon v-else />
                         </button>
-                        <div class="w-px h-6 bg-white/10"></div>
-                        <Button label="Login" severity="info" text />
-                        <Button label="Registrarse" severity="info" raised />
+                    </div>
+
+                    <!-- Derecha: Idioma y Acciones -->
+                    <div class="flex items-center justify-end gap-2 sm:gap-4 shrink-0">
+                        <div class="flex items-center gap-1 p-1 rounded-full bg-white/5">
+                            <Link :href="route('language.switch', 'es')" preserve-scroll
+                                  :class="['p-1 px-2 sm:px-3 rounded-full text-xs font-semibold transition-colors',
+                                  $page.props.locale === 'es' ? 'bg-indigo-500 text-white' : 'hover:bg-white/10']"
+                            >
+                                ES
+                            </Link>
+                            <Link :href="route('language.switch', 'en')" preserve-scroll
+                                  :class="['p-1 px-2 sm:px-3 rounded-full text-xs font-semibold transition-colors',
+                                  $page.props.locale === 'en' ? 'bg-indigo-500 text-white' : 'hover:bg-white/10']"
+                            >
+                                EN
+                            </Link>
+                        </div>
+
+                        <div class="hidden md:flex items-center gap-4">
+                            <div class="w-px h-6 bg-white/10"></div>
+                            <Button :label="t('Login')" severity="info" text />
+                            <Button :label="t('Register')" severity="info" raised />
+                        </div>
                     </div>
                 </template>
             </div>
 
-            <!-- Indicador en estado colapsado -->
-            <div
-                v-if="!isNotchExpanded"
-                class="absolute h-2 w-10 bg-indigo-500/50 rounded-full animate-pulse-slow"
-            ></div>
-
+            <div v-if="!isNotchExpanded" class="absolute h-2 w-10 bg-indigo-500/50 rounded-full animate-pulse-slow"></div>
         </header>
-        <!-- ======================================= -->
 
         <main class="pt-28">
             <slot />
         </main>
+
+        <!-- Menú desplegable para móvil -->
+        <transition name="slide-fade">
+            <div v-if="isMobileMenuOpen" 
+                 class="fixed inset-0 top-0 pt-24 z-40 sm:hidden" 
+                 @click="isMobileMenuOpen = false">
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                <div class="relative container mx-auto px-4">
+                    <nav class="bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 p-4 flex flex-col gap-2">
+                        <a v-for="link in navLinks" :key="link.id" :href="link.href" @click="isMobileMenuOpen = false"
+                           class="block text-center py-3 text-lg font-semibold hover:bg-indigo-500/20 rounded-lg transition-colors">
+                            {{ t(link.key) }}
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </transition>
 
         <!-- FOOTER -->
         <footer class="bg-black/30 backdrop-blur-lg border-t border-white/10 mt-20">
@@ -276,21 +298,21 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
                             <AplicationLogo height="16" />
                         </Link>
                         <p class="mt-4 text-sm text-gray-400 max-w-xs">
-                            Construyendo el futuro digital, una línea de código a la vez.
+                            {{ t('Building the digital future, one line of code at a time.') }}
                         </p>
                     </div>
                     <div class="flex flex-col items-center">
-                        <h3 class="font-semibold text-white tracking-wider">Navegación</h3>
+                        <h3 class="font-semibold text-white tracking-wider">{{ t('Navigation') }}</h3>
                         <ul class="mt-4 space-y-2">
-                            <li v-for="link in localizedNavLinks" :key="link.id">
+                            <li v-for="link in navLinks" :key="link.id">
                                 <a :href="link.href" class="text-gray-400 hover:text-indigo-500 transition-colors">
-                                    {{ link.name }}
+                                    {{ t(link.key) }}
                                 </a>
                             </li>
                         </ul>
                     </div>
                     <div class="flex flex-col items-center lg:items-end">
-                        <h3 class="font-semibold text-white tracking-wider">Síguenos</h3>
+                        <h3 class="font-semibold text-white tracking-wider">{{ t('Follow us') }}</h3>
                         <div class="mt-4 flex space-x-5">
                             <a href="#" class="text-gray-400 hover:text-indigo-500 transition-colors"><i class="pi pi-github" style="font-size: 1.5rem"></i></a>
                             <a href="#" class="text-gray-400 hover:text-indigo-500 transition-colors"><i class="pi pi-linkedin" style="font-size: 1.5rem"></i></a>
@@ -299,7 +321,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
                     </div>
                 </div>
                 <div class="mt-12 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-                    &copy; {{ new Date().getFullYear() }} DTW. Todos los derechos reservados.
+                    &copy; {{ new Date().getFullYear() }} DTW. {{ t('All rights reserved.') }}
                 </div>
             </div>
         </footer>
@@ -307,7 +329,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
 </template>
 
 <style scoped>
-/* Animaciones personalizadas con Keyframes */
+/* ... (estilos existentes se mantienen) ... */
 @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -332,23 +354,21 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
   animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Animación de brillo para la SOMBRA del mensaje de bienvenida */
 @keyframes welcome-glow {
-  0%   { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); } /* Indigo */
-  25%  { box-shadow: 0 25px 50px -12px rgba(236, 72, 153, 0.4); } /* Pink */
-  50%  { box-shadow: 0 25px 50px -12px rgba(22, 237, 244, 0.4); } /* Cyan */
-  75%  { box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.4); } /* Violet */
-  100% { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); } /* Indigo */
+  0%   { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
+  25%  { box-shadow: 0 25px 50px -12px rgba(236, 72, 153, 0.4); }
+  50%  { box-shadow: 0 25px 50px -12px rgba(22, 237, 244, 0.4); }
+  75%  { box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.4); }
+  100% { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
 }
 
 .animate-welcome-glow {
   animation: welcome-glow 5s ease-in-out infinite;
 }
 
-/* --- NUEVA ANIMACIÓN DE BORDE --- */
 .animated-border-welcome {
-  position: relative; /* Necesario para el posicionamiento del pseudo-elemento */
-  border-color: transparent; /* Oculta el borde base para mostrar el animado */
+  position: relative;
+  border-color: transparent;
 }
 
 .animated-border-welcome::before {
@@ -375,9 +395,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-/* --- FIN NUEVA ANIMACIÓN DE BORDE --- */
 
-/* Animación para el cursor de escritura */
 @keyframes blink {
   50% { opacity: 0; }
 }
@@ -385,4 +403,20 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
 .typing-cursor {
   animation: blink 1s step-end infinite;
 }
+
+/* **NUEVO:** Estilos para la transición del menú móvil */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
+}
 </style>
+

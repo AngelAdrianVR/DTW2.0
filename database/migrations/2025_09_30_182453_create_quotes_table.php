@@ -13,14 +13,19 @@ return new class extends Migration
     {
         Schema::create('quotes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('client_id')->constrained('clients');
-            $table->foreignId('user_id')->constrained('users')->comment('Usuario que creó la cotización');
+            $table->foreignId('client_id')->nullable()->constrained('clients');
+            $table->foreignId('user_id')->nullable()->constrained('users')->comment('Usuario que creó la cotización');
+
+            $table->string('client_name')->nullable(); // En caso de que el origen sea 'Web'
+            $table->string('client_email')->nullable(); // En caso de que el origen sea 'Web'
+            $table->string('client_phone')->nullable(); // En caso de que el origen sea 'Web'
+
             $table->string('quote_code')->unique()->comment('Código único (ej. COT-2024-001)');
-            $table->string('title');
+            $table->string('title')->nullable();
             $table->longText('description')->nullable()->comment('Descripción detallada del servicio y alcances');
             $table->decimal('amount', 15, 2)->default(0.00)->comment('Monto total del servicio cotizado');
-            $table->enum('status', ['draft', 'sent', 'accepted', 'rejected', 'in_negotiation'])->default('draft');
-            $table->enum('origin', ['internal', 'website_form'])->default('internal');
+            $table->enum('status', ['Pendiente', 'Enviado', 'Aceptado', 'Rechazado'])->default('Pendiente');
+            $table->enum('origin', ['Interno', 'Web'])->default('Interno');
             $table->date('valid_until')->nullable();
             $table->timestamps();
         });
