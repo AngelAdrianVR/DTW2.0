@@ -1,147 +1,148 @@
-<script setup>
+<script>
 import { ref, onMounted, onUnmounted } from 'vue';
 
-// Referencia al elemento canvas de la plantilla
-const heroCanvas = ref(null);
-// ID para el bucle de animación, para poder detenerlo
-let animationFrameId;
+export default {
+  // Usamos el API de Opciones para ser consistentes con tu Index.vue
+  // y para tener acceso a `this.t()` del mixin global.
+  setup() {
+    // Referencia al elemento canvas de la plantilla
+    const heroCanvas = ref(null);
+    // ID para el bucle de animación, para poder detenerlo
+    let animationFrameId;
 
-// Se ejecuta después de que el componente se monta en el DOM
-onMounted(() => {
-  const canvas = heroCanvas.value;
-  if (!canvas) return;
+    // Se ejecuta después de que el componente se monta en el DOM
+    onMounted(() => {
+      const canvas = heroCanvas.value;
+      if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  let particlesArray = [];
-  const numberOfParticles = 100;
+      const ctx = canvas.getContext('2d');
+      let particlesArray = [];
 
-  // Ajustar el tamaño del canvas a su contenedor
-  const resizeCanvas = () => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-  };
-  
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
+      // Clase para crear partículas individuales
+      // --- CORRECCIÓN: Se mueve la clase aquí, antes de ser usada ---
+      class Particle {
+        constructor(x, y, directionX, directionY, size, color) {
+          this.x = x;
+          this.y = y;
+          this.directionX = directionX;
+          this.directionY = directionY;
+          this.size = size;
+          this.color = color;
+        }
 
-  // Objeto para rastrear la posición del mouse
-  const mouse = {
-    x: null,
-    y: null,
-    radius: 150
-  };
-
-  canvas.addEventListener('mousemove', (event) => {
-    const rect = canvas.getBoundingClientRect();
-    mouse.x = event.clientX - rect.left;
-    mouse.y = event.clientY - rect.top;
-  });
-
-  canvas.addEventListener('mouseleave', () => {
-    mouse.x = null;
-    mouse.y = null;
-  });
-
-  // Clase para crear partículas individuales
-  class Particle {
-    constructor(x, y, directionX, directionY, size, color) {
-      this.x = x;
-      this.y = y;
-      this.directionX = directionX;
-      this.directionY = directionY;
-      this.size = size;
-      this.color = color;
-    }
-
-    // Método para dibujar la partícula
-    draw() {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-      ctx.fillStyle = '#8C92AC';
-      ctx.fill();
-    }
-
-    // Método para actualizar la posición de la partícula
-    update() {
-      if (this.x > canvas.width || this.x < 0) {
-        this.directionX = -this.directionX;
-      }
-      if (this.y > canvas.height || this.y < 0) {
-        this.directionY = -this.directionY;
-      }
-      this.x += this.directionX;
-      this.y += this.directionY;
-      this.draw();
-    }
-  }
-
-  // Inicializar el arreglo de partículas
-  function init() {
-    particlesArray = [];
-    let density = (canvas.width * canvas.height) / 9000;
-    for (let i = 0; i < density && i < 200; i++) {
-        let size = Math.random() * 2 + 1;
-        let x = Math.random() * (canvas.width - size * 2) + size;
-        let y = Math.random() * (canvas.height - size * 2) + size;
-        let directionX = (Math.random() * 2) - 1;
-        let directionY = (Math.random() * 2) - 1;
-        let color = '#8C92AC';
-        particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
-    }
-  }
-
-  // Conectar partículas cercanas con una línea
-  function connect() {
-    let opacityValue = 1;
-    for (let a = 0; a < particlesArray.length; a++) {
-      for (let b = a; b < particlesArray.length; b++) {
-        let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) +
-          ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
-        
-        if (distance < (canvas.width / 7) * (canvas.height / 7)) {
-          opacityValue = 1 - (distance / 20000);
-          ctx.strokeStyle = `rgba(140, 146, 172, ${opacityValue})`;
-          ctx.lineWidth = 1;
+        // Método para dibujar la partícula
+        draw() {
           ctx.beginPath();
-          ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-          ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-          ctx.stroke();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+          ctx.fillStyle = '#8C92AC';
+          ctx.fill();
+        }
+
+        // Método para actualizar la posición de la partícula
+        update() {
+          if (this.x > canvas.width || this.x < 0) {
+            this.directionX = -this.directionX;
+          }
+          if (this.y > canvas.height || this.y < 0) {
+            this.directionY = -this.directionY;
+          }
+          this.x += this.directionX;
+          this.y += this.directionY;
+          this.draw();
         }
       }
-    }
-  }
-  
-  // Bucle de animación
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let i = 0; i < particlesArray.length; i++) {
-      particlesArray[i].update();
-    }
-    connect();
-    animationFrameId = requestAnimationFrame(animate);
-  }
+      
+      // Ajustar el tamaño del canvas a su contenedor
+      const resizeCanvas = () => {
+        if (!canvas) return;
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        init(); // Reinicializar partículas al cambiar tamaño para evitar espacios vacíos
+      };
+      
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
 
-  init();
-  animate();
+      // Objeto para rastrear la posición del mouse
+      const mouse = {
+        x: null,
+        y: null,
+        radius: 150
+      };
 
-  // Limpieza al desmontar el componente
-  onUnmounted(() => {
-    cancelAnimationFrame(animationFrameId);
-    window.removeEventListener('resize', resizeCanvas);
-  });
-});
+      canvas.addEventListener('mousemove', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = event.clientX - rect.left;
+        mouse.y = event.clientY - rect.top;
+      });
 
-// En un entorno real, la función `t` vendría de una librería de internacionalización
-// La definimos aquí para que el componente sea autocontenido.
-const t = (key) => {
-    const translations = {
-        'Digital Innovation Without Limits': 'Innovación Digital Sin Límites',
-        'We transform ideas into cutting-edge technological solutions. We drive your vision towards the digital future.': 'Transformamos ideas en soluciones tecnológicas de vanguardia. Impulsamos tu visión hacia el futuro digital.',
-        'Explore Services': 'Explorar Servicios'
+      canvas.addEventListener('mouseleave', () => {
+        mouse.x = null;
+        mouse.y = null;
+      });
+
+      // Inicializar el arreglo de partículas
+      function init() {
+        particlesArray = [];
+        let density = (canvas.width * canvas.height) / 9000;
+        const maxParticles = 150; // Límite para no sobrecargar
+        for (let i = 0; i < density && i < maxParticles; i++) {
+            let size = Math.random() * 2 + 1;
+            let x = Math.random() * (canvas.width - size * 2) + size;
+            let y = Math.random() * (canvas.height - size * 2) + size;
+            let directionX = (Math.random() * 0.5) - 0.25; // Movimiento más lento
+            let directionY = (Math.random() * 0.5) - 0.25; // Movimiento más lento
+            let color = '#8C92AC';
+            particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+        }
+      }
+
+      // Conectar partículas cercanas con una línea
+      function connect() {
+        let opacityValue = 1;
+        for (let a = 0; a < particlesArray.length; a++) {
+          for (let b = a; b < particlesArray.length; b++) {
+            let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) +
+              ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+            
+            if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+              opacityValue = 1 - (distance / 20000);
+              ctx.strokeStyle = `rgba(140, 146, 172, ${opacityValue})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+              ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      
+      // Bucle de animación
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < particlesArray.length; i++) {
+          particlesArray[i].update();
+        }
+        connect();
+        animationFrameId = requestAnimationFrame(animate);
+      }
+
+      init();
+      animate();
+
+      // Limpieza al desmontar el componente
+      onUnmounted(() => {
+        cancelAnimationFrame(animationFrameId);
+        window.removeEventListener('resize', resizeCanvas);
+      });
+    });
+
+    return {
+      heroCanvas
     };
-    return translations[key] || key;
+  }
 }
-
 </script>
 
 <template>
@@ -152,6 +153,7 @@ const t = (key) => {
     
     <!-- Contenido superpuesto -->
     <div class="relative z-10">
+      <!-- Ahora usamos la función `t()` global que viene del mixin -->
       <h1 class="text-5xl md:text-7xl font-bold mb-4 text-glow">{{ t('Digital Innovation Without Limits') }}</h1>
       <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-12">
         {{ t('We transform ideas into cutting-edge technological solutions. We drive your vision towards the digital future.') }}
@@ -223,3 +225,4 @@ const t = (key) => {
              inset 0 0 .5em .25em var(--glow-color);
 }
 </style>
+

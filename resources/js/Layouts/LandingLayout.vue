@@ -13,9 +13,6 @@ const props = defineProps({
     title: String,
 });
 
-// --- Ya no se necesita la inyección local del helper de traducción ---
-// La función t() ahora es global gracias al mixin en app.js
-
 // --- Estado del Notch ---
 const isHovering = ref(false);
 const isToggledOpen = ref(false);
@@ -24,12 +21,17 @@ const showWelcome = ref(false);
 const flashData = ref({ message: '', type: 'success' });
 const collapseTimer = ref(null);
 const notchRef = ref(null);
+const isMobileMenuOpen = ref(false); // **NUEVO:** Estado para el menú móvil
 
 // --- Estado del Mensaje de Bienvenida ---
 const typedMessage = ref('');
 const isTyping = ref(false);
 
 const isNotchExpanded = computed(() => isHovering.value || showFlash.value || showWelcome.value || isToggledOpen.value);
+
+const headerPositionClass = computed(() => {
+    return showWelcome.value ? 'absolute' : 'fixed';
+});
 
 const notchDynamicClasses = computed(() => {
     if (showWelcome.value) {
@@ -100,8 +102,14 @@ watch(() => page.props.flash, (newFlash) => {
             showFlash.value = false;
         }, 5000);
     }
-}, { deep: true });
+}, { deep: true, immediate: true });
 
+// **NUEVO:** Watcher para cerrar el menú móvil si el notch se contrae.
+watch(isNotchExpanded, (newValue) => {
+    if (!newValue) {
+        isMobileMenuOpen.value = false;
+    }
+});
 
 // --- Lógica de Interacción (Desktop/Móvil) ---
 const handleMouseEnter = () => {
@@ -144,12 +152,6 @@ const commonSvgProps = (className) => ({
     "stroke-linejoin": "round", class: className
 });
 
-const GlobeIcon = () => h('svg', commonSvgProps('h-5 w-5'), [
-    h('circle', { cx: "12", cy: "12", r: "10" }),
-    h('line', { x1: "2", y1: "12", x2: "22", y2: "12" }),
-    h('path', { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
-]);
-
 const CheckCircleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-green-400'), [
     h('path', { d: "M22 11.08V12a10 10 0 1 1-5.93-9.14" }),
     h('polyline', { points: "22 4 12 14.01 9 11.01" })
@@ -161,7 +163,18 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
     h('line', { x1: "12", y1: "17", x2: "12.01", y2: "17" })
 ]);
 
-// --- SE ELIMINA LA FUNCIÓN useTranslations local ---
+// **NUEVO:** Iconos para el menú móvil.
+const MenuIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
+    h('line', { x1: "3", y1: "12", x2: "21", y2: "12" }),
+    h('line', { x1: "3", y1: "6", x2: "21", y2: "6" }),
+    h('line', { x1: "3", y1: "18", x2: "21", y2: "18" })
+]);
+
+const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
+    h('line', { x1: "18", y1: "6", x2: "6", y2: "18" }),
+    h('line', { x1: "6", y1: "6", x2: "18", y2: "18" })
+]);
+
 </script>
 
 <template>
@@ -174,7 +187,8 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
             @mouseleave="handleMouseLeave"
             @click="handleNotchClick"
             :class="[
-                'fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center',
+                headerPositionClass,
+                'top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center',
                 'transition-all duration-500 ease-in-out',
                 'bg-black/30 backdrop-blur-xl border-2 shadow-2xl',
                 notchDynamicClasses,
@@ -188,55 +202,65 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
             <div class="w-full h-full flex items-center justify-between px-5 transition-opacity duration-300"
                  :class="{ 'opacity-0': !isNotchExpanded, 'opacity-100 delay-200': isNotchExpanded }">
 
-                <!-- ... (Mensajes de bienvenida y flash se quedan igual) ... -->
-                <div v-if="showWelcome" class="w-full flex items-center justify-center gap-4 animate-fade-in">
-                    <span class="text-white font-medium font-mono">{{ typedMessage }}</span>
-                    <span v-if="isTyping" class="typing-cursor text-indigo-500 text-lg">_</span>
-                </div>
-
-                <div v-else-if="showFlash" class="w-full flex items-center justify-center gap-4 animate-fade-in">
+                <!-- Mensaje flash -->
+                <div v-if="showFlash" class="w-full flex items-center justify-center gap-4 animate-fade-in">
                     <CheckCircleIcon v-if="flashData.type === 'success'" />
                     <AlertTriangleIcon v-if="['error', 'warning'].includes(flashData.type)" />
                     <span class="text-white font-medium">{{ flashData.message }}</span>
                 </div>
 
-                <!-- 3. Contenido Normal (se muestra si no hay mensajes) -->
+                <!-- Mensaje de bienvenida -->
+                <div v-else-if="showWelcome" class="w-full flex items-center justify-center gap-4 animate-fade-in">
+                    <span class="text-white font-medium font-mono">{{ typedMessage }}</span>
+                    <span v-if="isTyping" class="typing-cursor text-indigo-500 text-lg">_</span>
+                </div>
+
+                <!-- Contenido Normal -->
                 <template v-else-if="isNotchExpanded">
-                    <!-- Logo -->
-                    <Link href="/" class="text-xl font-bold tracking-wider hover:text-indigo-500 transition-colors hidden sm:inline">
-                        <AplicationLogo />
+                    <!-- Izquierda: Logo -->
+                    <Link href="/" class="shrink-0">
+                        <AplicationLogo class="h-8 w-auto" />
                     </Link>
 
-                    <!-- Enlaces de Navegación -->
-                    <nav class="flex-1 flex justify-center items-center space-x-2 sm:space-x-4 md:space-x-6">
-                        <!-- Usamos el helper t() para traducir el 'key' de cada enlace -->
+                    <!-- Centro: Navegación Desktop -->
+                    <nav class="hidden sm:flex flex-1 justify-center items-center space-x-2 sm:space-x-4 md:space-x-6">
                         <a v-for="link in navLinks" :key="link.id" :href="link.href"
                            class="text-xs sm:text-sm font-medium pb-1 border-b-2 border-transparent hover:border-indigo-500 hover:text-white transition-all duration-300">
                             {{ t(link.key) }}
                         </a>
                     </nav>
 
-                    <!-- CAMBIO: Controles de Idioma y Acciones -->
-                    <div class="hidden md:flex items-center gap-4">
-                        <div class="flex items-center gap-2 p-1 rounded-full bg-white/5">
-                            <!-- Botón para Español -->
+                    <!-- Centro: Botón de Menú Móvil -->
+                    <div class="flex-1 flex justify-center items-center sm:hidden">
+                        <!-- **CAMBIO:** Se agrega el modificador .stop para evitar que el evento de clic se propague al header. -->
+                        <button @click.stop="isMobileMenuOpen = !isMobileMenuOpen" class="p-2 rounded-full hover:bg-white/10 transition-colors z-10">
+                            <XIcon v-if="isMobileMenuOpen" />
+                            <MenuIcon v-else />
+                        </button>
+                    </div>
+
+                    <!-- Derecha: Idioma y Acciones -->
+                    <div class="flex items-center justify-end gap-2 sm:gap-4 shrink-0">
+                        <div class="flex items-center gap-1 p-1 rounded-full bg-white/5">
                             <Link :href="route('language.switch', 'es')" preserve-scroll
-                                  :class="['p-1 px-3 rounded-full text-xs font-semibold transition-colors',
+                                  :class="['p-1 px-2 sm:px-3 rounded-full text-xs font-semibold transition-colors',
                                   $page.props.locale === 'es' ? 'bg-indigo-500 text-white' : 'hover:bg-white/10']"
                             >
                                 ES
                             </Link>
-                            <!-- Botón para Inglés -->
                             <Link :href="route('language.switch', 'en')" preserve-scroll
-                                  :class="['p-1 px-3 rounded-full text-xs font-semibold transition-colors',
+                                  :class="['p-1 px-2 sm:px-3 rounded-full text-xs font-semibold transition-colors',
                                   $page.props.locale === 'en' ? 'bg-indigo-500 text-white' : 'hover:bg-white/10']"
                             >
                                 EN
                             </Link>
                         </div>
-                        <div class="w-px h-6 bg-white/10"></div>
-                        <Button :label="t('Login')" severity="info" text />
-                        <Button :label="t('Register')" severity="info" raised />
+
+                        <div class="hidden md:flex items-center gap-4">
+                            <div class="w-px h-6 bg-white/10"></div>
+                            <Button :label="t('Login')" severity="info" text />
+                            <Button :label="t('Register')" severity="info" raised />
+                        </div>
                     </div>
                 </template>
             </div>
@@ -248,6 +272,23 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
             <slot />
         </main>
 
+        <!-- Menú desplegable para móvil -->
+        <transition name="slide-fade">
+            <div v-if="isMobileMenuOpen" 
+                 class="fixed inset-0 top-0 pt-24 z-40 sm:hidden" 
+                 @click="isMobileMenuOpen = false">
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                <div class="relative container mx-auto px-4">
+                    <nav class="bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 p-4 flex flex-col gap-2">
+                        <a v-for="link in navLinks" :key="link.id" :href="link.href" @click="isMobileMenuOpen = false"
+                           class="block text-center py-3 text-lg font-semibold hover:bg-indigo-500/20 rounded-lg transition-colors">
+                            {{ t(link.key) }}
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </transition>
+
         <!-- FOOTER -->
         <footer class="bg-black/30 backdrop-blur-lg border-t border-white/10 mt-20">
             <div class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -256,7 +297,6 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
                         <Link href="/" class="text-2xl font-bold tracking-wider">
                             <AplicationLogo height="16" />
                         </Link>
-                        <!-- CAMBIO: Texto del footer traducido -->
                         <p class="mt-4 text-sm text-gray-400 max-w-xs">
                             {{ t('Building the digital future, one line of code at a time.') }}
                         </p>
@@ -264,7 +304,6 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
                     <div class="flex flex-col items-center">
                         <h3 class="font-semibold text-white tracking-wider">{{ t('Navigation') }}</h3>
                         <ul class="mt-4 space-y-2">
-                             <!-- Usamos el helper t() también en los enlaces del footer -->
                             <li v-for="link in navLinks" :key="link.id">
                                 <a :href="link.href" class="text-gray-400 hover:text-indigo-500 transition-colors">
                                     {{ t(link.key) }}
@@ -290,7 +329,7 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
 </template>
 
 <style scoped>
-/* ... (tus estilos se mantienen igual) ... */
+/* ... (estilos existentes se mantienen) ... */
 @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -364,4 +403,20 @@ const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'),
 .typing-cursor {
   animation: blink 1s step-end infinite;
 }
+
+/* **NUEVO:** Estilos para la transición del menú móvil */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
+}
 </style>
+

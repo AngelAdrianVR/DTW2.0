@@ -1,6 +1,9 @@
 <script>
 import LandingLayout from '@/Layouts/LandingLayout.vue';
 import InteractiveHero from '@/Components/MyComponents/InteractiveHero.vue';
+import InteractiveServices from '@/Components/MyComponents/InteractiveServices.vue';
+import InteractiveProjects from '@/Components/MyComponents/InteractiveProjects.vue';
+import InteractiveContact from '@/Components/MyComponents/InteractiveContact.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
@@ -15,19 +18,59 @@ export default {
     Textarea,
     LandingLayout,
     InteractiveHero,
+    InteractiveContact,
+    InteractiveProjects,
+    InteractiveServices,
   },
-
-  // ELIMINAMOS EL MÉTODO `setup()`
-  // La función `t()` ahora se obtiene de las propiedades globales de la app,
-  // configurada en `resources/js/app.js`.
 
   // Los datos contienen las CLAVES de traducción
   data() {
     return {
       services: [
-        { icon: 'pi pi-code', title: 'Custom Web Development', description: 'Robust and scalable web solutions, from landing pages to complex applications.' },
-        { icon: 'pi pi-mobile', title: 'Mobile Applications', description: 'Native and hybrid apps for iOS and Android, focused on user experience.' },
-        { icon: 'pi pi-cloud', title: 'Cloud Solutions', description: 'Cloud infrastructure, microservices, and continuous deployment for maximum efficiency.' },
+        {
+          id: 'web',
+          icon: 'pi pi-code',
+          title: 'Custom Web Development',
+          description: 'Robust and scalable web solutions, from landing pages to complex applications.',
+          detailedDescription: 'From corporate websites to complex e-commerce platforms and custom web applications, we create digital experiences that captivate and convert. We use modern technologies like Vue.js, React, and Node.js to build fast, secure, and scalable solutions tailored to your needs.',
+          images: [
+            'https://placehold.co/600x400/111827/17EDF4?text=Dashboard+UI',
+            'https://placehold.co/600x400/111827/6215C0?text=API+Integration'
+          ]
+        },
+        {
+          id: 'mobile',
+          icon: 'pi pi-mobile',
+          title: 'Mobile Applications',
+          description: 'Native and hybrid apps for iOS and Android, focused on user experience.',
+          detailedDescription: 'We design and develop mobile applications for iOS and Android that stand out for their intuitive interface and flawless performance. Whether native or hybrid, we focus on creating apps that users love and that drive business growth.',
+          images: [
+            'https://placehold.co/600x400/111827/17EDF4?text=iOS+App+Screen',
+            'https://placehold.co/600x400/111827/6215C0?text=Android+UI/UX'
+          ]
+        },
+        {
+          id: 'cloud',
+          icon: 'pi pi-cloud',
+          title: 'Cloud Solutions',
+          description: 'Cloud infrastructure, microservices, and continuous deployment for maximum efficiency.',
+          detailedDescription: 'We help you migrate, manage, and optimize your infrastructure in the cloud. We design scalable architectures with microservices, implement CI/CD pipelines for agile deployments, and ensure the security and availability of your applications on platforms like AWS, Google Cloud, and Azure.',
+          images: [
+            'https://placehold.co/600x400/111827/17EDF4?text=Cloud+Server',
+            'https://placehold.co/600x400/111827/6215C0?text=Deployment+Flow'
+          ]
+        },
+        {
+            id: 'iot',
+            icon: 'pi pi-globe',
+            title: 'IoT & Automations',
+            description: 'Connecting the physical world to the digital, creating intelligent systems.',
+            detailedDescription: 'We specialize in developing IoT solutions that connect devices, collect data, and enable intelligent automation. From smart homes to industrial applications, we transform processes and create new opportunities through connectivity and real-time data analysis.',
+            images: [
+                'https://placehold.co/600x400/111827/17EDF4?text=Smart+Sensor',
+                'https://placehold.co/600x400/111827/6215C0?text=Control+Panel'
+            ]
+        }
       ],
       projects: [
         { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Alpha', title: 'E-learning Platform', description: 'Learning management system with gamification.' },
@@ -48,7 +91,8 @@ export default {
       return this.services.map(service => ({
         ...service,
         title: this.t(service.title),
-        description: this.t(service.description)
+        description: this.t(service.description),
+        detailedDescription: this.t(service.detailedDescription)
       }));
     },
     translatedProjects() {
@@ -73,72 +117,13 @@ export default {
             <InteractiveHero />
 
             <!-- SECCIÓN SERVICIOS -->
-            <section id="servicios" class="py-20 px-4">
-            <div class="container mx-auto">
-                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>{{ t('Our Services') }}</span></h2>
-                <div class="grid md:grid-cols-3 gap-8">
-                <Card v-for="service in translatedServices" :key="service.title" class="service-card">
-                    <template #header>
-                    <div class="p-4 text-center">
-                        <i :class="service.icon" style="font-size: 3rem; color: #17EDF4;"></i>
-                    </div>
-                    </template>
-                    <template #title>
-                    <h3 class="text-xl font-semibold text-center">{{ service.title }}</h3>
-                    </template>
-                    <template #content>
-                    <p class="text-gray-400 text-center">{{ service.description }}</p>
-                    </template>
-                </Card>
-                </div>
-            </div>
-            </section>
+            <InteractiveServices :services="translatedServices" />
 
             <!-- SECCIÓN PROYECTOS -->
-            <section id="proyectos" class="py-20 px-4 bg-gray-900/50">
-            <div class="container mx-auto">
-                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>{{ t('Featured Projects') }}</span></h2>
-                <div class="grid md:grid-cols-3 gap-8">
-                <Card v-for="project in translatedProjects" :key="project.title" class="project-card">
-                    <template #header>
-                    <img :src="project.image" :alt="project.title" class="rounded-t-lg">
-                    </template>
-                    <template #title>
-                    <h3 class="text-xl font-semibold">{{ project.title }}</h3>
-                    </template>
-                    <template #content>
-                    <p class="text-gray-400">{{ project.description }}</p>
-                    </template>
-                </Card>
-                </div>
-            </div>
-            </section>
+            <InteractiveProjects :projects="translatedProjects" />
 
             <!-- SECCIÓN CONTACTO -->
-            <section id="contacto" class="py-20 px-4">
-            <div class="container mx-auto max-w-2xl">
-                <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>{{ t("Let's Talk") }}</span></h2>
-                <div class="contact-form p-8">
-                <form @submit.prevent>
-                    <div class="flex flex-col gap-6">
-                    <span class="p-float-label">
-                        <InputText id="name" v-model="contactForm.name" class="w-full" />
-                        <label for="name">{{ t('Name') }}</label>
-                    </span>
-                    <span class="p-float-label">
-                        <InputText id="email" v-model="contactForm.email" type="email" class="w-full" />
-                        <label for="email">{{ t('Email') }}</label>
-                    </span>
-                    <span class="p-float-label">
-                        <Textarea id="message" v-model="contactForm.message" rows="5" class="w-full" />
-                        <label for="message">{{ t('Message') }}</label>
-                    </span>
-                    <Button type="submit" :label="t('Send Message')" severity="info" raised class="w-full" />
-                    </div>
-                </form>
-                </div>
-            </div>
-            </section>
+            <InteractiveContact />
         </div>
     </LandingLayout>
 </template>

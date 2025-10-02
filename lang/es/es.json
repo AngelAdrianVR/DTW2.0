@@ -15,6 +15,13 @@
     "Native and hybrid apps for iOS and Android, focused on user experience.": "Apps nativas e híbridas para iOS y Android, centradas en la experiencia de usuario.",
     "Cloud Solutions": "Soluciones en la Nube",
     "Cloud infrastructure, microservices, and continuous deployment for maximum efficiency.": "Infraestructura cloud, microservicios y despliegue continuo para máxima eficiencia.",
+    "IoT & Automations": "IoT y Automatizaciones",
+    "Connecting the physical world to the digital, creating intelligent systems.": "Conectando el mundo físico al digital, creando sistemas inteligentes.",
+    "From corporate websites to complex e-commerce platforms and custom web applications, we create digital experiences that captivate and convert. We use modern technologies like Vue.js, React, and Node.js to build fast, secure, and scalable solutions tailored to your needs.": "Desde sitios web corporativos hasta complejas plataformas de e-commerce y aplicaciones web a medida, creamos experiencias digitales que cautivan y convierten. Usamos tecnologías modernas como Vue.js, React y Node.js para construir soluciones rápidas, seguras y escalables adaptadas a tus necesidades.",
+    "We design and develop mobile applications for iOS and Android that stand out for their intuitive interface and flawless performance. Whether native or hybrid, we focus on creating apps that users love and that drive business growth.": "Diseñamos y desarrollamos aplicaciones móviles para iOS y Android que destacan por su interfaz intuitiva y rendimiento impecable. Ya sean nativas o híbridas, nos enfocamos en crear apps que los usuarios aman y que impulsan el crecimiento del negocio.",
+    "We help you migrate, manage, and optimize your infrastructure in the cloud. We design scalable architectures with microservices, implement CI/CD pipelines for agile deployments, and ensure the security and availability of your applications on platforms like AWS, Google Cloud, and Azure.": "Te ayudamos a migrar, gestionar y optimizar tu infraestructura en la nube. Diseñamos arquitecturas escalables con microservicios, implementamos pipelines de CI/CD para despliegues ágiles y garantizamos la seguridad y disponibilidad de tus aplicaciones en plataformas como AWS, Google Cloud y Azure.",
+    "We specialize in developing IoT solutions that connect devices, collect data, and enable intelligent automation. From smart homes to industrial applications, we transform processes and create new opportunities through connectivity and real-time data analysis.": "Nos especializamos en desarrollar soluciones IoT que conectan dispositivos, recopilan datos y permiten automatizaciones inteligentes. Desde hogares inteligentes hasta aplicaciones industriales, transformamos procesos y creamos nuevas oportunidades a través de la conectividad y el análisis de datos en tiempo real.",
+    "Back": "Volver",
     "Featured Projects": "Proyectos Destacados",
     "E-learning Platform": "Plataforma de E-learning",
     "Learning management system with gamification.": "Sistema de gestión de aprendizaje con gamificación.",
@@ -30,6 +37,10 @@
     "Building the digital future, one line of code at a time.": "Construyendo el futuro digital, una línea de código a la vez.",
     "Navigation": "Navegación",
     "Follow us": "Síguenos",
-    "All rights reserved.": "Todos los derechos reservados."
+    "All rights reserved.": "Todos los derechos reservados.",
+    "Service of Interest": "Servicio de interés",
+    "Phone": "Teléfono",
+    "Tell us about your project": "Platicanos sobre tu proyecto",
+    "Send Request": "Mandar Solicitud",
+    "Request a Quote": "Solicitar una Cotización"
 }
-
