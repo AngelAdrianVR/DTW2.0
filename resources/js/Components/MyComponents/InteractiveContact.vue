@@ -1,8 +1,6 @@
 <script setup>
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import InputText from 'primevue/inputtext';
-import Textarea from 'primevue/textarea';
 
 // Usamos el helper de formularios de Inertia para manejar el estado y envío
 const form = useForm({

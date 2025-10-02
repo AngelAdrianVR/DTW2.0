@@ -8,6 +8,7 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
 // Importa PrimeVue y su configuración
 import PrimeVue from 'primevue/config';
+import Aura from '@primeuix/themes/aura';
 
 // No es necesario importar useTranslations aquí si se define en el mixin
 
@@ -18,7 +19,7 @@ createInertiaApp({
     resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
         const vueApp = createApp({ render: () => h(App, props) });
-
+        
         // Hacemos la función de traducción 't()' disponible globalmente en todos los componentes
         vueApp.mixin({
             methods: {
@@ -40,7 +41,9 @@ createInertiaApp({
         vueApp
             .use(plugin)
             .use(ZiggyVue)
-            .use(PrimeVue, { ripple: true }) // Configura PrimeVue
+            .use(PrimeVue, { ripple: true, theme: {
+                preset: Aura
+            } }) // Configura PrimeVue
             .mount(el);
     },
     progress: {

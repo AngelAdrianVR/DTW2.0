@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Quote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class QuoteController extends Controller
@@ -61,14 +62,16 @@ class QuoteController extends Controller
             'description' => 'required|string|max:5000',
         ]);
 
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
+        // if ($validator->fails()) {
+        //     // Si la validación falla, regresamos con los errores y los datos enviados.
+        //     // Laravel e Inertia se encargarán de mostrar los errores automáticamente.
+        //     return back()->withErrors($validator)->withInput();
+        // }
 
         // 2. Creación de la cotización
         try {
             Quote::create([
-                'user_id' => 1, // Asigna un usuario por defecto (ej. ID 1 para el admin/sistema)
+                'user_id' => null,
                 'client_name' => $request->input('client_name'),
                 'client_email' => $request->input('client_email'),
                 'client_phone' => $request->input('client_phone'),
@@ -81,16 +84,19 @@ class QuoteController extends Controller
                 'valid_until' => now()->addDays(30),
             ]);
         } catch (\Exception $e) {
-            // Manejo de error en caso de que falle la creación
-            // **CAMBIO:** Se envía un mensaje flash con el formato esperado por el Layout
+            // Es una buena práctica registrar el error para depuración.
+            Log::error('Error al crear la cotización: ' . $e->getMessage());
+
+            // En caso de un error en la base de datos, enviamos un mensaje flash de error.
             return back()->with('flash', [
-                'message' => 'Hubo un problema al enviar tu solicitud. Por favor, intenta de nuevo.',
+                'message' => 'Hubo un problema al enviar tu solicitud. Por favor, intenta de nuevo más tarde.',
                 'type' => 'error'
             ]);
         }
 
         // 3. Redirección con mensaje de éxito
-        // **CAMBIO:** Se envía un mensaje flash con el formato esperado por el Layout
+        // Si todo sale bien, enviamos el mensaje flash de éxito.
+        // El layout de Vue escuchará este evento y lo mostrará en el notch.
         return back()->with('flash', [
             'message' => '¡Tu solicitud ha sido enviada con éxito!',
             'type' => 'success'

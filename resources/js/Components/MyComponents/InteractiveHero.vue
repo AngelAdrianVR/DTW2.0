@@ -19,7 +19,6 @@ export default {
       let particlesArray = [];
 
       // Clase para crear partículas individuales
-      // --- CORRECCIÓN: Se mueve la clase aquí, antes de ser usada ---
       class Particle {
         constructor(x, y, directionX, directionY, size, color) {
           this.x = x;
@@ -84,14 +83,14 @@ export default {
       // Inicializar el arreglo de partículas
       function init() {
         particlesArray = [];
-        let density = (canvas.width * canvas.height) / 9000;
-        const maxParticles = 150; // Límite para no sobrecargar
+        let density = (canvas.width * canvas.height) / 10000; // Reducir densidad
+        const maxParticles = 100; // Límite reducido para mejor rendimiento
         for (let i = 0; i < density && i < maxParticles; i++) {
-            let size = Math.random() * 2 + 1;
+            let size = Math.random() * 1.5 + 1; // Partículas ligeramente más pequeñas
             let x = Math.random() * (canvas.width - size * 2) + size;
             let y = Math.random() * (canvas.height - size * 2) + size;
-            let directionX = (Math.random() * 0.5) - 0.25; // Movimiento más lento
-            let directionY = (Math.random() * 0.5) - 0.25; // Movimiento más lento
+            let directionX = (Math.random() * 0.4) - 0.2; // Movimiento más lento
+            let directionY = (Math.random() * 0.4) - 0.2; // Movimiento más lento
             let color = '#8C92AC';
             particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
         }
@@ -105,8 +104,8 @@ export default {
             let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) +
               ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
             
-            if (distance < (canvas.width / 7) * (canvas.height / 7)) {
-              opacityValue = 1 - (distance / 20000);
+            if (distance < (canvas.width / 8) * (canvas.height / 8)) { // Aumentar un poco el radio de conexión
+              opacityValue = 1 - (distance / 25000); // Ajustar el desvanecimiento
               ctx.strokeStyle = `rgba(140, 146, 172, ${opacityValue})`;
               ctx.lineWidth = 1;
               ctx.beginPath();
@@ -154,8 +153,8 @@ export default {
     <!-- Contenido superpuesto -->
     <div class="relative z-10">
       <!-- Ahora usamos la función `t()` global que viene del mixin -->
-      <h1 class="text-5xl md:text-7xl font-bold mb-4 text-glow">{{ t('Digital Innovation Without Limits') }}</h1>
-      <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-12">
+      <h1 class="text-5xl md:text-7xl font-bold mb-4 text-glow fade-in-up-h1">{{ t('Digital Innovation Without Limits') }}</h1>
+      <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-12 fade-in-up-p">
         {{ t('We transform ideas into cutting-edge technological solutions. We drive your vision towards the digital future.') }}
       </p>
       <!-- Botón de llamada a la acción con estilo futurista -->
@@ -169,6 +168,28 @@ export default {
 </template>
 
 <style scoped>
+/* Animaciones de entrada para el texto */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up-h1 {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.fade-in-up-p {
+  animation: fadeInUp 0.8s ease-out 0.3s forwards;
+  opacity: 0; /* Inicia invisible hasta que la animación comience */
+}
+
+
 /* Estilos para el texto con efecto de brillo */
 .text-glow {
   text-shadow: 0 0 8px rgba(23, 237, 244, 0.6), 0 0 20px rgba(98, 21, 192, 0.5);
@@ -225,4 +246,3 @@ export default {
              inset 0 0 .5em .25em var(--glow-color);
 }
 </style>
-

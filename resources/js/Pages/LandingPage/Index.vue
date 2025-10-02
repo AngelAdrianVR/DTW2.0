@@ -4,6 +4,7 @@ import InteractiveHero from '@/Components/MyComponents/InteractiveHero.vue';
 import InteractiveServices from '@/Components/MyComponents/InteractiveServices.vue';
 import InteractiveProjects from '@/Components/MyComponents/InteractiveProjects.vue';
 import InteractiveContact from '@/Components/MyComponents/InteractiveContact.vue';
+import InteractiveClients from '@/Components/MyComponents/InteractiveClients.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
@@ -18,6 +19,7 @@ export default {
     Textarea,
     LandingLayout,
     InteractiveHero,
+    InteractiveClients,
     InteractiveContact,
     InteractiveProjects,
     InteractiveServices,
@@ -122,8 +124,13 @@ export default {
             <!-- SECCIÓN PROYECTOS -->
             <InteractiveProjects :projects="translatedProjects" />
 
+            <!-- SECCIÓN CLIENTES -->
+            <InteractiveClients />
+
             <!-- SECCIÓN CONTACTO -->
             <InteractiveContact />
+
+            
         </div>
     </LandingLayout>
 </template>

@@ -21,7 +21,7 @@ const showWelcome = ref(false);
 const flashData = ref({ message: '', type: 'success' });
 const collapseTimer = ref(null);
 const notchRef = ref(null);
-const isMobileMenuOpen = ref(false); // **NUEVO:** Estado para el menú móvil
+const isMobileMenuOpen = ref(false);
 
 // --- Estado del Mensaje de Bienvenida ---
 const typedMessage = ref('');
@@ -92,19 +92,21 @@ onBeforeUnmount(() => {
 // --- Lógica de Flash Messages (Inertia) ---
 const page = usePage();
 watch(() => page.props.flash, (newFlash) => {
+    // Verificamos que el nuevo flash tenga un mensaje para evitar activaciones accidentales.
     if (newFlash && newFlash.message) {
         flashData.value = {
             message: newFlash.message,
             type: newFlash.type || 'success'
         };
         showFlash.value = true;
+        // El notch se expandirá para mostrar el mensaje y se cerrará después de 5 segundos.
         setTimeout(() => {
             showFlash.value = false;
         }, 5000);
     }
-}, { deep: true, immediate: true });
+}, { deep: true }); // No es necesario 'immediate: true' si el middleware lo maneja correctamente.
 
-// **NUEVO:** Watcher para cerrar el menú móvil si el notch se contrae.
+// Watcher para cerrar el menú móvil si el notch se contrae.
 watch(isNotchExpanded, (newValue) => {
     if (!newValue) {
         isMobileMenuOpen.value = false;
@@ -157,13 +159,19 @@ const CheckCircleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-green-400'),
     h('polyline', { points: "22 4 12 14.01 9 11.01" })
 ]);
 
-const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'), [
+const AlertTriangleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-amber-400'), [
     h('path', { d: "m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" }),
     h('line', { x1: "12", y1: "9", y2: "13" }),
     h('line', { x1: "12", y1: "17", x2: "12.01", y2: "17" })
 ]);
 
-// **NUEVO:** Iconos para el menú móvil.
+const XCircleIcon = () => h('svg', commonSvgProps('h-6 w-6 text-red-400'), [
+    h('circle', { cx: "12", cy: "12", r: "10" }),
+    h('line', { x1: "15", y1: "9", x2: "9", y2: "15" }),
+    h('line', { x1: "9", y1: "9", x2: "15", y2: "15" })
+]);
+
+
 const MenuIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
     h('line', { x1: "3", y1: "12", x2: "21", y2: "12" }),
     h('line', { x1: "3", y1: "6", x2: "21", y2: "6" }),
@@ -179,7 +187,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 
 <template>
     <Head :title="title" />
-    <div class="bg-gray-800 min-h-screen text-gray-200 font-sans">
+    <div class="bg-gray-900 min-h-screen text-gray-200 font-sans selection:bg-indigo-500/30">
         <!-- =========== Notch Interactivo =========== -->
         <header
             ref="notchRef"
@@ -205,7 +213,8 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                 <!-- Mensaje flash -->
                 <div v-if="showFlash" class="w-full flex items-center justify-center gap-4 animate-fade-in">
                     <CheckCircleIcon v-if="flashData.type === 'success'" />
-                    <AlertTriangleIcon v-if="['error', 'warning'].includes(flashData.type)" />
+                    <AlertTriangleIcon v-if="flashData.type === 'warning'" />
+                    <XCircleIcon v-if="flashData.type === 'error'" />
                     <span class="text-white font-medium">{{ flashData.message }}</span>
                 </div>
 
@@ -232,7 +241,6 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 
                     <!-- Centro: Botón de Menú Móvil -->
                     <div class="flex-1 flex justify-center items-center sm:hidden">
-                        <!-- **CAMBIO:** Se agrega el modificador .stop para evitar que el evento de clic se propague al header. -->
                         <button @click.stop="isMobileMenuOpen = !isMobileMenuOpen" class="p-2 rounded-full hover:bg-white/10 transition-colors z-10">
                             <XIcon v-if="isMobileMenuOpen" />
                             <MenuIcon v-else />
@@ -282,44 +290,70 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                     <nav class="bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 p-4 flex flex-col gap-2">
                         <a v-for="link in navLinks" :key="link.id" :href="link.href" @click="isMobileMenuOpen = false"
                            class="block text-center py-3 text-lg font-semibold hover:bg-indigo-500/20 rounded-lg transition-colors">
-                            {{ t(link.key) }}
+                           {{ t(link.key) }}
                         </a>
                     </nav>
                 </div>
             </div>
         </transition>
 
-        <!-- FOOTER -->
-        <footer class="bg-black/30 backdrop-blur-lg border-t border-white/10 mt-20">
-            <div class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
-                <div class="grid lg:grid-cols-3 gap-8 text-center lg:text-left">
-                    <div class="flex flex-col items-center lg:items-start">
-                        <Link href="/" class="text-2xl font-bold tracking-wider">
-                            <AplicationLogo height="16" />
+        <!-- ================== FOOTER MEJORADO ================== -->
+        <footer class="bg-gray-900/50 backdrop-blur-lg mt-20 relative overflow-hidden">
+            <!-- Efecto de borde animado -->
+            <div class="absolute top-0 left-0 w-full h-px footer-border-glow"></div>
+            
+            <div class="container mx-auto py-16 px-6 lg:px-8">
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left">
+                    
+                    <!-- Columna 1: Logo y Lema -->
+                    <div class="flex flex-col items-center md:items-start space-y-4">
+                        <Link href="/">
+                            <AplicationLogo class="h-10 text-white hover:text-indigo-400 transition-colors duration-300" />
                         </Link>
-                        <p class="mt-4 text-sm text-gray-400 max-w-xs">
+                        <p class="text-sm text-gray-400 max-w-xs">
                             {{ t('Building the digital future, one line of code at a time.') }}
                         </p>
                     </div>
-                    <div class="flex flex-col items-center">
-                        <h3 class="font-semibold text-white tracking-wider">{{ t('Navigation') }}</h3>
-                        <ul class="mt-4 space-y-2">
+
+                    <!-- Columna 2: Navegación -->
+                    <div>
+                        <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Navigation') }}</h3>
+                        <ul class="mt-4 space-y-3">
                             <li v-for="link in navLinks" :key="link.id">
-                                <a :href="link.href" class="text-gray-400 hover:text-indigo-500 transition-colors">
+                                <a :href="link.href" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300 group">
                                     {{ t(link.key) }}
+                                    <span class="block max-w-0 group-hover:max-w-full transition-all duration-500 h-0.5 bg-indigo-500 mx-auto md:mx-0"></span>
                                 </a>
                             </li>
                         </ul>
                     </div>
-                    <div class="flex flex-col items-center lg:items-end">
-                        <h3 class="font-semibold text-white tracking-wider">{{ t('Follow us') }}</h3>
+                    
+                    <!-- Columna 3: Legal (Ejemplo) -->
+                     <div>
+                        <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Legal') }}</h3>
+                        <ul class="mt-4 space-y-3">
+                            <li><a href="#" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Terms of Service') }}</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Privacy Policy') }}</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Columna 4: Redes Sociales -->
+                    <div class="flex flex-col items-center md:items-start">
+                         <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Connect') }}</h3>
                         <div class="mt-4 flex space-x-5">
-                            <a href="#" class="text-gray-400 hover:text-indigo-500 transition-colors"><i class="pi pi-github" style="font-size: 1.5rem"></i></a>
-                            <a href="#" class="text-gray-400 hover:text-indigo-500 transition-colors"><i class="pi pi-linkedin" style="font-size: 1.5rem"></i></a>
-                            <a href="#" class="text-gray-400 hover:text-indigo-500 transition-colors"><i class="pi pi-twitter" style="font-size: 1.5rem"></i></a>
+                            <a href="#" class="text-gray-400 hover:text-white transition-transform duration-300 transform hover:-translate-y-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4 -4.3-2.5 -6-3m12 5v-3.5c0-1 .1-1.4 -.5-2c2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0 -1.3-3.2a4.2 4.2 0 0 0 -.1-3.2s-1.1-.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4-1.6 -3.5-1.3 -3.5-1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6.5 -.6 1.2 -.5 2V21"/></svg>
+                            </a>
+                            <a href="#" class="text-gray-400 hover:text-white transition-transform duration-300 transform hover:-translate-y-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0 -2-2a2 2 0 0 0 -2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                            </a>
+                             <a href="#" class="text-gray-400 hover:text-white transition-transform duration-300 transform hover:-translate-y-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 1.4 3.3 4.4 3.3 4.4s-1.4 1.4-2.1 .7c-.7-.7-1.4-1.4-2.8-2.1-.7.7-1.4 1.4-2.1 2.1s-1.4 1.4-2.1 2.1c-1.4.7-2.8 0-2.8 0s1.4-2.1 2.1-3.5C8.4 8.1 6.8 6.1 6.8 6.1s1.4-1.4 2.8 0c1.4.7 2.8 2.1 4.2 2.8 1.4-.7 2.8-1.4 3.5-2.1.7-.7 1.4-1.4 2.1-1.4zm-4.9 4.9c-1.4 1.4-2.8 2.8-4.2 4.2s-2.8 2.8-4.2 4.2"/></svg>
+                            </a>
                         </div>
                     </div>
                 </div>
+                
                 <div class="mt-12 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
                     &copy; {{ new Date().getFullYear() }} DTW. {{ t('All rights reserved.') }}
                 </div>
@@ -329,31 +363,21 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 </template>
 
 <style scoped>
-/* ... (estilos existentes se mantienen) ... */
+/* ... (Estilos del notch se mantienen igual) ... */
 @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fade-in {
     animation: fade-in 0.5s ease-out forwards;
 }
-
 @keyframes pulse-slow {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.95);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.95); }
 }
-
 .animate-pulse-slow {
   animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-
 @keyframes welcome-glow {
   0%   { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
   25%  { box-shadow: 0 25px 50px -12px rgba(236, 72, 153, 0.4); }
@@ -361,16 +385,13 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
   75%  { box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.4); }
   100% { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
 }
-
 .animate-welcome-glow {
   animation: welcome-glow 5s ease-in-out infinite;
 }
-
 .animated-border-welcome {
   position: relative;
   border-color: transparent;
 }
-
 .animated-border-welcome::before {
   content: "";
   position: absolute;
@@ -389,34 +410,44 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
 }
-
 @keyframes borderGradientMove {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
 @keyframes blink {
   50% { opacity: 0; }
 }
-
 .typing-cursor {
   animation: blink 1s step-end infinite;
 }
 
-/* **NUEVO:** Estilos para la transición del menú móvil */
+/* Transición del menú móvil */
 .slide-fade-enter-active {
   transition: all 0.3s ease-out;
 }
-
 .slide-fade-leave-active {
   transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
 }
-
 .slide-fade-enter-from,
 .slide-fade-leave-to {
   transform: translateY(-20px);
   opacity: 0;
+}
+
+/* =========== ESTILOS DEL NUEVO FOOTER =========== */
+.footer-border-glow {
+    background: linear-gradient(to right, transparent, #4f46e5, transparent);
+    animation: glow-animation 4s linear infinite;
+}
+
+@keyframes glow-animation {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
 </style>
 
