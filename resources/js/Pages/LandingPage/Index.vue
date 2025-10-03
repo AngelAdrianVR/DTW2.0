@@ -3,7 +3,9 @@ import LandingLayout from '@/Layouts/LandingLayout.vue';
 import InteractiveHero from '@/Components/MyComponents/InteractiveHero.vue';
 import InteractiveServices from '@/Components/MyComponents/InteractiveServices.vue';
 import InteractiveProjects from '@/Components/MyComponents/InteractiveProjects.vue';
+import InteractiveOwnProjects from '@/Components/MyComponents/InteractiveOwnProjects.vue';
 import InteractiveContact from '@/Components/MyComponents/InteractiveContact.vue';
+import InteractiveClients from '@/Components/MyComponents/InteractiveClients.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
@@ -18,9 +20,11 @@ export default {
     Textarea,
     LandingLayout,
     InteractiveHero,
+    InteractiveClients,
     InteractiveContact,
     InteractiveProjects,
     InteractiveServices,
+    InteractiveOwnProjects,
   },
 
   // Los datos contienen las CLAVES de traducción
@@ -77,6 +81,20 @@ export default {
         { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Beta', title: 'Analytics Dashboard', description: 'Real-time data visualization for business intelligence.' },
         { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Gamma', title: 'Social Fitness App', description: 'Social network for athletes with activity tracking.' },
       ],
+      ownProjects: [
+        {
+          id: 'ezyventas',
+          logo: 'https://placehold.co/200x80/111827/FFFFFF?text=EZY+Ventas',
+          titleKey: 'EzyVentas POS System',
+          descriptionKey: 'Ideal for retail stores, boutiques, and more. Full control over your business.',
+          url: '#', // Aquí irá la URL real del proyecto
+          images: [
+            { url: 'https://placehold.co/600x400/1A202C/7B8A9E?text=POS+Screen', alt: 'POS Screen', class: 'image-style-1' },
+            { url: 'https://placehold.co/400x300/1A202C/17EDF4?text=Inventory', alt: 'Inventory Management', class: 'image-style-2' },
+            { url: 'https://placehold.co/300x400/1A202C/6215C0?text=Reports', alt: 'Sales Reports', class: 'image-style-3' },
+          ]
+        }
+      ],
       contactForm: {
         name: '',
         email: '',
@@ -101,6 +119,13 @@ export default {
         title: this.t(project.title),
         description: this.t(project.description)
       }));
+    },
+    translatedOwnProjects() {
+        return this.ownProjects?.map(project => ({
+        ...project,
+        titleKey: project.titleKey,
+        descriptionKey: project.descriptionKey,
+      }));
     }
   }
 }
@@ -122,8 +147,16 @@ export default {
             <!-- SECCIÓN PROYECTOS -->
             <InteractiveProjects :projects="translatedProjects" />
 
+            <!-- SECCIÓN PROYECTOS PROPIOS -->
+            <InteractiveOwnProjects :projects="translatedOwnProjects" />
+
+            <!-- SECCIÓN CLIENTES -->
+            <InteractiveClients />
+
             <!-- SECCIÓN CONTACTO -->
             <InteractiveContact />
+
+            
         </div>
     </LandingLayout>
 </template>

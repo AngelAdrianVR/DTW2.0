@@ -38,6 +38,14 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
+            // Compartimos los mensajes 'flash' de la sesión con el frontend.
+            // Esto permite que el componente de Vue reciba el mensaje que enviaste desde el controlador.
+            'flash' => function () use ($request) {
+                return [
+                    'message' => $request->session()->get('flash.message'),
+                    'type' => $request->session()->get('flash.type'),
+                ];
+            },
             'auth' => [
                 'user' => $request->user(),
             ],
