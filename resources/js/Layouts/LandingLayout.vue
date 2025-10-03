@@ -266,8 +266,8 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 
                         <div class="hidden md:flex items-center gap-4">
                             <div class="w-px h-6 bg-white/10"></div>
-                            <Button :label="t('Login')" severity="info" text />
-                            <Button :label="t('Register')" severity="info" raised />
+                            <Button @click="$inertia.visit(route('login'))" :label="t('Login')" severity="info" text />
+                            <Button @click="$inertia.visit(route('register'))" :label="t('Register')" severity="info" raised />
                         </div>
                     </div>
                 </template>
@@ -276,7 +276,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
             <div v-if="!isNotchExpanded" class="absolute h-2 w-10 bg-indigo-500/50 rounded-full animate-pulse-slow"></div>
         </header>
 
-        <main class="pt-28">
+        <main class="pt-20">
             <slot />
         </main>
 
@@ -363,22 +363,27 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 </template>
 
 <style scoped>
-/* ... (Estilos del notch se mantienen igual) ... */
-@keyframes fade-in {
+/*
+  SOLUCIÓN: Se ha añadido el prefijo "ll-" (por LandingLayout) a todas las
+  definiciones de @keyframes y a las clases que las usan. Esto evita
+  que los nombres de las animaciones colisionen con otros estilos globales
+  en la aplicación.
+*/
+@keyframes ll-fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in {
-    animation: fade-in 0.5s ease-out forwards;
+    animation: ll-fade-in 0.5s ease-out forwards;
 }
-@keyframes pulse-slow {
+@keyframes ll-pulse-slow {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.95); }
 }
 .animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: ll-pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-@keyframes welcome-glow {
+@keyframes ll-welcome-glow {
   0%   { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
   25%  { box-shadow: 0 25px 50px -12px rgba(236, 72, 153, 0.4); }
   50%  { box-shadow: 0 25px 50px -12px rgba(22, 237, 244, 0.4); }
@@ -386,7 +391,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
   100% { box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
 }
 .animate-welcome-glow {
-  animation: welcome-glow 5s ease-in-out infinite;
+  animation: ll-welcome-glow 5s ease-in-out infinite;
 }
 .animated-border-welcome {
   position: relative;
@@ -400,7 +405,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
   background: linear-gradient(120deg, #6215C0, #17EDF4, #6215C0);
   background-size: 400% 400%;
   border-radius: inherit;
-  animation: borderGradientMove 5s linear infinite;
+  animation: ll-borderGradientMove 5s linear infinite;
   mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -410,16 +415,16 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
 }
-@keyframes borderGradientMove {
+@keyframes ll-borderGradientMove {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-@keyframes blink {
+@keyframes ll-blink {
   50% { opacity: 0; }
 }
 .typing-cursor {
-  animation: blink 1s step-end infinite;
+  animation: ll-blink 1s step-end infinite;
 }
 
 /* Transición del menú móvil */
@@ -438,10 +443,10 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 /* =========== ESTILOS DEL NUEVO FOOTER =========== */
 .footer-border-glow {
     background: linear-gradient(to right, transparent, #4f46e5, transparent);
-    animation: glow-animation 4s linear infinite;
+    animation: ll-glow-animation 4s linear infinite;
 }
 
-@keyframes glow-animation {
+@keyframes ll-glow-animation {
     0% {
         transform: translateX(-100%);
     }
@@ -450,4 +455,3 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
     }
 }
 </style>
-
