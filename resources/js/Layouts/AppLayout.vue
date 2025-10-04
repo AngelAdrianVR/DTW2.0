@@ -19,6 +19,25 @@ const navigationMenu = computed(() => [
         active: route().current('dashboard'),
         show: true,
     },
+    // Nuevo grupo CRM
+    {
+        name: 'CRM',
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" /></svg>`,
+        active: route().current('dashboard'),
+        show: true,
+        children: [
+            {
+                name: 'Clientes',
+                route: 'clients.index',
+                active: route().current('clients.*'),
+            },
+            {
+                name: 'Cotizaciones',
+                route: 'quotes.index',
+                active: route().current('quotes.*'),
+            }
+        ]
+    },
     // {
     //     name: 'Notifications',
     //     route: '#',
@@ -26,13 +45,6 @@ const navigationMenu = computed(() => [
     //     active: route().current('notifications'),
     //     show: true,
     // },
-    {
-        name: 'Profile',
-        route: 'profile.show',
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
-        active: route().current('profile.show'),
-        show: true,
-    },
 ]);
 
 // --- Lógica para el Modo Oscuro ---
@@ -47,7 +59,7 @@ const toggleDarkMode = () => {
 
 onMounted(() => {
     if (typeof window !== 'undefined') {
-        if (localStorage.getItem('darkMode') === 'true' || 
+        if (localStorage.getItem('darkMode') === 'true' ||
            (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             isDarkMode.value = true;
         }
@@ -103,7 +115,7 @@ const switchToTeam = (team) => {
                 </nav>
 
                 <!-- Contenido de la Página -->
-                <main class="mb-12 lg:mb-0">
+                <main class="mb-12 mt-2 lg:mb-0 lg:mx-auto h-[calc(100vh-7rem)] overflow-auto lg:w-[90%]">
                     <slot />
                 </main>
             </div>

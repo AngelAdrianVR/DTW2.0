@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Quote extends \Illuminate\Database\Eloquent\Model
@@ -40,5 +41,21 @@ class Quote extends \Illuminate\Database\Eloquent\Model
     public function project(): HasOne
     {
         return $this->hasOne(Project::class);
+    }
+
+     public function payments(): HasMany
+    {
+        return $this->hasMany(ClientPayment::class);
+    }
+    
+    /**
+     * ACCESOR OPCIONAL: Calcula el saldo pendiente de la cotización.
+     * Puedes usarlo como $quote->balance
+     */
+    public function getBalanceAttribute(): float
+    {
+        // Asume que tu tabla 'quotes' tiene una columna 'total'
+        $totalPaid = $this->payments()->sum('amount');
+        return (float) $this->total - $totalPaid;
     }
 }
