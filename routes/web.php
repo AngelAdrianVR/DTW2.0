@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ClientPaymentController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\QuoteController;
@@ -23,6 +25,17 @@ Route::middleware([
         return Inertia::render('Dashboard');
     })->name('dashboard');
 });
+
+
+// Rutas de Clientes --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------
+Route::resource('clients', ClientController::class)->middleware('auth');
+
+
+// Rutas de pagos de clientes --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------
+Route::resource('client-payments', ClientPaymentController::class)->middleware('auth');
+
 
 // Rutas de Cotizaciones --------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------

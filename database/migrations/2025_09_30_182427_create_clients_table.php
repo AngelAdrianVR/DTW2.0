@@ -13,12 +13,11 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->comment('Nombre de la empresa');
+            $table->string('name')->comment('Nombre de la empresa'); // Nombre de la empresa o cliente
             $table->string('tax_id')->nullable()->comment('RFC, NIF, etc.');
             $table->text('address')->nullable();
             $table->enum('status', ['Cliente', 'Prospecto'])->default('Prospecto');
             $table->string('source')->nullable()->comment('Origen del contacto (ej. Website, Referencia)');
-            $table->foreignId('assigned_to')->nullable()->constrained('users')->onDelete('set null')->comment('Usuario interno asignado');
             $table->timestamps();
         });
     }
