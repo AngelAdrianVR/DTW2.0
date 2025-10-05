@@ -40,4 +40,6 @@ Route::resource('client-payments', ClientPaymentController::class)->middleware('
 // Rutas de Cotizaciones --------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------
 Route::resource('quotes', QuoteController::class)->middleware('auth');
+Route::put('/quotes/{quote}/status', [QuoteController::class, 'updateStatus'])->name('quotes.updateStatus')->middleware(['auth', 'verified']);
+// Cotizaciones desde la web
 Route::post('/quote-request', [QuoteController::class, 'handleWebRequest'])->name('quote.web.request');

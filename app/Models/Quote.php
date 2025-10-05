@@ -22,10 +22,19 @@ class Quote extends \Illuminate\Database\Eloquent\Model
         'status',
         'origin',
         'valid_until',
+        'work_days',
+        'percentage_discount',
+        'payment_type',
+        'show_process',
+        'show_benefits',
+        'show_bank_info',
     ];
 
     protected $casts = [
         'valid_until' => 'date',
+        'show_process' => 'boolean',
+        'show_benefits' => 'boolean',
+        'show_bank_info' => 'boolean',
     ];
 
     public function client(): BelongsTo

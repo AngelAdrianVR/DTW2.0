@@ -115,7 +115,7 @@ const switchToTeam = (team) => {
                 </nav>
 
                 <!-- Contenido de la Página -->
-                <main class="mb-12 mt-2 lg:mb-0 lg:mx-auto h-[calc(100vh-7rem)] overflow-auto lg:w-[90%]">
+                <main class="mb-12 mt-2 lg:mb-0 lg:mx-auto h-[calc(100vh-9rem)] lg:h-[calc(100vh-7rem)] overflow-auto lg:w-[90%]">
                     <slot />
                 </main>
             </div>

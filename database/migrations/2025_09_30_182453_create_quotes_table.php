@@ -21,12 +21,18 @@ return new class extends Migration
             $table->string('client_phone')->nullable(); // En caso de que el origen sea 'Web'
 
             $table->string('quote_code')->unique()->comment('Código único (ej. COT-2024-001)');
+            $table->unsignedTinyInteger('work_days'); // Total de días de trabajo estimados
+            $table->unsignedTinyInteger('percentage_discount')->nullable(); // Porcentage de descuento
+            $table->string('payment_type')->nullable(); // Forma de pago (ej. 50% anticipo, 50% contra entrega)
             $table->string('title')->nullable();
             $table->longText('description')->nullable()->comment('Descripción detallada del servicio y alcances');
             $table->decimal('amount', 15, 2)->default(0.00)->comment('Monto total del servicio cotizado');
-            $table->enum('status', ['Pendiente', 'Enviado', 'Aceptado', 'Rechazado'])->default('Pendiente');
+            $table->enum('status', ['Pendiente', 'Enviado', 'Aceptado', 'Rechazado', "Pagado"])->default('Pendiente');
             $table->enum('origin', ['Interno', 'Web'])->default('Interno');
             $table->date('valid_until')->nullable();
+            $table->boolean('show_process')->default(false);
+            $table->boolean('show_benefits')->default(false);
+            $table->boolean('show_bank_info')->default(false);
             $table->timestamps();
         });
     }
