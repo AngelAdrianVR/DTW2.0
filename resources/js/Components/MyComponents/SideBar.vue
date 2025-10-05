@@ -251,7 +251,7 @@ onMounted(() => {
     </div>
     
     <!-- Settings Card -->
-    <div v-if="isSettingsCardVisible" class="fixed bottom-4 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-white rounded-2xl w-64 p-4 shadow-2xl transition-all duration-300 ease-in-out" :class="isExpanded ? 'left-[18rem]' : 'left-[6.5rem]'">
+    <div v-if="isSettingsCardVisible" class="fixed bottom-4 z-50 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-white rounded-2xl w-64 p-4 shadow-2xl transition-all duration-300 ease-in-out" :class="isExpanded ? 'left-[18rem]' : 'left-[6.5rem]'">
         <div class="flex justify-between items-center mb-2">
             <h4 class="font-semibold">Ajustes de Interfaz</h4>
             <button @click="toggleSettingsCard" class="text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>

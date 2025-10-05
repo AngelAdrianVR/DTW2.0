@@ -27,6 +27,7 @@
         "@primeuix/themes": "^1.2.5",
         "primeicons": "^7.0.0",
         "primevue": "^4.4.0",
+        "quill": "^2.0.3",
         "three": "^0.180.0"
     }
 }

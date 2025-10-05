@@ -2,47 +2,185 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\Quote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Illuminate\Validation\Rule;
 
 class QuoteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $filters = $request->only('search');
+        
+        $quotes = Quote::query()
+            ->with(['client:id,name']) // Carga la relación con cliente para eficiencia
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'like', "%{$search}%")
+                      ->orWhere('status', 'like', "%{$search}%")
+                      ->orWhereHas('client', function ($clientQuery) use ($search) {
+                          $clientQuery->where('name', 'like', "%{$search}%");
+                      })
+                      ->orWhere('client_name', 'like', "%{$search}%"); // Para clientes de origen 'Web'
+                });
+            })
+            ->latest('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return Inertia::render('Quote/Index', [
+            'quotes' => $quotes,
+            'filters' => $filters,
+        ]);
     }
 
     public function create()
     {
-        //
+        return Inertia::render('Quote/Create', [
+            'clients' => Client::select('id', 'name', 'tax_id', 'address')->get()
+        ]);
     }
 
     public function store(Request $request)
     {
-        //
+        // --- Validación actualizada ---
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'amount' => 'required|numeric|min:0',
+            'valid_until' => 'required|date',
+            'payment_type' => 'required|string|max:255',
+            'work_days' => 'required|integer|min:1',
+            'show_process' => 'required|boolean',
+            'show_benefits' => 'required|boolean',
+            'show_bank_info' => 'required|boolean',
+        ]);
+
+        // --- Creación de la cotización actualizada ---
+        Quote::create([
+            'client_id' => $validated['client_id'],
+            'user_id' => auth()->id(),
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'amount' => $validated['amount'],
+            'valid_until' => $validated['valid_until'],
+            'payment_type' => $validated['payment_type'],
+            'work_days' => $validated['work_days'],
+            'show_process' => $validated['show_process'],
+            'show_benefits' => $validated['show_benefits'],
+            'show_bank_info' => $validated['show_bank_info'],
+            'quote_code' => $this->generateQuoteCode(),
+            'status' => 'Pendiente',
+            'origin' => 'Interno'
+        ]);
+
+        return redirect()->route('quotes.index')->with('flash', [
+            'message' => 'Cotización creada con éxito.',
+            'type' => 'success'
+        ]);
     }
 
     public function show(Quote $quote)
     {
-        //
+        // Carga la relación con el cliente para tener todos sus datos disponibles en la vista
+        $quote->load('client');
+
+        return Inertia::render('Quote/Show', [
+            'quote' => $quote,
+        ]);
     }
 
     public function edit(Quote $quote)
     {
-        //
+        // Carga la cotización que se va a editar y la lista de todos los clientes
+        return Inertia::render('Quote/Edit', [
+            'quote' => $quote,
+            'clients' => Client::select('id', 'name', 'tax_id', 'address')->get()
+        ]);
     }
 
     public function update(Request $request, Quote $quote)
     {
-        //
+        // Validación de los datos de entrada
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'amount' => 'required|numeric|min:0',
+            'valid_until' => 'required|date',
+            'payment_type' => 'required|string|max:255',
+            'work_days' => 'required|integer|min:1',
+            'percentage_discount' => 'nullable|numeric|min:0|max:100',
+            'show_process' => 'required|boolean',
+            'show_benefits' => 'required|boolean',
+            'show_bank_info' => 'required|boolean',
+        ]);
+        
+        // Actualiza la cotización con los datos validados
+        $quote->update($validated);
+
+        // Redirige al índice con un mensaje de éxito
+        return redirect()->route('quotes.index')->with('flash', [
+            'message' => 'Cotización actualizada con éxito.',
+            'type' => 'success'
+        ]);
     }
 
     public function destroy(Quote $quote)
     {
-        //
+        // Opcional: Agregar lógica para no permitir eliminar cotizaciones aceptadas o pagadas
+        if (in_array($quote->status, ['Aceptado', 'Pagado'])) {
+             return back()->with('flash', [
+                'message' => 'No se puede eliminar una cotización aceptada o pagada.', 
+                'type' => 'error'
+            ]);
+        }
+        
+        $quote->delete();
+
+        return back()->with('flash', [
+            'message' => 'Cotización eliminada correctamente.',
+            'type' => 'success'
+        ]);
+    }
+
+    public function updateStatus(Request $request, Quote $quote)
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['Enviado', 'Aceptado', 'Rechazado'])],
+        ]);
+
+        // Lógica de transición de estados
+        $canUpdate = false;
+        switch ($quote->status) {
+            case 'Pendiente':
+                if ($validated['status'] === 'Enviado') $canUpdate = true;
+                break;
+            case 'Enviado':
+                if (in_array($validated['status'], ['Aceptado', 'Rechazado'])) $canUpdate = true;
+                break;
+        }
+
+        if (!$canUpdate) {
+            return back()->with('flash', [
+                'message' => 'No se puede cambiar al estado seleccionado.', 
+                'type' => 'error'
+            ]);
+        }
+        
+        $quote->status = $validated['status'];
+        $quote->save();
+
+        return back()->with('flash', [
+            'message' => 'Estado de la cotización actualizado.',
+            'type' => 'success'
+        ]);
     }
 
     /**
