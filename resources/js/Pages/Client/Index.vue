@@ -27,7 +27,7 @@ const selectedClientForMenu = ref(null);
 // --- FORMS ---
 const paymentForm = useForm({
     client_id: null,
-    quote_id: null, // New field to associate payment with a quote
+    quote_id: null, 
     amount: null,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
@@ -37,19 +37,23 @@ const paymentForm = useForm({
 const clientsWithBalance = computed(() => {
     return props.clients.map(client => ({
         ...client,
+        // El 'total_billed' ya viene calculado con descuento desde el controlador.
         balance: (client.total_billed || 0) - (client.total_paid || 0)
     }));
 });
 
+// MODIFICACIÓN: El cálculo del saldo de cada cotización en el dropdown ahora usa 'final_amount'.
 const quoteOptions = computed(() => {
     if (!selectedClient.value?.quotes) return [];
     
     return selectedClient.value.quotes
         .map(q => ({
             ...q,
-            balance: q.amount - (q.total_paid || 0)
+            // Se usa el 'final_amount' que viene del backend para calcular el saldo real.
+            balance: q.final_amount - (q.total_paid || 0)
         }))
-        .filter(q => q.balance > 0) // Muestra solo cotizaciones con saldo pendiente
+        // Se añade una tolerancia para evitar problemas con decimales flotantes.
+        .filter(q => q.balance > 0.01) 
         .map(q => ({
             id: q.id,
             label: `Cot-${q.id} - ${q.title} (Saldo: ${formatCurrency(q.balance)})`
@@ -155,7 +159,6 @@ const submitPayment = () => {
                 detail: 'Pago registrado correctamente',
                 life: 3000
             });
-            // router.reload({ only: ['clients'] }); // To update balances
         },
         onError: (errors) => {
             const errorMessages = Object.values(errors).join(' ');
@@ -232,7 +235,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                         </Column>
                         <Column field="balance" header="Balance" sortable class="text-right">
                             <template #body="{ data }">
-                                <span class="font-bold" :class="[data.balance > 0 ? 'text-red-600' : 'text-gray-700']">
+                                <span class="font-bold" :class="[data.balance > 0.01 ? 'text-red-600' : 'text-gray-700']">
                                     {{ formatCurrency(data.balance) }}
                                 </span>
                             </template>
@@ -267,7 +270,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                                     formatCurrency(client.total_paid) }}</span></li>
                                 <li class="flex justify-between border-t pt-2 mt-2">
                                     <span class="font-bold">Balance:</span>
-                                    <span class="font-bold" :class="[client.balance > 0 ? 'text-red-600' : 'text-gray-800']">
+                                    <span class="font-bold" :class="[client.balance > 0.01 ? 'text-red-600' : 'text-gray-800']">
                                         {{ formatCurrency(client.balance) }}
                                     </span>
                                 </li>
@@ -336,4 +339,3 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
     width: 100% !important;
 }
 </style>
-

@@ -4,6 +4,10 @@ import { useForm, Link, Head } from '@inertiajs/vue3';
 import { useToast } from 'primevue/usetoast';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Dropdown from 'primevue/dropdown';
+import Tooltip from 'primevue/tooltip';
+
+// --- DIRECTIVES ---
+const vTooltip = Tooltip;
 
 // --- PROPS ---
 const props = defineProps({
@@ -31,24 +35,28 @@ const paymentForm = useForm({
     amount: null,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
-    quote_id: null, // Campo para asociar un pago a una cotización
+    quote_id: null,
 });
 
 // --- COMPUTED PROPERTIES ---
 const balance = computed(() => {
+    // El total_billed ya viene con los descuentos calculados desde el controlador.
     return parseFloat(props.total_billed) - parseFloat(props.total_paid);
 });
 
+/**
+ * MODIFICACIÓN: El cálculo del saldo de cada cotización en el dropdown ahora usa 'final_amount'.
+ * El accesor 'final_amount' viene automáticamente desde el modelo de Laravel.
+ */
 const quoteOptions = computed(() => {
     if (!props.client?.quotes) return [];
     
     return props.client.quotes
         .map(q => ({
             ...q,
-            balance: q.amount - (q.total_paid || 0)
+            balance: q.final_amount - (q.total_paid || 0)
         }))
-        // Muestra solo cotizaciones aceptadas/pagadas con saldo pendiente
-        .filter(q => ['Aceptado', 'Pagado'].includes(q.status) && q.balance > 0) 
+        .filter(q => ['Aceptado', 'Pagado'].includes(q.status) && q.balance > 0.01) 
         .map(q => ({
             id: q.id,
             label: `Cot-${q.id} - ${q.title} (Saldo: ${formatCurrency(q.balance)})`
@@ -57,26 +65,16 @@ const quoteOptions = computed(() => {
 
 
 // --- METHODS ---
-
-/**
- * Abre el diálogo modal para agregar un pago.
- */
 const openPaymentDialog = () => {
     paymentForm.reset();
     paymentForm.client_id = props.client.id;
     isPaymentDialogVisible.value = true;
 };
 
-/**
- * Cierra el diálogo modal de agregar pago.
- */
 const closePaymentDialog = () => {
     isPaymentDialogVisible.value = false;
 };
 
-/**
- * Envía el formulario para registrar el pago.
- */
 const submitPayment = () => {
     paymentForm.post(route('client-payments.store'), {
         preserveScroll: true,
@@ -102,11 +100,6 @@ const submitPayment = () => {
 };
 
 // --- HELPERS ---
-
-/**
- * Formatea un valor numérico como moneda.
- * @param {number} value - El valor a formatear.
- */
 const formatCurrency = (value) => {
     const numericValue = parseFloat(value);
     if (isNaN(numericValue)) {
@@ -115,10 +108,6 @@ const formatCurrency = (value) => {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numericValue);
 };
 
-/**
- * Formatea una fecha.
- * @param {string} dateString - La fecha en formato string.
- */
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -129,23 +118,15 @@ const formatDate = (dateString) => {
     });
 };
 
-
-/**
- * Devuelve una clase de severidad para el estado del cliente.
- * @param {string} status - El estado del cliente.
- */
 const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info');
 
-/**
- * Devuelve una clase de severidad para el estado de la cotización.
- */
 const getQuoteStatusSeverity = (status) => {
     const statuses = {
         'Pendiente': 'info',
+        'Enviado': 'warn',
         'Aceptado': 'success',
         'Pagado': 'success',
         'Rechazado': 'danger',
-        'Expirada': 'warning'
     };
     return statuses[status] || 'secondary';
 };
@@ -202,7 +183,7 @@ const getQuoteStatusSeverity = (status) => {
                              <Card class="bg-white dark:bg-gray-800 shadow-md rounded-lg">
                                 <template #title><span class="text-gray-500 dark:text-gray-400 text-sm font-normal">Balance</span></template>
                                 <template #content>
-                                    <p class="text-2xl font-bold" :class="[balance > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-800 dark:text-gray-200']">
+                                    <p class="text-2xl font-bold" :class="[balance > 0.01 ? 'text-red-500 dark:text-red-400' : 'text-gray-800 dark:text-gray-200']">
                                         {{ formatCurrency(balance) }}
                                     </p>
                                 </template>
@@ -263,10 +244,25 @@ const getQuoteStatusSeverity = (status) => {
                             <template #content>
                                 <DataTable :value="client.quotes" stripedRows responsiveLayout="scroll" paginator :rows="5" tableStyle="min-width: 50rem;">
                                     <template #empty> No se encontraron cotizaciones. </template>
-                                    <Column field="quote_code" header="Código" sortable></Column>
+                                    <Column field="id" header="Folio" sortable>
+                                        <template #body="{data}">Cot-{{ data.id }}</template>
+                                    </Column>
                                     <Column field="title" header="Título" sortable></Column>
-                                    <Column field="amount" header="Monto" sortable>
-                                        <template #body="{ data }">{{ formatCurrency(data.amount) }}</template>
+                                    <!-- MODIFICACIÓN: Columna de Monto actualizada -->
+                                    <Column field="final_amount" header="Monto" sortable>
+                                        <template #body="{ data }">
+                                            <div class="flex items-center justify-start gap-2">
+                                                <span>{{ formatCurrency(data.final_amount) }}</span>
+                                                <i v-if="data.percentage_discount && data.percentage_discount > 0"
+                                                   class="pi pi-info-circle text-gray-400 cursor-pointer"
+                                                   v-tooltip.left="{
+                                                       value: `Subtotal: ${formatCurrency(data.amount)} <br/> Descuento: ${data.percentage_discount}% (${formatCurrency(data.amount - data.final_amount)})`,
+                                                       escape: false,
+                                                       class: 'custom-tooltip'
+                                                   }">
+                                                </i>
+                                            </div>
+                                        </template>
                                     </Column>
                                     <Column field="status" header="Estado" sortable>
                                         <template #body="{ data }">
@@ -346,8 +342,13 @@ const getQuoteStatusSeverity = (status) => {
     </AppLayout>
 </template>
 
-<style scoped>
-/* Scoped styles for this component */
+<style>
+/* Estilos globales para el tooltip personalizado, similar a IndexQuote */
+.custom-tooltip .p-tooltip-text {
+  text-align: left;
+  white-space: pre-wrap;
+}
+
 .p-card .p-card-content {
     padding-top: 0;
 }

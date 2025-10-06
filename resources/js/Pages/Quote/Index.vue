@@ -12,6 +12,11 @@ import InputNumber from 'primevue/inputnumber';
 import Calendar from 'primevue/calendar';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
+import Tooltip from 'primevue/tooltip';
+
+// --- DIRECTIVES ---
+// Directiva para el tooltip de PrimeVue
+const vTooltip = Tooltip;
 
 // --- PROPS ---
 const props = defineProps({
@@ -136,7 +141,8 @@ const openPaymentDialog = (quote) => {
     paymentForm.reset();
     paymentForm.quote_id = quote.id;
     paymentForm.client_id = quote.client_id;
-    const remainingBalance = quote.amount - (quote.total_paid || 0);
+    // MODIFICACIÓN: Se usa 'final_amount' para calcular el saldo restante real.
+    const remainingBalance = quote.final_amount - (quote.total_paid || 0);
     paymentForm.amount = remainingBalance > 0 ? remainingBalance : null;
     isPaymentDialogVisible.value = true;
 };
@@ -146,7 +152,6 @@ const closePaymentDialog = () => {
 };
 
 const submitPayment = () => {
-    // We assume the route is named 'client-payments.store' for handling payments.
     paymentForm.post(route('client-payments.store'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -320,9 +325,22 @@ const getStatusIcon = (status) => {
                                 </template>
                             </Column>
                              <Column field="title" header="Título" sortable></Column>
+                            <!-- MODIFICACIÓN: Columna de Monto actualizada -->
                             <Column field="amount" header="Monto" sortable class="text-right">
                                 <template #body="{ data }">
-                                    <span class="font-semibold">{{ formatCurrency(data.amount) }}</span>
+                                    <div class="flex items-center justify-end gap-2">
+                                        <!-- Se muestra el monto final con descuento -->
+                                        <span class="font-semibold">{{ formatCurrency(data.final_amount) }}</span>
+                                        <!-- NUEVO: Ícono con tooltip si hay descuento -->
+                                        <i v-if="data.percentage_discount && data.percentage_discount > 0"
+                                           class="pi pi-info-circle text-gray-400 cursor-pointer"
+                                           v-tooltip.left="{
+                                               value: `Subtotal: ${formatCurrency(data.amount)} <br/> Descuento: ${data.percentage_discount}% (${formatCurrency(data.amount - data.final_amount)})`,
+                                               escape: false,
+                                               class: 'custom-tooltip'
+                                           }">
+                                        </i>
+                                    </div>
                                 </template>
                             </Column>
                             <Column header="Pagado" sortable class="text-right">
@@ -330,10 +348,12 @@ const getStatusIcon = (status) => {
                                     <span class="text-green-600">{{ formatCurrency(data.total_paid) }}</span>
                                 </template>
                             </Column>
+                            <!-- MODIFICACIÓN: Columna de Saldo actualizada -->
                             <Column header="Saldo" sortable class="text-right">
                                 <template #body="{ data }">
-                                    <span class="font-bold" :class="[(data.amount - (data.total_paid || 0)) > 0 ? 'text-red-600' : 'text-gray-700']">
-                                        {{ formatCurrency(data.amount - (data.total_paid || 0)) }}
+                                    <!-- Se usa 'final_amount' para el cálculo y se añade tolerancia para decimales -->
+                                    <span class="font-bold" :class="[(data.final_amount - (data.total_paid || 0)) > 0.01 ? 'text-red-600' : 'text-gray-700']">
+                                        {{ formatCurrency(data.final_amount - (data.total_paid || 0)) }}
                                     </span>
                                 </template>
                             </Column>
@@ -369,17 +389,19 @@ const getStatusIcon = (status) => {
                             <template #content>
                                 <p class="font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ quote.title }}</p>
                                 <ul class="space-y-2 text-gray-700 dark:text-gray-300">
+                                    <!-- MODIFICACIÓN: Se usa 'final_amount' para el monto en vista móvil -->
                                     <li class="flex justify-between border-t pt-2 mt-2">
                                         <span class="font-bold">Monto:</span>
-                                        <span class="font-bold text-blue-600">{{ formatCurrency(quote.amount) }}</span>
+                                        <span class="font-bold text-blue-600">{{ formatCurrency(quote.final_amount) }}</span>
                                     </li>
                                      <li class="flex justify-between">
                                         <span class="text-green-600">Pagado:</span>
                                         <span class="text-green-600">{{ formatCurrency(quote.total_paid) }}</span>
                                     </li>
+                                    <!-- MODIFICACIÓN: Se usa 'final_amount' para el saldo en vista móvil -->
                                     <li class="flex justify-between">
-                                        <span class="font-semibold" :class="[(quote.amount - (quote.total_paid || 0)) > 0 ? 'text-red-600' : 'text-gray-700']">Saldo:</span>
-                                        <span class="font-semibold" :class="[(quote.amount - (quote.total_paid || 0)) > 0 ? 'text-red-600' : 'text-gray-700']">{{ formatCurrency(quote.amount - (quote.total_paid || 0)) }}</span>
+                                        <span class="font-semibold" :class="[(quote.final_amount - (quote.total_paid || 0)) > 0.01 ? 'text-red-600' : 'text-gray-700']">Saldo:</span>
+                                        <span class="font-semibold" :class="[(quote.final_amount - (quote.total_paid || 0)) > 0.01 ? 'text-red-600' : 'text-gray-700']">{{ formatCurrency(quote.final_amount - (quote.total_paid || 0)) }}</span>
                                     </li>
                                 </ul>
                             </template>
@@ -441,5 +463,9 @@ const getStatusIcon = (status) => {
 }
 .p-datatable .p-column-header-content {
     justify-content: space-between;
+}
+.custom-tooltip .p-tooltip-text {
+  text-align: left;
+  white-space: pre-wrap;
 }
 </style>

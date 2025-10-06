@@ -49,7 +49,7 @@ const printQuote = () => {
 
 <template>
     <Head :title="`Cotización ${quote.quote_code}`" />
-    <div class="bg-gray-200 dark:bg-gray-900 py-10 print:bg-white font-sans">
+    <div class="py-10 print:bg-white font-sans">
         <!-- Botones de Acción (se ocultan al imprimir) -->
         <div class="max-w-4xl mx-auto mb-6 px-4 sm:px-6 lg:px-8 print:hidden">
             <div class="flex justify-between items-center">

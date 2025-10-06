@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\Quote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -12,31 +13,28 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
-        // Carga los clientes y calcula la suma de pagos y cotizaciones
-        // de forma eficiente para evitar problemas de N+1 queries.
+        /**
+         * MODIFICACIÓN: Se ha cambiado la forma de calcular el 'total_billed'.
+         * Ahora se usa una subconsulta para sumar los montos de las cotizaciones
+         * APLICANDO el descuento correspondiente a cada una, asegurando que el total sea correcto.
+         */
+        $totalBilledSubQuery = Quote::from('quotes as q_sub')
+            ->selectRaw('SUM(q_sub.amount * (1 - COALESCE(q_sub.percentage_discount, 0) / 100))')
+            ->whereColumn('q_sub.client_id', 'clients.id')
+            ->whereIn('q_sub.status', ['Aceptado', 'Pagado']);
+
         $clients = Client::query()
-            ->withSum('payments as total_paid', 'amount')
-            ->withSum(['quotes' => function ($query) {
-                // Suma solo las cotizaciones con estado 'Aceptada' o 'Pagado'.
-                $query->whereIn('status', ['Aceptado', 'Pagado']);
-            }], 'amount')
-            // Carga las cotizaciones relevantes (con saldo pendiente) para el modal de pago.
+            ->select('clients.*') // Importante para no perder las columnas del cliente
+            ->selectSub($totalBilledSubQuery, 'total_billed') // Se agrega el total facturado ya calculado
+            ->withSum('payments as total_paid', 'amount') // El total pagado no cambia
+            // Carga las cotizaciones para el modal de pago. El accesor 'final_amount' estará disponible.
             ->with(['quotes' => function ($query) {
-                // Para seleccionar columnas específicas, usamos ->select() dentro del closure.
-                // ¡Es crucial incluir siempre la clave foránea (client_id) en el select!
                 $query->select('id', 'client_id', 'quote_code', 'percentage_discount', 'title', 'amount', 'status', 'origin')
                       ->whereIn('status', ['Aceptado', 'Pagado'])
                       ->withSum('payments as total_paid', 'amount');
             }])
             ->get();
 
-        // Renombra la propiedad de la suma para que coincida con lo que espera el frontend ('total_billed')
-        $clients->each(function ($client) {
-            $client->total_billed = $client->quotes_sum_amount ?? 0;
-            unset($client->quotes_sum_amount);
-        });
-
-        // Retorna la vista de Inertia pasándole los clientes como 'props'.
         return Inertia::render('Client/Index', [
             'clients' => $clients,
         ]);
@@ -84,8 +82,6 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        // Carga las relaciones del cliente de forma eficiente (eager loading)
-        // Ordenamos los pagos y cotizaciones por fecha descendente para ver lo más reciente primero.
         $client->load([
             'contacts',
             'payments' => function ($query) {
@@ -93,20 +89,20 @@ class ClientController extends Controller
             },
             'quotes' => function ($query) {
                 $query->orderBy('created_at', 'desc')
-                      // Agregamos la suma de pagos por cotización para calcular saldos.
                       ->withSum('payments as total_paid', 'amount');
             }
         ]);
 
-        // Calculamos el total facturado solo de cotizaciones con estado 'Aceptado' o 'Pagado'.
+        /**
+         * MODIFICACIÓN: Se calcula el total facturado usando una expresión RAW de SQL
+         * para aplicar el descuento directamente en la consulta a la base de datos.
+         */
         $total_billed = $client->quotes()
             ->whereIn('status', ['Aceptado', 'Pagado'])
-            ->sum('amount');
+            ->sum(DB::raw('amount * (1 - COALESCE(percentage_discount, 0) / 100)'));
         
-        // El total pagado es la suma de todos los pagos del cliente.
         $total_paid = $client->payments()->sum('amount');
 
-        // Retornamos la vista de Inertia con los datos del cliente y sus totales
         return Inertia::render('Client/Show', [
             'client' => $client,
             'total_billed' => $total_billed,
