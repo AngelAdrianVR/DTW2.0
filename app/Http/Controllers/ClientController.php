@@ -16,18 +16,30 @@ class ClientController extends Controller
         // de forma eficiente para evitar problemas de N+1 queries.
         $clients = Client::query()
             ->withSum('payments as total_paid', 'amount')
-            ->withSum('quotes as total_billed', 'amount')
+            ->withSum(['quotes' => function ($query) {
+                // Suma solo las cotizaciones con estado 'Aceptada' o 'Pagado'.
+                $query->whereIn('status', ['Aceptado', 'Pagado']);
+            }], 'amount')
+            // Carga las cotizaciones relevantes (con saldo pendiente) para el modal de pago.
+            ->with(['quotes' => function ($query) {
+                // Para seleccionar columnas específicas, usamos ->select() dentro del closure.
+                // ¡Es crucial incluir siempre la clave foránea (client_id) en el select!
+                $query->select('id', 'client_id', 'quote_code', 'percentage_discount', 'title', 'amount', 'status', 'origin')
+                      ->whereIn('status', ['Aceptado', 'Pagado'])
+                      ->withSum('payments as total_paid', 'amount');
+            }])
             ->get();
 
-        // El modelo se encargará de calcular el balance automáticamente.
+        // Renombra la propiedad de la suma para que coincida con lo que espera el frontend ('total_billed')
+        $clients->each(function ($client) {
+            $client->total_billed = $client->quotes_sum_amount ?? 0;
+            unset($client->quotes_sum_amount);
+        });
 
         // Retorna la vista de Inertia pasándole los clientes como 'props'.
         return Inertia::render('Client/Index', [
             'clients' => $clients,
         ]);
-
-        // Si NO usas Inertia.js y tu Vue component hace la llamada por separado,
-        // deberías mantener los dos métodos como estaban antes.
     }
 
     public function create()
@@ -80,12 +92,18 @@ class ClientController extends Controller
                 $query->orderBy('payment_date', 'desc');
             },
             'quotes' => function ($query) {
-                $query->orderBy('created_at', 'desc');
+                $query->orderBy('created_at', 'desc')
+                      // Agregamos la suma de pagos por cotización para calcular saldos.
+                      ->withSum('payments as total_paid', 'amount');
             }
         ]);
 
-        // Calculamos los totales para este cliente específico
-        $total_billed = $client->quotes()->sum('amount');
+        // Calculamos el total facturado solo de cotizaciones con estado 'Aceptado' o 'Pagado'.
+        $total_billed = $client->quotes()
+            ->whereIn('status', ['Aceptado', 'Pagado'])
+            ->sum('amount');
+        
+        // El total pagado es la suma de todos los pagos del cliente.
         $total_paid = $client->payments()->sum('amount');
 
         // Retornamos la vista de Inertia con los datos del cliente y sus totales
