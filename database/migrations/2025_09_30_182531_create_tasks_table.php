@@ -14,12 +14,15 @@ return new class extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
+            // Usuario asignado a la tarea.
             $table->foreignId('assigned_to')->nullable()->constrained('users')->onDelete('set null');
             $table->string('title');
             $table->text('description')->nullable();
             $table->decimal('estimated_hours', 8, 2)->nullable();
-            $table->enum('status', ['pending', 'in_progress', 'completed', 'testing', 'blocked'])->default('pending');
-            $table->enum('priority', ['low', 'medium', 'high', 'critical'])->default('medium');
+            $table->unsignedInteger('total_invested_minutes')->default(0);
+            // Modificación: Se añade el estado 'Pausada' para un control de tiempo preciso.
+            $table->enum('status', ['Pendiente', 'En proceso', 'Pausada', 'Completada'])->default('Pendiente');
+            $table->enum('priority', ['Baja', 'Media', 'Alta'])->default('Media');
             $table->date('due_date')->nullable();
             $table->timestamps();
         });

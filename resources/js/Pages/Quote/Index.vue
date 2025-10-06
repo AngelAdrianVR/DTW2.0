@@ -325,7 +325,7 @@ const getStatusIcon = (status) => {
                                 </template>
                             </Column>
                              <Column field="title" header="Título" sortable></Column>
-                            <!-- MODIFICACIÓN: Columna de Monto actualizada -->
+                            <!-- Columna de Monto actualizada -->
                             <Column field="amount" header="Monto" sortable class="text-right">
                                 <template #body="{ data }">
                                     <div class="flex items-center justify-end gap-2">
@@ -360,6 +360,11 @@ const getStatusIcon = (status) => {
                              <Column field="status" header="Estado" sortable>
                                 <template #body="{ data }">
                                     <Tag :value="data.status" :severity="getStatusSeverity(data.status)" rounded />
+                                </template>
+                            </Column>
+                             <Column field="project_id" header="Proyecto">
+                                <template #body="{ data }">
+                                    <p>{{ data.project_id ?? '-' }}</p>
                                 </template>
                             </Column>
                             <Column header="Acciones" style="width: 10%" bodyClass="text-center">
