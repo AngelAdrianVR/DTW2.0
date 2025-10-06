@@ -7,6 +7,11 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Menu from 'primevue/menu';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Pagination from '@/Components/MyComponents/Pagination.vue';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import Calendar from 'primevue/calendar';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
 
 // --- PROPS ---
 const props = defineProps({
@@ -21,11 +26,6 @@ const props = defineProps({
 });
 
 // --- HELPER FUNCTIONS ---
-/**
- * Debounce function to limit the rate at which a function gets called.
- * @param {Function} func The function to debounce.
- * @param {number} delay The debounce delay in milliseconds.
- */
 const debounce = (func, delay = 300) => {
     let timeout;
     return (...args) => {
@@ -42,6 +42,17 @@ const confirm = useConfirm();
 const menu = ref();
 const selectedQuoteForMenu = ref(null);
 const search = ref(props.filters.search || '');
+const isPaymentDialogVisible = ref(false);
+const selectedQuoteForPayment = ref(null);
+
+// --- FORMS ---
+const paymentForm = useForm({
+    quote_id: null,
+    client_id: null,
+    amount: null,
+    payment_date: new Date().toISOString().slice(0, 10),
+    notes: '',
+});
 
 // --- WATCHERS ---
 watch(search, debounce((value) => {
@@ -55,11 +66,10 @@ watch(search, debounce((value) => {
 // --- MENU ACTIONS ---
 const menuItems = computed(() => {
     if (!selectedQuoteForMenu.value) return [];
-    
+
     const quote = selectedQuoteForMenu.value;
     let statusActions = [];
 
-    // Lógica para cambiar de estado
     if (quote.status === 'Pendiente') {
         statusActions.push({
             label: 'Marcar como Enviado',
@@ -80,14 +90,20 @@ const menuItems = computed(() => {
 
     return [
         {
+            label: 'Agregar Pago',
+            icon: 'pi pi-dollar',
+            command: () => openPaymentDialog(quote),
+            visible: quote.status === 'Aceptado'
+        },
+        {
             label: 'Ver Detalles',
             icon: 'pi pi-eye',
-            command: () => router.get(`/quotes/${quote.id}`) // Asumiendo que tendrás una ruta de show
+            command: () => router.get(route('quotes.show', quote.id))
         },
         {
             label: 'Editar Cotización',
             icon: 'pi pi-pencil',
-            command: () => router.get(`/quotes/${quote.id}/edit`), // Asumiendo que tendrás una ruta de edit
+            command: () => router.get(route('quotes.edit', quote.id)),
             visible: !['Aceptado', 'Pagado'].includes(quote.status)
         },
         {
@@ -97,13 +113,14 @@ const menuItems = computed(() => {
             visible: statusActions.length > 0
         },
         {
-            separator: true
+            separator: true,
+            visible: quote.status === 'Aceptado'
         },
         {
             label: 'Eliminar Cotización',
             icon: 'pi pi-trash',
             command: () => confirmDeleteQuote(quote),
-             visible: !['Aceptado', 'Pagado'].includes(quote.status)
+            visible: !['Aceptado', 'Pagado'].includes(quote.status)
         }
     ];
 });
@@ -114,11 +131,50 @@ const toggleMenu = (event, quote) => {
 };
 
 // --- METHODS ---
+const openPaymentDialog = (quote) => {
+    selectedQuoteForPayment.value = quote;
+    paymentForm.reset();
+    paymentForm.quote_id = quote.id;
+    paymentForm.client_id = quote.client_id;
+    const remainingBalance = quote.amount - (quote.total_paid || 0);
+    paymentForm.amount = remainingBalance > 0 ? remainingBalance : null;
+    isPaymentDialogVisible.value = true;
+};
+
+const closePaymentDialog = () => {
+    isPaymentDialogVisible.value = false;
+};
+
+const submitPayment = () => {
+    // We assume the route is named 'client-payments.store' for handling payments.
+    paymentForm.post(route('client-payments.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            closePaymentDialog();
+            toast.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: 'Pago registrado correctamente',
+                life: 3000
+            });
+        },
+        onError: (errors) => {
+            const errorMessages = Object.values(errors).join(' ');
+            toast.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: errorMessages || 'No se pudo registrar el pago. Revisa los datos.',
+                life: 3000
+            });
+        }
+    });
+};
+
 const changeQuoteStatus = (quote, newStatus) => {
     router.put(route('quotes.updateStatus', { quote: quote.id }), { status: newStatus }, {
         preserveScroll: true,
         onSuccess: () => {
-             toast.add({
+            toast.add({
                 severity: 'success',
                 summary: 'Éxito',
                 detail: 'Estado actualizado correctamente.',
@@ -157,8 +213,8 @@ const confirmDeleteQuote = (quote) => {
                         life: 3000
                     });
                 },
-                 onError: () => {
-                     toast.add({
+                onError: () => {
+                    toast.add({
                         severity: 'error',
                         summary: 'Error',
                         detail: 'No se pudo eliminar la cotización.',
@@ -171,7 +227,7 @@ const confirmDeleteQuote = (quote) => {
 };
 
 const onRowClick = (event) => {
-    // router.get(`/quotes/${event.data.id}`); // Opcional: navegar al detalle al hacer clic
+     router.get(route('quotes.show', event.data.id));
 };
 
 const rowClass = () => 'cursor-pointer';
@@ -269,14 +325,21 @@ const getStatusIcon = (status) => {
                                     <span class="font-semibold">{{ formatCurrency(data.amount) }}</span>
                                 </template>
                             </Column>
+                            <Column header="Pagado" sortable class="text-right">
+                                <template #body="{ data }">
+                                    <span class="text-green-600">{{ formatCurrency(data.total_paid) }}</span>
+                                </template>
+                            </Column>
+                            <Column header="Saldo" sortable class="text-right">
+                                <template #body="{ data }">
+                                    <span class="font-bold" :class="[(data.amount - (data.total_paid || 0)) > 0 ? 'text-red-600' : 'text-gray-700']">
+                                        {{ formatCurrency(data.amount - (data.total_paid || 0)) }}
+                                    </span>
+                                </template>
+                            </Column>
                              <Column field="status" header="Estado" sortable>
                                 <template #body="{ data }">
                                     <Tag :value="data.status" :severity="getStatusSeverity(data.status)" rounded />
-                                </template>
-                            </Column>
-                             <Column field="created_at" header="Fecha" sortable>
-                                <template #body="{ data }">
-                                    {{ formatDate(data.created_at) }}
                                 </template>
                             </Column>
                             <Column header="Acciones" style="width: 10%" bodyClass="text-center">
@@ -289,8 +352,7 @@ const getStatusIcon = (status) => {
                     </div>
 
                     <Menu ref="menu" id="overlay_menu" :model="menuItems" :popup="true" />
-                    
-                    <!-- Paginador para la tabla -->
+
                     <Pagination :links="quotes.links" />
 
                     <!-- Vista de Tarjetas para Móvil -->
@@ -309,13 +371,15 @@ const getStatusIcon = (status) => {
                                 <ul class="space-y-2 text-gray-700 dark:text-gray-300">
                                     <li class="flex justify-between border-t pt-2 mt-2">
                                         <span class="font-bold">Monto:</span>
-                                        <span class="font-bold text-blue-600">
-                                            {{ formatCurrency(quote.amount) }}
-                                        </span>
+                                        <span class="font-bold text-blue-600">{{ formatCurrency(quote.amount) }}</span>
                                     </li>
                                      <li class="flex justify-between">
-                                        <span>Fecha:</span>
-                                        <span>{{ formatDate(quote.created_at) }}</span>
+                                        <span class="text-green-600">Pagado:</span>
+                                        <span class="text-green-600">{{ formatCurrency(quote.total_paid) }}</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="font-semibold" :class="[(quote.amount - (quote.total_paid || 0)) > 0 ? 'text-red-600' : 'text-gray-700']">Saldo:</span>
+                                        <span class="font-semibold" :class="[(quote.amount - (quote.total_paid || 0)) > 0 ? 'text-red-600' : 'text-gray-700']">{{ formatCurrency(quote.amount - (quote.total_paid || 0)) }}</span>
                                     </li>
                                 </ul>
                             </template>
@@ -333,6 +397,41 @@ const getStatusIcon = (status) => {
                 </div>
             </div>
         </div>
+
+        <!-- Diálogo Modal para Agregar Pago -->
+        <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }">
+            <template #header>
+                <div class="flex flex-col">
+                    <h3 class="text-lg font-semibold">Registrar Pago a Cotización</h3>
+                    <p class="text-sm text-gray-500">Para: Cot-{{ selectedQuoteForPayment?.id }}</p>
+                </div>
+            </template>
+            <form @submit.prevent="submitPayment">
+                <div class="flex flex-col gap-4 p-4">
+                    <div class="flex flex-col gap-2">
+                        <label for="amount">Monto del Pago</label>
+                        <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN"
+                            locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
+                        <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="payment_date">Fecha del Pago</label>
+                        <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd"
+                            :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
+                        <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="notes">Notas (Opcional)</label>
+                        <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
+                    </div>
+                </div>
+            </form>
+            <template #footer>
+                <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" />
+                <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" />
+            </template>
+        </Dialog>
+
     </AppLayout>
 </template>
 
@@ -344,4 +443,3 @@ const getStatusIcon = (status) => {
     justify-content: space-between;
 }
 </style>
-

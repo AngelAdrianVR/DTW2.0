@@ -6,6 +6,7 @@ import { useConfirm } from "primevue/useconfirm";
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Menu from 'primevue/menu';
 import ConfirmDialog from 'primevue/confirmdialog';
+import Dropdown from 'primevue/dropdown';
 
 // --- PROPS ---
 const props = defineProps({
@@ -20,12 +21,13 @@ const toast = useToast();
 const confirm = useConfirm();
 const isPaymentDialogVisible = ref(false);
 const selectedClient = ref(null);
-const menu = ref(); // Referencia para el componente de menú
-const selectedClientForMenu = ref(null); // Cliente seleccionado para las acciones del menú
+const menu = ref();
+const selectedClientForMenu = ref(null);
 
 // --- FORMS ---
 const paymentForm = useForm({
     client_id: null,
+    quote_id: null, // New field to associate payment with a quote
     amount: null,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
@@ -38,6 +40,22 @@ const clientsWithBalance = computed(() => {
         balance: (client.total_billed || 0) - (client.total_paid || 0)
     }));
 });
+
+const quoteOptions = computed(() => {
+    if (!selectedClient.value?.quotes) return [];
+    
+    return selectedClient.value.quotes
+        .map(q => ({
+            ...q,
+            balance: q.amount - (q.total_paid || 0)
+        }))
+        .filter(q => q.balance > 0) // Muestra solo cotizaciones con saldo pendiente
+        .map(q => ({
+            id: q.id,
+            label: `Cot-${q.id} - ${q.title} (Saldo: ${formatCurrency(q.balance)})`
+        }));
+});
+
 
 // --- MENU ACTIONS ---
 const menuItems = computed(() => {
@@ -70,22 +88,13 @@ const menuItems = computed(() => {
     ];
 });
 
-/**
- * Muestra/oculta el menú de acciones para un cliente específico.
- * @param {object} event - El evento de clic.
- * @param {object} client - El objeto del cliente.
- */
+
 const toggleMenu = (event, client) => {
     selectedClientForMenu.value = client;
     menu.value.toggle(event);
 };
 
 // --- METHODS ---
-
-/**
- * Muestra un diálogo de confirmación antes de eliminar un cliente.
- * @param {object} client - El cliente a eliminar.
- */
 const confirmDeleteClient = (client) => {
     confirm.require({
         message: `¿Estás seguro de que quieres eliminar a "${client.name}"? Esta acción no se puede deshacer.`,
@@ -101,10 +110,6 @@ const confirmDeleteClient = (client) => {
     });
 };
 
-/**
- * Envía la petición para eliminar al cliente.
- * @param {object} client - El cliente a eliminar.
- */
 const deleteClient = (client) => {
     router.delete(`/clients/${client.id}`, {
         preserveScroll: true,
@@ -127,11 +132,6 @@ const deleteClient = (client) => {
     });
 };
 
-
-/**
- * Abre el diálogo modal para agregar un pago.
- * @param {object} client - El cliente seleccionado.
- */
 const openPaymentDialog = (client) => {
     selectedClient.value = client;
     paymentForm.reset();
@@ -139,17 +139,11 @@ const openPaymentDialog = (client) => {
     isPaymentDialogVisible.value = true;
 };
 
-/**
- * Cierra el diálogo modal de agregar pago.
- */
 const closePaymentDialog = () => {
     isPaymentDialogVisible.value = false;
     selectedClient.value = null;
 };
 
-/**
- * Envía el formulario para registrar el pago.
- */
 const submitPayment = () => {
     paymentForm.post(route('client-payments.store'), {
         preserveScroll: true,
@@ -161,46 +155,33 @@ const submitPayment = () => {
                 detail: 'Pago registrado correctamente',
                 life: 3000
             });
+            // router.reload({ only: ['clients'] }); // To update balances
         },
-        onError: () => {
+        onError: (errors) => {
+            const errorMessages = Object.values(errors).join(' ');
             toast.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo registrar el pago. Revisa los datos.',
+                detail: errorMessages || 'No se pudo registrar el pago. Revisa los datos.',
                 life: 3000
             });
         }
     });
 };
 
-/**
- * Navega a la página de detalles del cliente al hacer clic en una fila.
- * @param {object} event - El evento de clic de la fila de DataTable.
- */
 const onRowClick = (event) => {
     router.get(`/clients/${event.data.id}`);
 };
 
-/**
- * Devuelve la clase CSS para las filas de la tabla para indicar que son clickeables.
- */
 const rowClass = () => 'cursor-pointer';
 
-/**
- * Formatea un valor numérico como moneda.
- * @param {number} value - El valor a formatear.
- */
 const formatCurrency = (value) => {
     if (value === null || isNaN(value)) {
         value = 0;
     }
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
 };
 
-/**
- * Devuelve una clase de severidad para el estado del cliente.
- * @param {string} status - El estado del cliente.
- */
 const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info');
 </script>
 
@@ -223,7 +204,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 
                 <!-- Vista de Tabla para Escritorio -->
                 <div class="hidden md:block">
-                    <DataTable :value="clientsWithBalance" stripedRows paginator :rows="10" tableStyle="min-width: 50rem;"
+                    <DataTable :value="clientsWithBalance" stripedRows paginator :rows="15" tableStyle="min-width: 50rem;"
                         @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass">
                         <template #empty> No se encontraron clientes. </template>
 
@@ -265,7 +246,6 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                     </DataTable>
                 </div>
 
-                <!-- Menú de Acciones -->
                 <Menu ref="menu" id="overlay_menu" :model="menuItems" :popup="true" />
 
                 <!-- Vista de Tarjetas para Móvil -->
@@ -315,10 +295,17 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                     </template>
                     <form @submit.prevent="submitPayment">
                         <div class="flex flex-col gap-4 p-4">
+                             <div class="flex flex-col gap-2">
+                                <label for="quote">Asociar a Cotización (Opcional)</label>
+                                <Dropdown id="quote" v-model="paymentForm.quote_id" :options="quoteOptions"
+                                    optionLabel="label" optionValue="id" placeholder="Selecciona una cotización" class="w-full"
+                                    :class="{ 'p-invalid': paymentForm.errors.quote_id }" showClear />
+                                <small v-if="paymentForm.errors.quote_id" class="p-error">{{ paymentForm.errors.quote_id }}</small>
+                            </div>
                             <div class="flex flex-col gap-2">
                                 <label for="amount">Monto del Pago</label>
-                                <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="USD"
-                                    locale="en-US" :class="{ 'p-invalid': paymentForm.errors.amount }" />
+                                <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN"
+                                    locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
                                 <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
@@ -347,11 +334,6 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 /* Estilos para asegurar que el autocompletado del navegador no altere el diseño */
 .p-inputtext, .p-inputnumber-input {
     width: 100% !important;
-}
-
-/* Ajustes finos para la apariencia de los componentes de PrimeVue */
-body {
-    font-family: 'Inter', sans-serif;
 }
 </style>
 

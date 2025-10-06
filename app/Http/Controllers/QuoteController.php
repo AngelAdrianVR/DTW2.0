@@ -19,6 +19,7 @@ class QuoteController extends Controller
         
         $quotes = Quote::query()
             ->with(['client:id,name']) // Carga la relación con cliente para eficiencia
+            ->withSum('payments as total_paid', 'amount') // Calcula el total pagado por cotización
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('id', 'like', "%{$search}%")

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useForm, Link, Head } from '@inertiajs/vue3';
 import { useToast } from 'primevue/usetoast';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import Dropdown from 'primevue/dropdown';
 
 // --- PROPS ---
 const props = defineProps({
@@ -30,13 +31,30 @@ const paymentForm = useForm({
     amount: null,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
-    quote_id: null, // Opcional, para asociar un pago a una cotización
+    quote_id: null, // Campo para asociar un pago a una cotización
 });
 
 // --- COMPUTED PROPERTIES ---
 const balance = computed(() => {
     return parseFloat(props.total_billed) - parseFloat(props.total_paid);
 });
+
+const quoteOptions = computed(() => {
+    if (!props.client?.quotes) return [];
+    
+    return props.client.quotes
+        .map(q => ({
+            ...q,
+            balance: q.amount - (q.total_paid || 0)
+        }))
+        // Muestra solo cotizaciones aceptadas/pagadas con saldo pendiente
+        .filter(q => ['Aceptado', 'Pagado'].includes(q.status) && q.balance > 0) 
+        .map(q => ({
+            id: q.id,
+            label: `Cot-${q.id} - ${q.title} (Saldo: ${formatCurrency(q.balance)})`
+        }));
+});
+
 
 // --- METHODS ---
 
@@ -70,8 +88,6 @@ const submitPayment = () => {
                 detail: 'Pago registrado correctamente',
                 life: 3000
             });
-            // Opcional: Recargar los datos para ver el pago reflejado inmediatamente
-            // router.reload({ only: ['client', 'total_paid'] });
         },
         onError: (errors) => {
             console.error("Payment Error:", errors);
@@ -94,9 +110,9 @@ const submitPayment = () => {
 const formatCurrency = (value) => {
     const numericValue = parseFloat(value);
     if (isNaN(numericValue)) {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(0);
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(0);
     }
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(numericValue);
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numericValue);
 };
 
 /**
@@ -126,8 +142,9 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 const getQuoteStatusSeverity = (status) => {
     const statuses = {
         'Pendiente': 'info',
-        'Aceptada': 'success',
-        'Rechazada': 'danger',
+        'Aceptado': 'success',
+        'Pagado': 'success',
+        'Rechazado': 'danger',
         'Expirada': 'warning'
     };
     return statuses[status] || 'secondary';
@@ -290,28 +307,32 @@ const getQuoteStatusSeverity = (status) => {
                     </div>
                 </div>
 
-                 <!-- Add Payment Dialog -->
+                <!-- Add Payment Dialog -->
                 <Dialog v-model:visible="isPaymentDialogVisible" modal :header="`Registrar Pago para ${client.name}`" :style="{ width: '30rem' }">
-                    <form @submit.prevent="submitPayment" class="p-fluid">
-                         <div class="field mt-4">
-                            <span class="p-float-label">
-                                <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="USD" locale="en-US" :class="{ 'p-invalid': paymentForm.errors.amount }" />
-                                <label for="amount">Monto del Pago</label>
-                            </span>
-                            <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
+                    <form @submit.prevent="submitPayment" class="p-fluid space-y-4 pt-4">
+                        <div class="flex flex-col">
+                            <label for="quote" class="mb-2 font-semibold">Asociar a Cotización (Opcional)</label>
+                            <Dropdown id="quote" v-model="paymentForm.quote_id" :options="quoteOptions"
+                                optionLabel="label" optionValue="id" placeholder="Selecciona una cotización con saldo"
+                                class="w-full" :class="{ 'p-invalid': paymentForm.errors.quote_id }" showClear />
+                            <small v-if="paymentForm.errors.quote_id" class="p-error mt-1">{{ paymentForm.errors.quote_id }}</small>
                         </div>
-                        <div class="field mt-4">
-                             <span class="p-float-label">
-                                <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
-                                 <label for="payment_date">Fecha del Pago</label>
-                             </span>
-                            <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
+                
+                        <div class="flex flex-col">
+                            <label for="amount" class="mb-2 font-semibold">Monto del Pago</label>
+                            <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN" locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
+                            <small v-if="paymentForm.errors.amount" class="p-error mt-1">{{ paymentForm.errors.amount }}</small>
                         </div>
-                        <div class="field mt-4">
-                             <span class="p-float-label">
-                                <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
-                                <label for="notes">Notas (Opcional)</label>
-                             </span>
+                
+                        <div class="flex flex-col">
+                            <label for="payment_date" class="mb-2 font-semibold">Fecha del Pago</label>
+                            <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
+                            <small v-if="paymentForm.errors.payment_date" class="p-error mt-1">{{ paymentForm.errors.payment_date }}</small>
+                        </div>
+                        
+                        <div class="flex flex-col">
+                            <label for="notes" class="mb-2 font-semibold">Notas (Opcional)</label>
+                            <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
                         </div>
                     </form>
                     <template #footer>
@@ -334,4 +355,3 @@ const getQuoteStatusSeverity = (status) => {
     margin-bottom: 1rem;
 }
 </style>
-
