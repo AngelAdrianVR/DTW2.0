@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('client_id')->nullable()->constrained('clients');
             $table->foreignId('user_id')->nullable()->constrained('users')->comment('Usuario que creó la cotización');
+            $table->foreignId('project_id')->nullable()->constrained('projects')->comment('Proyecto asociado, si aplica');
 
             $table->string('client_name')->nullable(); // En caso de que el origen sea 'Web'
             $table->string('client_email')->nullable(); // En caso de que el origen sea 'Web'

@@ -14,10 +14,13 @@ return new class extends Migration
         Schema::create('time_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('task_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            // Momento en que el usuario presiona "Iniciar" en la tarea.
             $table->timestamp('start_time');
+            // Momento en que el usuario presiona "Pausar" o "Completar". Nulable mientras la tarea está activa.
             $table->timestamp('end_time')->nullable();
-            $table->integer('duration_minutes')->nullable()->comment('Duración total en minutos, calculado al detener');
+            // Duración calculada en minutos. Se calcula al registrar end_time.
+            $table->unsignedInteger('duration_minutes')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });

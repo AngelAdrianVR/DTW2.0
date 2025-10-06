@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('role_in_project')->nullable()->comment('Rol (ej. Líder, Desarrollador)');
             $table->timestamps();
+            // Se asegura que un usuario solo pueda ser miembro de un proyecto una vez.
             $table->unique(['project_id', 'user_id']);
         });
     }
