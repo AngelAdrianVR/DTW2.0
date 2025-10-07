@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientPaymentController;
+use App\Http\Controllers\HostingClientController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -56,3 +58,17 @@ Route::resource('projects', ProjectController::class)->middleware('auth');
 // ------------------------------------------------------------------------------------------------------------
 Route::resource('tasks', TaskController::class)->except(['index', 'create','edit','show'])->middleware('auth');
 Route::patch('/tasks/{task}/update-status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+
+
+// Rutas de usuarios --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------
+Route::resource('users', UserController::class)->middleware('auth');
+
+
+// Rutas de hostings --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------
+Route::resource('hosting-clients', HostingClientController::class)->middleware('auth');
+Route::post('/hosting-clients/{hostingClient}/payments', [HostingClientController::class, 'storePayment'])->name('hosting-clients.payments.store');
+Route::patch('/hosting-clients/{hostingClient}/status', [HostingClientController::class, 'updateStatus'])->name('hosting-clients.status.update');
+
+

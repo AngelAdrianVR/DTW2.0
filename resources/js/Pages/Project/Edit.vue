@@ -1,6 +1,5 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
-import { watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Back from '@/Components/MyComponents/Back.vue';
 
@@ -16,78 +15,58 @@ import Card from 'primevue/card';
 
 // --- PROPS ---
 const props = defineProps({
+    project: Object,
     clients: Array,
     users: Array,
-    quotes: Array, // Cotizaciones aceptadas y sin proyecto
-    quoteIdFromUrl: Number, // Recibe el ID de la cotización desde el controlador
+    quotes: Array,
 });
 
 // --- FORM ---
+// Inicializa el formulario con los datos del proyecto que se está editando.
 const form = useForm({
-    name: '',
-    // --- CAMBIO CLAVE ---
-    // Se inicializa el quote_id con el valor que viene de la URL
-    quote_id: props.quoteIdFromUrl || null,
-    client_id: null,
-    description: '',
-    start_date: null,
-    end_date: null,
-    budget: null,
-    member_ids: [],
+    name: props.project.name,
+    quote_id: props.project.quote_id,
+    client_id: props.project.client_id,
+    description: props.project.description,
+    // Convierte las fechas a objetos Date para que el componente Calendar las reconozca
+    start_date: props.project.start_date ? new Date(props.project.start_date) : null,
+    end_date: props.project.end_date ? new Date(props.project.end_date) : null,
+    budget: props.project.budget,
+    // Mapea el array de miembros a un array de sus IDs para el MultiSelect
+    member_ids: props.project.members.map(member => member.id),
 });
-
-// --- WATCHER ---
-// Observa cambios en la cotización seleccionada para autocompletar el formulario.
-watch(() => form.quote_id, (newQuoteId) => {
-    if (newQuoteId) {
-        const selectedQuote = props.quotes.find(q => q.id === newQuoteId);
-        if (selectedQuote) {
-            // Se autocompletan los campos del formulario
-            form.name = selectedQuote.title || `Proyecto para Cotización #${selectedQuote.id}`;
-            form.client_id = selectedQuote.client_id;
-            form.budget = selectedQuote.final_amount; // Se usa el accessor 'final_amount'
-            form.description = selectedQuote.description; // Se autocompleta la descripción
-        }
-    } else {
-        // Limpia los campos si se deselecciona la cotización
-        form.reset('name', 'client_id', 'budget', 'description');
-    }
-}, {
-    // --- CAMBIO CLAVE ---
-    // 'immediate: true' hace que el watcher se ejecute al cargar el componente,
-    // usando el valor inicial de `form.quote_id` para rellenar el formulario.
-    immediate: true
-});
-
 
 // --- METHODS ---
 const submit = () => {
-    form.post(route('projects.store'));
+    // Usa el método PUT para actualizar el recurso
+    form.put(route('projects.update', props.project.id));
 };
 </script>
 
 <template>
-    <AppLayout title="Crear Proyecto">
+    <AppLayout title="Editar Proyecto">
         <div class="p-4 sm:p-6 lg:p-8">
             <Back :route="'projects.index'" />
             <div class="max-w-4xl mx-auto mt-4">
                 <form @submit.prevent="submit">
                     <Card class="dark:bg-gray-800 dark:border-gray-700">
                         <template #title>
-                            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Crear Nuevo Proyecto</h2>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Editar Proyecto</h2>
                         </template>
                         <template #subtitle>
-                            <p class="text-gray-600 dark:text-gray-400">Completa la información para registrar un nuevo proyecto.</p>
+                            <p class="text-gray-600 dark:text-gray-400">Actualiza la información del proyecto.</p>
                         </template>
 
                         <template #content>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
 
                                 <div class="flex flex-col gap-2 md:col-span-2">
-                                    <label for="quote_id" class="font-semibold dark:text-gray-300">Crear desde Cotización (Opcional)</label>
+                                    <label for="quote_id" class="font-semibold dark:text-gray-300">Cotización Vinculada (Opcional)</label>
+                                     <!-- El dropdown está deshabilitado si el proyecto ya tiene una cotización para evitar cambios accidentales -->
                                     <Dropdown id="quote_id" v-model="form.quote_id" :options="props.quotes" filter
                                         optionValue="id" placeholder="Selecciona una cotización aceptada"
-                                        :class="{ 'p-invalid': form.errors.quote_id }" showClear>
+                                        :class="{ 'p-invalid': form.errors.quote_id }" showClear
+                                        :disabled="!!props.project.quote_id">
                                         <template #option="{ option }">
                                             <span>{{ option.title }} (Folio: {{ option.id }})</span>
                                         </template>
@@ -96,6 +75,7 @@ const submit = () => {
                                             <span v-else>{{ placeholder }}</span>
                                         </template>
                                     </Dropdown>
+                                    <small class="text-yellow-500 text-xs mt-1" v-if="props.project.quote_id">Para cambiar la cotización, primero debes desvincularla.</small>
                                     <small v-if="form.errors.quote_id" class="p-error">{{ form.errors.quote_id }}</small>
                                 </div>
 
@@ -149,7 +129,7 @@ const submit = () => {
                                 <Link :href="route('projects.index')">
                                     <Button label="Cancelar" severity="secondary" outlined />
                                 </Link>
-                                <Button label="Guardar Proyecto" icon="pi pi-check" @click="submit" :loading="form.processing" />
+                                <Button label="Actualizar Proyecto" icon="pi pi-check" @click="submit" :loading="form.processing" />
                             </div>
                         </template>
                     </Card>

@@ -95,12 +95,6 @@ const menuItems = computed(() => {
 
     return [
         {
-            label: 'Agregar Pago',
-            icon: 'pi pi-dollar',
-            command: () => openPaymentDialog(quote),
-            visible: quote.status === 'Aceptado'
-        },
-        {
             label: 'Ver Detalles',
             icon: 'pi pi-eye',
             command: () => router.get(route('quotes.show', quote.id))
@@ -112,6 +106,20 @@ const menuItems = computed(() => {
             visible: !['Aceptado', 'Pagado'].includes(quote.status)
         },
         {
+            label: 'Crear Proyecto',
+            icon: 'pi pi-folder-plus',
+            // Redirige a la página de creación de proyecto con el ID de la cotización
+            command: () => router.get(route('projects.create', { quote_id: quote.id })),
+            // Solo visible si la cotización está aceptada y no tiene un proyecto ya creado
+            visible: quote.status === 'Aceptado' && !quote.project_id
+        },
+        {
+            label: 'Agregar Pago',
+            icon: 'pi pi-dollar',
+            command: () => openPaymentDialog(quote),
+            visible: quote.status === 'Aceptado'
+        },
+        {
             label: 'Cambiar Estado',
             icon: 'pi pi-sort-alt',
             items: statusActions,
@@ -119,7 +127,6 @@ const menuItems = computed(() => {
         },
         {
             separator: true,
-            visible: quote.status === 'Aceptado'
         },
         {
             label: 'Eliminar Cotización',
@@ -364,7 +371,8 @@ const getStatusIcon = (status) => {
                             </Column>
                              <Column field="project_id" header="Proyecto">
                                 <template #body="{ data }">
-                                    <p>{{ data.project_id ?? '-' }}</p>
+                                    <p class="text-blue-400 hover:underline" @click.stop="$inertia.visit(route('projects.show', data.project_id))" v-if="data.project_id">{{ data.project.name }}</p>
+                                    <p v-else>-</p>
                                 </template>
                             </Column>
                             <Column header="Acciones" style="width: 10%" bodyClass="text-center">

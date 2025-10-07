@@ -9,6 +9,7 @@ use App\Models\TimeLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
@@ -38,7 +39,7 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         // Fetch clients and users to populate the dropdowns in the form
         $clients = Client::select('id', 'name')->get();
@@ -48,14 +49,17 @@ class ProjectController extends Controller
         // This assumes a 'project' hasOne relationship exists on the Quote model.
         $quotes = Quote::where('status', 'Aceptado')
             ->whereDoesntHave('project')
-            ->select('id', 'title', 'client_id', 'amount')
+            // Se añaden los campos necesarios para el autocompletado
+            ->select('id', 'title', 'client_id', 'amount', 'percentage_discount', 'description')
             ->get();
-
 
         return Inertia::render('Project/Create', [
             'clients' => $clients,
             'users' => $users,
-            'quotes' => $quotes, // Pass quotes to the view
+            'quotes' => $quotes,
+            // --- CAMBIO CLAVE ---
+            // Se pasa el ID de la cotización desde la URL a la vista
+            'quoteIdFromUrl' => (int) $request->input('quote_id'),
         ]);
     }
 
@@ -118,12 +122,81 @@ class ProjectController extends Controller
 
     public function edit(Project $project)
     {
-        //
+        // Carga los miembros actuales del proyecto para pasarlos a la vista
+        $project->load('members:id');
+
+        // Obtener listas de recursos para los dropdowns
+        $clients = Client::select('id', 'name')->get();
+        $users = User::select('id', 'name')->get();
+
+        // Obtener cotizaciones que están aceptadas y O no tienen proyecto O pertenecen a este proyecto.
+        // Esto permite que la cotización actual siga apareciendo en el dropdown.
+        $quotes = Quote::where('status', 'Aceptado')
+            ->where(function ($query) use ($project) {
+                $query->whereDoesntHave('project')
+                      ->orWhere('project_id', $project->id);
+            })
+            ->select('id', 'title', 'client_id', 'amount', 'percentage_discount', 'description')
+            ->get();
+
+
+        return Inertia::render('Project/Edit', [
+            'project' => $project,
+            'clients' => $clients,
+            'users' => $users,
+            'quotes' => $quotes,
+        ]);
     }
 
     public function update(Request $request, Project $project)
     {
-        //
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            // La cotización debe ser única, ignorando el proyecto actual
+            'quote_id' => [
+                'nullable',
+                'exists:quotes,id',
+                Rule::unique('projects')->ignore($project->id),
+            ],
+            'client_id' => 'required_without:quote_id|nullable|exists:clients,id',
+            'description' => 'nullable|string',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'budget' => 'nullable|numeric|min:0',
+            'member_ids' => 'nullable|array',
+            'member_ids.*' => 'exists:users,id',
+        ]);
+
+        // Manejar el cambio de cotización
+        $oldQuoteId = $project->quote_id;
+        $newQuoteId = $validatedData['quote_id'] ?? null;
+
+        // Si la cotización ha cambiado...
+        if ($oldQuoteId != $newQuoteId) {
+            // Desvincular la cotización anterior si existía
+            if ($oldQuoteId) {
+                Quote::where('id', $oldQuoteId)->update(['project_id' => null]);
+            }
+            // Vincular la nueva cotización si se proporcionó una
+            if ($newQuoteId) {
+                Quote::where('id', $newQuoteId)->update(['project_id' => $project->id]);
+            }
+        }
+
+        // Actualizar el proyecto con los datos validados
+        $project->update($validatedData);
+
+        // Sincronizar los miembros del equipo.
+        // sync() se encarga de añadir/eliminar miembros según sea necesario.
+        if (isset($validatedData['member_ids'])) {
+            $project->members()->sync($validatedData['member_ids']);
+        } else {
+            // Si no se envían IDs de miembros, se eliminan todas las asociaciones
+            $project->members()->detach();
+        }
+
+
+        return redirect()->route('projects.index')->with('success', 'Proyecto actualizado correctamente.');
     }
 
     public function destroy(Project $project)

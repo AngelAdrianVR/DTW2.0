@@ -19,12 +19,11 @@ import Back from '@/Components/MyComponents/Back.vue';
 
 const { props } = usePage();
 
-// --- CAMBIO CLAVE ---
-// Usamos `computed` en lugar de `ref` para que las variables `project` y `totalTimeInvested`
-// reaccionen automáticamente cuando Inertia actualice las props después de una acción (como cambiar el estado).
+// Usamos `computed` para que las variables reaccionen automáticamente cuando Inertia
+// actualice las props después de una acción (como el cambio de estado).
+// Este enfoque es excelente y es la forma correcta de hacerlo.
 const project = computed(() => props.project);
 const totalTimeInvested = computed(() => props.totalTimeInvested);
-
 
 // --- State para Modales ---
 const isCreateTaskModalVisible = ref(false);
@@ -114,35 +113,49 @@ const onDragStart = (task) => {
 };
 
 const onDrop = (newStatus) => {
-    if (draggedTask.value && draggedTask.value.status !== newStatus) {
-
-        // --- CAMBIO: Actualización Optimista ---
-        // Movemos la tarea en la UI inmediatamente para una mejor experiencia de usuario.
-        const originalTask = project.value.tasks.find(t => t.id === draggedTask.value.id);
-        const originalStatus = draggedTask.value.status; // Guardamos el estado original por si falla
-        if(originalTask) {
-            originalTask.status = newStatus;
-        }
-
-        // La llamada a Inertia no cambia, pero ahora el controlador devolverá JSON.
-        router.patch(route('tasks.updateStatus', { task: draggedTask.value.id }), {
-            status: newStatus,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-            // onSuccess ya no necesita hacer nada especial, porque al recibir las nuevas props,
-            // el `computed` de `project` se actualizará solo.
-            onError: () => {
-                // Si la petición al servidor falla, revertimos el cambio visual.
-                if(originalTask) {
-                    originalTask.status = originalStatus;
-                }
-                // Aquí podrías mostrar una notificación de error.
-            }
-        });
+    if (!draggedTask.value || draggedTask.value.status === newStatus) {
+        draggedTask.value = null;
+        return;
     }
-    draggedTask.value = null;
+
+    const taskToMove = project.value.tasks.find(t => t.id === draggedTask.value.id);
+    const originalStatus = taskToMove.status;
+    
+    // Actualización optimista: movemos la tarea en la UI inmediatamente.
+    if (taskToMove) {
+        taskToMove.status = newStatus;
+    }
+
+    // --- CAMBIO CLAVE ---
+    // Hacemos la petición al backend para que actualice el estado y el tiempo.
+    router.patch(route('tasks.updateStatus', { task: draggedTask.value.id }), {
+        status: newStatus,
+    }, {
+        preserveScroll: true,
+        // ¡OJO! No usamos 'preserveState: true'.
+        // Esto es fundamental. Al omitirlo, Inertia.js solicitará las props actualizadas
+        // del servidor después de que el controlador haga la redirección.
+        // Así es como 'project' y 'totalTimeInvested' se refrescan.
+        onSuccess: () => {
+            // La UI se actualiza sola gracias a las propiedades computadas.
+            // ¡No hay que hacer nada aquí!
+        },
+        onError: (errors) => {
+            // Si hay un error en el backend, revertimos el cambio en la UI
+            // para mantener la consistencia.
+            if (taskToMove) {
+                taskToMove.status = originalStatus;
+            }
+            console.error("Error al actualizar la tarea:", errors);
+            // Aquí podrías mostrar una notificación de error al usuario.
+        },
+        onFinish: () => {
+            // Limpiamos la tarea arrastrada, sin importar si fue éxito o error.
+            draggedTask.value = null;
+        }
+    });
 };
+
 
 // --- Funciones de formato ---
 const getStatusSeverity = (status) => {
@@ -159,20 +172,19 @@ const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' };
     return new Date(dateString).toLocaleDateString('es-ES', options);
 };
-
 </script>
 
 <template>
     <Head :title="'Proyecto: ' + project.name" />
 
     <AppLayout>
-        <div class="py-12 min-h-screen">
+        <div class="py-1">
             <Back :route="'projects.index'" />
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 md:p-8">
 
                     <!-- Header -->
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
                         <div>
                             <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ project.name }}</h1>
                             <div class="flex items-center gap-3 text-cyan-600 dark:text-cyan-400">
@@ -186,7 +198,7 @@ const formatDate = (dateString) => {
                     <!-- Tabs -->
                     <TabView>
                         <TabPanel header="Tareas">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
                                 <!-- Kanban Columns -->
                                 <div v-for="status in statuses" :key="status" class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4 kanban-column" @dragover.prevent @drop="onDrop(status)">
                                     <h3 class="font-bold text-lg text-gray-800 dark:text-white mb-4 border-b-2 pb-2" :class="{
@@ -200,7 +212,7 @@ const formatDate = (dateString) => {
                                         </span>
                                     </h3>
 
-                                    <div class="space-y-4 min-h-[300px]">
+                                    <div class="space-y-3 max-h-[45vh] overflow-y-auto">
                                         <!-- Task Cards -->
                                         <div v-for="task in tasksByStatus[status]" :key="task.id"
                                              draggable="true"
@@ -217,11 +229,10 @@ const formatDate = (dateString) => {
 
                                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 truncate">{{ task.description || 'Sin descripción' }}</p>
                                             
-                                            <!-- INICIO CAMBIO: Footer de la tarjeta -->
                                             <div class="flex justify-between items-center mt-3 text-sm text-gray-500 dark:text-gray-400">
                                                 <div class="flex items-center gap-4">
                                                     <span>{{ formatDate(task.due_date) }}</span>
-                                                    <div class="flex items-center gap-1" v-if="task.total_hours_invested && task.total_hours_invested !== '00:00'">
+                                                    <div class="flex items-center gap-1">
                                                         <i class="pi pi-clock text-xs"></i>
                                                         <span>{{ task.total_hours_invested }}</span>
                                                     </div>
@@ -230,8 +241,6 @@ const formatDate = (dateString) => {
                                                 <Avatar v-if="task.assignee" :image="task.assignee.profile_photo_url" shape="circle" v-tooltip.top="task.assignee.name" />
                                                 <Avatar v-else icon="pi pi-user" shape="circle" class="bg-gray-200 dark:bg-gray-600" v-tooltip.top="'Sin asignar'" />
                                             </div>
-                                            <!-- FIN CAMBIO -->
-
                                         </div>
 
                                         <!-- Empty State -->
