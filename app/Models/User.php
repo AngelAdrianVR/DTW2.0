@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -31,6 +32,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'last_login_at',
     ];
 
     /**
@@ -64,6 +66,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',
         ];
     }
 
@@ -90,8 +93,14 @@ class User extends Authenticatable
 
     public function projects(): BelongsToMany
     {
+        // CORRECCIÓN: Se eliminó ->withPivot('role_in_project')
+        // Ahora la relación no intentará buscar una columna de "rol".
         return $this->belongsToMany(Project::class, 'project_members')
-                    ->withPivot('role_in_project')
                     ->withTimestamps();
+    }
+
+    public function pomodoroSetting(): HasOne
+    {
+        return $this->hasOne(PomodoroSetting::class);
     }
 }

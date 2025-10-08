@@ -30,7 +30,7 @@ class ProjectController extends Controller
                     ->orWhere('status', 'like', "%{$search}%");
             })
             ->latest() // Order by creation date, newest first
-            ->paginate(10)
+            ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('Project/Index', [

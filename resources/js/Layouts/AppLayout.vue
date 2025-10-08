@@ -1,14 +1,28 @@
 <script setup>
-import { ref, computed, onMounted, watchEffect } from 'vue';
+import { ref, computed, onMounted, watchEffect, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import Banner from '@/Components/Banner.vue';
-import Dropdown from '@/Components/Dropdown.vue';
 import Sidebar from '@/Components/MyComponents/SideBar.vue';
 import BottomNavBar from '@/Components/MyComponents/BottomNavBar.vue';
+// 1. Importa el PomodoroTimer y el composable
+import PomodoroTimer from '@/Components/MyComponents/PomodoroTimer.vue';
+import { usePomodoro } from '@/Composables/usePomodoro';
 
-defineProps({
+const props = defineProps({
     title: String,
 });
+
+// 2. Usa el composable
+const { state, displayTime } = usePomodoro();
+
+// 3. Crea el título dinámico para la pestaña del navegador
+const pageTitle = computed(() => {
+    if (state.isRunning) {
+        return `${displayTime.value} - ${state.isWorkSession ? 'Enfoque' : 'Descanso'}`;
+    }
+    return props.title;
+});
+
 
 // Definición de los módulos de navegación con más items para la barra inferior
 const navigationMenu = computed(() => [
@@ -107,8 +121,11 @@ const switchToTeam = (team) => {
 
 <template>
     <div>
-        <Head :title="title" />
+        <Head :title="pageTitle" />
         <Banner />
+        
+        <!-- 4. Renderiza el componente del modal -->
+        <PomodoroTimer />
 
         <div class="flex min-h-screen bg-gray-100 dark:bg-slate-950">
             <!-- Sidebar ahora solo se pasa la navegación -->
@@ -121,8 +138,26 @@ const switchToTeam = (team) => {
                 <!-- Barra de Navegación Superior -->
                 <nav class="bg-white dark:bg-gray-800 shadow-md max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3 rounded-2xl w-full">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="flex justify-end items-center h-16">
-                            <!-- Switch de Dark Mode movido aquí -->
+                        <div class="flex justify-between items-center h-16">
+                           <!-- Lado Izquierdo (o central) para el Timer -->
+                            <div>
+                               <transition
+                                    enter-active-class="transition ease-out duration-200"
+                                    enter-from-class="opacity-0 scale-95"
+                                    enter-to-class="opacity-100 scale-100"
+                                    leave-active-class="transition ease-in duration-150"
+                                    leave-from-class="opacity-100 scale-100"
+                                    leave-to-class="opacity-0 scale-95"
+                                >
+                                    <div v-if="state.isRunning" class="flex items-center gap-x-2 px-3 py-1 rounded-full text-sm font-medium text-white"
+                                        :class="state.isWorkSession ? 'bg-emerald-500/90' : 'bg-sky-500/90'">
+                                        <svg v-if="state.isWorkSession" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
+                                        <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <span class="font-mono tracking-wider">{{ displayTime }}</span>
+                                    </div>
+                               </transition>
+                            </div>
+                            <!-- Lado Derecho para Dark Mode -->
                              <div class="flex items-center">
                                 <span class="text-sm font-medium text-gray-800 dark:text-gray-300 mr-3">Dark Mode</span>
                                 <button @click="toggleDarkMode" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :class="isDarkMode ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'">

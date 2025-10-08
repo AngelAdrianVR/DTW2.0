@@ -88,4 +88,40 @@ class UserController extends Controller
 
         return redirect()->route('users.index')->with('success', 'Usuario actualizado correctamente.');
     }
+
+    public function show(User $user)
+    {
+        // Cargar relaciones necesarias para evitar N+1 queries
+        $user->load([
+            'assignedTasks' => function ($query) {
+                $query->with('project:id,name')->latest();
+            },
+            'projects' => function ($query) {
+                $query->with('client:id,name')->latest();
+            },
+            'quotes' => function ($query) {
+                $query->with('client:id,name')->latest();
+            },
+            'timeLogs' // Necesario para calcular el tiempo total invertido
+        ]);
+
+        // Calcular estadísticas
+        $completedTasksCount = $user->assignedTasks->where('status', 'Completada')->count();
+        $totalMinutes = $user->timeLogs->sum('duration_minutes');
+        
+        // Formatear el tiempo total a HH:MM
+        $hours = floor($totalMinutes / 60);
+        $minutes = $totalMinutes % 60;
+        $totalTimeInvested = sprintf('%02d:%02d', $hours, $minutes);
+
+        return Inertia::render('User/Show', [
+            'user' => $user,
+            'stats' => [
+                'completedTasksCount' => $completedTasksCount,
+                'totalTimeInvested' => $totalTimeInvested,
+                'quotesCount' => $user->quotes->count(),
+                'projectsCount' => $user->projects->count(),
+            ]
+        ]);
+    }
 }

@@ -35,6 +35,11 @@ const menuItems = computed(() => {
     const user = selectedUserForMenu.value;
     return [
         {
+            label: 'Ver Detalles',
+            icon: 'pi pi-eye',
+            command: () => router.get(route('users.show', user.id))
+        },
+        {
             label: 'Editar Usuario',
             icon: 'pi pi-pencil',
             command: () => router.get(route('users.edit', user.id)) // Descomentar cuando la ruta exista
@@ -54,6 +59,12 @@ const menuItems = computed(() => {
         }
     ];
 });
+
+const onRowClick = (event) => {
+     router.get(route('users.show', event.data.id));
+};
+
+const rowClass = () => 'cursor-pointer';
 
 const toggleMenu = (event, user) => {
     selectedUserForMenu.value = user;
@@ -132,7 +143,7 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
 
                 <!-- Vista de Tabla para Escritorio -->
                 <div class="hidden md:block">
-                    <DataTable :value="users.data" stripedRows paginator :rows="10" :totalRecords="users.total"
+                    <DataTable @row-click="onRowClick" :rowClass="rowClass" :value="users.data" stripedRows paginator :rows="10" :totalRecords="users.total"
                                tableStyle="min-width: 50rem;" dataKey="id">
                         <template #empty> No se encontraron usuarios. </template>
 

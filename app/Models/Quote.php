@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Quote extends Model
+class Quote extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
     protected $fillable = [
         'client_id',
@@ -110,5 +112,14 @@ class Quote extends Model
         $totalPaid = $this->payments()->sum('amount');
         // Se utiliza el accesor getFinalAmountAttribute() para el cálculo.
         return (float) $this->getFinalAmountAttribute() - $totalPaid;
+    }
+
+    /**
+     * NEW: Defines the relationship to invoices.
+     * A quote can have multiple invoices (e.g., for partial payments).
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

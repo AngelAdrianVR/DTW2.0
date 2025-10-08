@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class QuoteController extends Controller
 {
@@ -87,10 +88,20 @@ class QuoteController extends Controller
         ]);
     }
 
-    public function show(Quote $quote)
+    public function print(Quote $quote)
     {
         // Carga la relación con el cliente para tener todos sus datos disponibles en la vista
         $quote->load('client');
+
+        return Inertia::render('Quote/Print', [
+            'quote' => $quote,
+        ]);
+    }
+
+    public function show(Quote $quote)
+    {
+        // Carga la relación con el cliente y los archivos multimedia para la vista de detalles
+        $quote->load('client', 'media');
 
         return Inertia::render('Quote/Show', [
             'quote' => $quote,
@@ -255,5 +266,45 @@ class QuoteController extends Controller
         $nextNumber = $lastQuote ? (int)substr($lastQuote->quote_code, -4) + 1 : 1;
         
         return 'COT-' . $year . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * NEW: Adjunta un archivo de factura a una cotización.
+     */
+    public function storeInvoice(Request $request, Quote $quote)
+    {
+        $request->validate([
+            'invoice_file' => 'required|file|mimes:pdf,jpg,jpeg,png,xml|max:5120', // Max 5MB
+        ]);
+
+        try {
+            $quote->addMediaFromRequest('invoice_file')
+                  ->toMediaCollection('invoices');
+        } catch (\Exception $e) {
+            Log::error('Error al subir archivo de factura: ' . $e->getMessage());
+            return back()->with('flash', [
+                'message' => 'Hubo un problema al subir el archivo.',
+                'type' => 'error'
+            ]);
+        }
+
+        return back()->with('flash', [
+            'message' => 'Factura adjuntada con éxito.',
+            'type' => 'success'
+        ]);
+    }
+
+    /**
+     * NEW: Elimina un archivo de factura de la cotización.
+     */
+    public function destroyInvoice(Quote $quote, Media $media)
+    {
+        if ($media->model_id !== $quote->id || $media->model_type !== Quote::class) {
+            return back()->with('flash', ['message' => 'Acción no autorizada.', 'type' => 'error']);
+        }
+
+        $media->delete();
+
+        return back()->with('flash', ['message' => 'Archivo eliminado correctamente.', 'type' => 'success']);
     }
 }

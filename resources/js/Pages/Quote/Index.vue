@@ -114,6 +114,11 @@ const menuItems = computed(() => {
             visible: quote.status === 'Aceptado' && !quote.project_id
         },
         {
+            label: 'Imprimir',
+            icon: 'pi pi-print',
+            command: () => router.get(route('quotes.print', quote.id))
+        },
+        {
             label: 'Agregar Pago',
             icon: 'pi pi-dollar',
             command: () => openPaymentDialog(quote),
