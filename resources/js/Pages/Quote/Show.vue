@@ -1,7 +1,11 @@
 <script setup>
 import { computed } from 'vue';
-import { Link, Head } from '@inertiajs/vue3';
+import { Link, Head, useForm, router } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
 import Button from 'primevue/button';
+import Card from 'primevue/card';
+import Tag from 'primevue/tag';
+import ProgressBar from 'primevue/progressbar';
 
 // --- PROPS ---
 const props = defineProps({
@@ -11,220 +15,203 @@ const props = defineProps({
     },
 });
 
-// --- HELPERS ---
-const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
+// --- FORMULARIO PARA SUBIR ARCHIVOS ---
+const form = useForm({
+    invoice_file: null,
+});
+
+const submitInvoice = () => {
+    form.post(route('quotes.invoices.store', props.quote.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset('invoice_file');
+            const fileInput = document.getElementById('invoice-input');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        },
     });
 };
 
-const formatCurrency = (value) => {
-    if (value === null || isNaN(value)) {
-        value = 0;
-    }
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
-};
-
 // --- COMPUTED PROPERTIES ---
+const invoices = computed(() => {
+    return props.quote.media?.filter(file => file.collection_name === 'invoices') || [];
+});
+
 const totalWithDiscount = computed(() => {
-    const amount = props.quote.amount || 0;
-    const discount = props.quote.percentage_discount || 0;
-    if (discount <= 0 || discount > 100) {
-        return amount;
-    }
+    const amount = parseFloat(props.quote.amount) || 0;
+    const discount = parseFloat(props.quote.percentage_discount) || 0;
+    if (discount <= 0 || discount > 100) return amount;
     const discountAmount = (amount * discount) / 100;
     return amount - discountAmount;
 });
 
-// --- METHODS ---
-const printQuote = () => {
-    window.print();
+const getStatusSeverity = (status) => {
+    const statuses = {
+        'Pendiente': 'info',
+        'Enviado': 'warn',
+        'Aceptado': 'success',
+        'Rechazado': 'danger',
+    };
+    return statuses[status] || 'secondary';
+};
+
+
+// --- MÉTODOS ---
+const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const formatCurrency = (value) => {
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) return '$0.00';
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numericValue);
+};
+
+const deleteFile = (fileId) => {
+    if (confirm('¿Estás seguro de que quieres eliminar este archivo?')) {
+        router.delete(route('quotes.invoices.destroy', { quote: props.quote.id, media: fileId }), {
+            preserveScroll: true,
+        });
+    }
 };
 
 </script>
 
 <template>
-    <Head :title="`Cotización ${quote.quote_code}`" />
-    <div class="py-10 print:bg-white font-sans">
-        <!-- Botones de Acción (se ocultan al imprimir) -->
-        <div class="max-w-4xl mx-auto mb-6 px-4 sm:px-6 lg:px-8 print:hidden">
-            <div class="flex justify-between items-center">
-                <Link :href="route('quotes.index')">
-                    <Button label="Volver al Listado" icon="pi pi-arrow-left" severity="secondary" outlined />
-                </Link>
-                <Button @click="printQuote" label="Imprimir Cotización" icon="pi pi-print" />
-            </div>
-        </div>
-
-        <!-- Hoja de Cotización -->
-        <div id="quote-sheet" class="max-w-4xl mx-auto bg-white shadow-2xl rounded-lg relative">
-            <!-- Marca de agua de fondo -->
-            <div class="absolute inset-0 flex items-center justify-center z-0 opacity-5 pointer-events-none print:hidden">
-                 <img src="/images/black_logo.png" alt="Logo Watermark" class="h-64 transform -rotate-12">
-            </div>
-
-            <div class="relative z-10">
-                <!-- Encabezado con decoración -->
-                <header class="relative p-4 md:p-8">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <img src="/images/black_logo.png" alt="Logo de la Empresa" class="h-20">
-                             <div class="mt-4 text-xs text-gray-500">
-                                <p>Zapopan, Jalisco, México</p>
-                                <p>contacto@dtw.com.mx</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <h2 class="text-4xl font-bold uppercase text-gray-800 tracking-wider">Cotización</h2>
-                            <p class="font-mono mt-2 text-gray-500">{{ quote.quote_code }}</p>
-                            <p class="mt-4 text-sm">Fecha de Emisión: <span class="font-semibold text-gray-700">{{ formatDate(quote.created_at) }}</span></p>
-                            <p class="text-sm">Válido hasta: <span class="font-semibold text-gray-700">{{ formatDate(quote.valid_until) }}</span></p>
-                        </div>
+    <Head :title="`Detalle de Cotización ${quote.quote_code}`" />
+    <AppLayout title="Detalle de Cotización">
+        <div class="p-4 sm:p-6 lg:p-8">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header -->
+                <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <Link :href="route('quotes.index')" class="text-sm text-gray-500 dark:text-gray-400 flex items-center mb-2">
+                            <i class="pi pi-arrow-left mr-2"></i>
+                            Regresar a Cotizaciones
+                        </Link>
+                        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">
+                            Cotización <span class="font-mono">{{ quote.quote_code }}</span>
+                        </h1>
+                    </div>
+                    <div class="flex items-center gap-2">
+                         <Link :href="route('quotes.print', quote.id)" target="_blank">
+                            <Button label="Imprimir" icon="pi pi-print" severity="secondary" outlined />
+                        </Link>
+                        <Link :href="route('quotes.edit', quote.id)">
+                            <Button label="Editar" icon="pi pi-pencil" />
+                        </Link>
                     </div>
                 </header>
-                
-                <main class="p-4 md:p-7">
-                    <!-- Información del Cliente -->
-                    <section class="pb-6 border-b-2 border-dashed">
-                        <h3 class="text-sm uppercase font-semibold text-gray-500">Cotización para:</h3>
-                        <div v-if="quote.client">
-                            <p class="text-xl font-bold text-gray-800">{{ quote.client.name }}</p>
-                            <!-- <p class="text-gray-600">{{ quote.client.address }}</p>
-                            <p class="text-gray-600">RFC: {{ quote.client.tax_id }}</p> -->
-                        </div>
-                        <div v-else>
-                           <p class="text-gray-500">Cliente no especificado.</p>
-                        </div>
-                    </section>
-                    
-                    <!-- Descripción del Servicio -->
-                    <section class="mt-8">
-                        <div class="border-2 border-gray-100 rounded-lg">
-                            <h3 class="text-base font-bold text-gray-800 bg-gray-50 p-3 rounded-t-md">{{ quote.title }}</h3>
-                            <div class="prose max-w-none p-4 text-gray-700" v-html="quote.description"></div>
-                        </div>
-                    </section>
 
-                    <!-- Detalles del Proyecto -->
-                     <section class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
-                        <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-300">
-                            <h4 class="font-bold text-gray-800 mb-2">Duración del Proyecto</h4>
-                            <p class="text-gray-600">La entrega estimada para la implementación final del proyecto es <strong>{{ quote.work_days }} días hábiles</strong>, iniciando a partir del primer pago al inicio del proyecto.</p>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-300">
-                            <h4 class="font-bold text-gray-800 mb-2">Condiciones de Pago</h4>
-                            <p class="text-gray-600">{{ quote.Payment_type }}</p>
-                            <p class="text-gray-500 text-xs mt-2">Esta cotización no incluye costos adicionales por cambios significativos en el alcance del proyecto.</p>
-                        </div>
-                    </section>
+                <!-- Main Content Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Columna Izquierda: Detalles y Finanzas -->
+                    <div class="lg:col-span-2 flex flex-col gap-6">
+                        <Card>
+                            <template #title>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ quote.title }}</span>
+                                    <Tag :value="quote.status" :severity="getStatusSeverity(quote.status)" />
+                                </div>
+                            </template>
+                            <template #content>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-700">
+                                    <div>
+                                        <h4 class="font-semibold text-gray-500 dark:text-gray-400 text-sm">CLIENTE</h4>
+                                        <p class="text-lg dark:text-white">{{ quote.client?.name || 'N/A' }}</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-gray-500 dark:text-gray-400 text-sm">VÁLIDO HASTA</h4>
+                                        <p class="text-lg dark:text-white">{{ formatDate(quote.valid_until) }}</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-gray-500 dark:text-gray-400 text-sm">DURACIÓN PROYECTO</h4>
+                                        <p class="text-lg dark:text-white">{{ quote.work_days }} días hábiles</p>
+                                    </div>
+                                     <div>
+                                        <h4 class="font-semibold text-gray-500 dark:text-gray-400 text-sm">TIPO DE PAGO</h4>
+                                        <p class="text-lg dark:text-white">{{ quote.payment_type }}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-6 border-t pt-4">
+                                     <h4 class="font-semibold text-gray-500 dark:text-gray-400 text-sm mb-2">DESCRIPCIÓN</h4>
+                                     <div class="prose max-w-none dark:text-white" v-html="quote.description"></div>
+                                </div>
+                            </template>
+                        </Card>
 
-                    <!-- Secciones Adicionales -->
-                    <section v-if="quote.show_process" class="mt-8 text-sm">
-                        <h4 class="font-bold text-gray-800 border-b pb-2 mb-2">Nuestro Proceso</h4>
-                        <p class="text-gray-600">
-                            El proyecto inicia con el diseño de todas las vistas de la aplicación para aprobación del cliente. Una vez aprobado, se procede con la programación y desarrollo. Finalmente, la aplicación se despliega en la nube y se entrega, corrigiendo cualquier error funcional. Se incluye capacitación online para hasta 5 usuarios y un año de soporte técnico integral para asegurar el funcionamiento óptimo del sistema.
-                        </p>
-                    </section>
-
-                    <section v-if="quote.show_benefits" class="mt-8 text-sm">
-                        <h4 class="font-bold text-gray-800 border-b pb-2 mb-2">Beneficios de Adquirir el Software</h4>
-                        <ul class="list-disc list-inside space-y-2 text-gray-600">
-                            <li><b>Compatibilidad Total:</b> Funciona en computadoras, laptops, tablets y móviles.</li>
-                            <li><b>Seguridad en la Nube:</b> Datos protegidos con respaldos automáticos.</li>
-                            <li><b>Acceso Remoto:</b> Accede a tu información desde cualquier lugar.</li>
-                            <li><b>Escalabilidad:</b> El sistema crece junto a tu empresa.</li>
-                            <li><b>Soporte Técnico:</b> Asistencia eficiente para resolver cualquier duda.</li>
-                            <li><b>Personalización:</b> Adaptamos el sistema a los colores y logo de tu marca.</li>
-                            <li>Un solo pago, usuarios ilimitados.</li>
-                        </ul>
-                    </section>
-                </main>
-                
-                <!-- Footer con Totales -->
-                <footer class="p-8 md:p-10 bg-gray-50 rounded-b-lg">
-                    <div class="border-t-2 border-gray-200 border-dashed pt-6">
-                         <!-- Totales -->
-                        <div class="w-full sm:w-2/3 md:w-1/2 ml-auto text-right space-y-3 text-gray-700">
-                            <div class="flex justify-between">
-                                <span class="font-semibold">Subtotal:</span>
-                                <span>{{ formatCurrency(quote.amount) }}</span>
-                            </div>
-                            <div v-if="quote.percentage_discount > 0" class="flex justify-between text-red-600">
-                                <span class="font-semibold">Descuento ({{ quote.percentage_discount }}%):</span>
-                                <span>- {{ formatCurrency((quote.amount * quote.percentage_discount) / 100) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center bg-white p-3 rounded-md shadow-inner">
-                                <span class="text-lg font-bold text-gray-800">Total:</span>
-                                <span class="text-3xl font-bold text-blue-600">{{ formatCurrency(totalWithDiscount) }} <span class="text-base font-normal">MXN</span></span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1 text-right">Los precios no incluyen IVA.</p>
-                        </div>
+                        <Card>
+                             <template #title><span class="font-bold">Finanzas</span></template>
+                             <template #content>
+                                 <div class="space-y-3">
+                                    <div class="flex justify-between items-center text-lg">
+                                        <span class="text-gray-600 dark:text-gray-400">Subtotal:</span>
+                                        <span class="font-medium">{{ formatCurrency(quote.amount) }}</span>
+                                    </div>
+                                     <div v-if="quote.percentage_discount > 0" class="flex justify-between items-center text-lg text-red-600">
+                                        <span class="text-gray-600">Descuento ({{ quote.percentage_discount }}%):</span>
+                                        <span class="font-medium">- {{ formatCurrency((quote.amount * quote.percentage_discount) / 100) }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-2xl font-bold border-t pt-3 mt-3">
+                                        <span class="text-gray-800 dark:text-gray-200">Total:</span>
+                                        <span class="text-blue-600">{{ formatCurrency(totalWithDiscount) }}</span>
+                                    </div>
+                                 </div>
+                             </template>
+                        </Card>
                     </div>
 
-                    <!-- Datos Bancarios -->
-                    <div v-if="quote.show_bank_info" class="mt-8 border border-gray-200 bg-white p-4 rounded-lg text-xs">
-                        <h4 class="font-bold text-gray-800 mb-2">Datos para la realización de pagos</h4>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600">
-                            <p><b>Beneficiario:</b></p><p>Miguel Osvaldo Vázquez Rodríguez</p>
-                            <p><b>Banco:</b></p><p>NU México</p>
-                            <p><b>No. de cuenta:</b></p><p>00017049244</p>
-                            <p><b>Clabe:</b></p><p>638180000170492445</p>
-                        </div>
+                    <!-- Columna Derecha: Archivos -->
+                    <div class="lg:col-span-1">
+                        <Card class="h-full">
+                            <template #title><span class="font-bold">Facturas y Archivos</span></template>
+                            <template #content>
+                                <form @submit.prevent="submitInvoice" class="mb-6">
+                                    <div class="flex items-center space-x-2">
+                                        <input id="invoice-input" type="file" @input="form.invoice_file = $event.target.files[0]" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-2 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
+                                        <Button type="submit" icon="pi pi-upload" rounded :disabled="form.processing || !form.invoice_file" :loading="form.processing" />
+                                    </div>
+                                    <ProgressBar v-if="form.progress" :value="form.progress.percentage" class="mt-3 h-2" />
+                                    <p v-if="form.errors.invoice_file" class="text-sm text-red-600 mt-2">{{ form.errors.invoice_file }}</p>
+                                </form>
+
+                                <div v-if="invoices.length > 0">
+                                    <ul class="space-y-2">
+                                        <li v-for="file in invoices" :key="file.id" class="px-3 py-2 flex items-center justify-between text-sm rounded-lg border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            <a :href="file.original_url" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 font-medium flex items-center truncate mr-2">
+                                                <i class="pi pi-file mr-2 text-gray-400"></i>
+                                                <span class="truncate">{{ file.file_name }}</span>
+                                            </a>
+                                            <Button @click="deleteFile(file.id)" icon="pi pi-trash" severity="danger" text rounded />
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div v-else class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                    <i class="pi pi-folder-open text-2xl mb-2"></i>
+                                    <p>No hay archivos adjuntos.</p>
+                                </div>
+                            </template>
+                        </Card>
                     </div>
-                    
-                    <div class="text-center text-gray-500 text-sm mt-10">
-                        <p>Gracias por su confianza.</p>
-                    </div>
-                </footer>
+                </div>
             </div>
         </div>
-    </div>
+    </AppLayout>
 </template>
 
-<style>
-/* Estilos para la vista previa de la cotización */
+<style scoped>
 .prose {
     font-size: 1rem;
     line-height: 1.75;
 }
-.prose ul {
-    list-style-type: disc;
-    padding-left: 1.5rem;
+.prose :first-child {
+    margin-top: 0;
 }
-.prose li p {
-    margin: 0;
-}
-
-/* Estilos específicos para impresión */
-@media print {
-    body {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    .print\:hidden {
-        display: none;
-    }
-    .print\:bg-white {
-        background-color: white;
-    }
-    #quote-sheet {
-        box-shadow: none;
-        border-radius: 0;
-        margin: 0;
-        max-width: 100%;
-        border-top-width: 8px; /* Asegura que el borde se imprima */
-    }
-    .prose {
-        color: #000 !important;
-    }
-    /* Oculta fondos que no sean blancos para ahorrar tinta */
-    .bg-gray-50, .bg-gray-100 {
-        background-color: white !important;
-    }
+.prose :last-child {
+    margin-bottom: 0;
 }
 </style>
 

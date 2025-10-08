@@ -2,10 +2,15 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
+// Importa el composable
+import { usePomodoro } from '@/Composables/usePomodoro';
 
 defineProps({
     navigation: Array,
 });
+
+// Usa el composable para controlar el modal
+const { toggleModal } = usePomodoro();
 
 // --- STATE MANAGEMENT ---
 
@@ -214,6 +219,16 @@ onMounted(() => {
                     </Link>
                 </div>
             </template>
+            
+            <!-- Botón Pomodoro Agregado -->
+             <div class="px-4 mt-4">
+                <button @click="toggleModal(true)" class="flex items-center p-2 rounded-lg transition-colors duration-200 w-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <div class="size-6 text-gray-500 dark:text-gray-400" :class="{'mx-auto': !isExpanded }">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <span v-if="isExpanded" class="ml-4 font-medium">Pomodoro</span>
+                </button>
+            </div>
         </nav>
 
         <!-- Footer Actions -->

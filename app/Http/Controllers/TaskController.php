@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TaskController extends Controller
 {
@@ -78,12 +79,13 @@ class TaskController extends Controller
         $newStatus = $validated['status'];
 
         if ($oldStatus === $newStatus) {
-            // return response()->json(['message' => 'El estado no ha cambiado.'], 200);
+            return redirect()->back();
         }
 
-        try {
-            DB::beginTransaction();
+        $task->load('project');
 
+        DB::beginTransaction();
+        try {
             if ($newStatus === 'En proceso' && $oldStatus !== 'En proceso') {
                 TimeLog::create([
                     'task_id' => $task->id,
@@ -102,19 +104,30 @@ class TaskController extends Controller
                     $startTime = Carbon::parse($timeLog->start_time);
                     $endTime = Carbon::now();
                     
-                    // CORRECCIÓN: Calcular duración en segundos para evitar errores de rango y decimales.
-                    $durationInSeconds = $endTime->diffInSeconds($startTime);
-                    $durationInMinutes = (int) round($durationInSeconds / 60);
+                    // --- CORRECCIÓN 1: CÁLCULO DE DURACIÓN ROBUSTO ---
+                    // Se agrega `true` para forzar a que la diferencia sea siempre un valor absoluto (positivo).
+                    // Esto resuelve el problema de los segundos negativos causado por desfases de reloj.
+                    $durationInSeconds = $endTime->diffInSeconds($startTime, true);
+                    $durationInMinutes = max(0, (int) round($durationInSeconds / 60));
 
-                    $timeLog->update([
+                    DB::table('time_logs')->where('id', $timeLog->id)->update([
                         'end_time' => $endTime,
                         'duration_minutes' => $durationInMinutes,
+                        'updated_at' => Carbon::now(),
                     ]);
                     
-                    // ACUMULAR TIEMPO: Sumamos la duración a la tarea y al proyecto.
                     if ($durationInMinutes > 0) {
-                        $task->increment('total_invested_minutes', $durationInMinutes);
+                        // --- LÓGICA DE ACUMULACIÓN DE TIEMPO ---
+                        // El método ->increment() es la clave. Automáticamente lee el valor actual
+                        // de 'total_invested_minutes' en la base de datos, le suma $durationInMinutes
+                        // y guarda el resultado. Esto asegura que el tiempo se acumule correctamente.
+                        $task->update([
+                            'total_invested_minutes' => DB::raw("total_invested_minutes + $durationInMinutes")
+                        ]);
                         $task->project->increment('total_invested_minutes', $durationInMinutes);
+
+                        // Actualizamos el modelo en memoria para que el accessor use el nuevo total.
+                        $task->refresh();
                     }
                 }
             }
@@ -123,14 +136,12 @@ class TaskController extends Controller
 
             DB::commit();
 
-            // return response()->json([
-            //     'success' => true,
-            //     'message' => 'Estado de la tarea actualizado.',
-            // ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            // return response()->json(['success' => false, 'message' => 'Error al actualizar la tarea: ' . $e->getMessage()], 500);
+            Log::error('Error updating task status: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al actualizar la tarea.');
         }
+
+        return redirect()->back();
     }
 }

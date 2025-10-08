@@ -10,8 +10,8 @@
 
 /* Para navegadores WebKit (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
-  width: 5px; /* Hacemos la barra más delgada */
-  height: 5px;
+  width: 3px; /* Hacemos la barra más delgada */
+  height: 3px;
 }
 
 /* El "track" o contenedor de la barra se hace transparente */
@@ -29,12 +29,12 @@
 /* Al pasar el cursor sobre CUALQUIER parte de la página (body)... */
 body:hover::-webkit-scrollbar-thumb {
   /* ...la barrita se hace visible con un color gris claro */
-  background-color: #cccccc;
+  background-color: #c2c2c2;
 }
 
 /* Opcional: Oscurecer un poco la barra al pasar el cursor sobre ella */
 body:hover::-webkit-scrollbar-thumb:hover {
-  background-color: #aaaaaa;
+  background-color: #b6b4b4;
 }
 
 

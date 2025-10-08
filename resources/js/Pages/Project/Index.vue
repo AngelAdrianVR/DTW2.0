@@ -91,6 +91,15 @@ const toggleMenu = (event, project) => {
 };
 
 // --- METHODS ---
+const formatMinutes = (totalMinutes) => {
+    if (totalMinutes === null || isNaN(totalMinutes) || totalMinutes <= 0) {
+        return '0h 0m';
+    }
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
+};
+
 const confirmDeleteProject = (project) => {
     confirm.require({
         message: `¿Estás seguro de que quieres eliminar el proyecto "${project.name}"?`,
@@ -219,7 +228,7 @@ const onRowClick = (event) => {
 
                             <Column header="Horas Invertidas" style="width: 15%">
                                 <template #body="{ data }">
-                                    <span class="font-mono text-lg">{{ data.total_hours_invested }}</span>
+                                    <span class="font-mono text-lg">{{ formatMinutes(data.total_invested_minutes) }}</span>
                                 </template>
                             </Column>
 
@@ -258,7 +267,7 @@ const onRowClick = (event) => {
                                 <ul class="space-y-2 text-gray-700 dark:text-gray-300">
                                     <li class="flex justify-between border-t pt-2 mt-2">
                                         <span class="font-bold">Horas:</span>
-                                        <span class="font-bold font-mono text-blue-600">{{ project.total_hours_invested }}</span>
+                                        <span class="font-bold font-mono text-blue-600">{{ formatMinutes(project.total_invested_minutes) }}</span>
                                     </li>
                                 </ul>
                             </template>
