@@ -12,6 +12,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WebContentController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -90,6 +91,16 @@ Route::middleware('auth:sanctum')->prefix('pomodoro')->group(function () {
     Route::post('/pause-tasks', [PomodoroController::class, 'pauseActiveTasks']);
     Route::post('/resume-tasks', [PomodoroController::class, 'resumePausedTasks']);
     Route::post('/log-session', [PomodoroController::class, 'logSession']);
+});
+
+
+// Asegúrate de proteger estas rutas con tu middleware de autenticación (ej. 'auth', 'admin')
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/web-contents', [WebContentController::class, 'index'])->name('webcontents.index');
+    Route::post('/web-contents', [WebContentController::class, 'store'])->name('webcontents.store');
+    Route::put('/web-contents/{webContent}', [WebContentController::class, 'update'])->name('webcontents.update');
+    Route::post('/web-contents/{webContent}/update-image', [WebContentController::class, 'updateImage'])->name('webcontents.updateImage');
+    Route::delete('/web-contents/{webContent}', [WebContentController::class, 'destroy'])->name('webcontents.destroy');
 });
 
 

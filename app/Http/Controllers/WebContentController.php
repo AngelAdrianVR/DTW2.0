@@ -4,62 +4,66 @@ namespace App\Http\Controllers;
 
 use App\Models\WebContent;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class WebContentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $contents = WebContent::query()
+            ->with('media') // Eager load media
+            ->orderBy('type')
+            ->orderBy('sort_order')
+            ->get()
+            ->groupBy('type');
+
+        return Inertia::render('WebContent/Index', [
+            'webcontents' => $contents,
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'type' => 'required|string|in:portfolio,own_projects,client_logos,advertising',
+            'title' => 'nullable|string|max:255',
+            'content' => 'nullable|string',
+            'link_url' => 'nullable|url',
+            'images' => 'required|array',
+            'images.*' => 'image|max:2048', // 2MB Max per image
+            'is_published' => 'boolean',
+            'end_date' => 'nullable|date',
+        ]);
+
+        $webContent = WebContent::create($request->except('images'));
+
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $webContent->addMedia($file)->toMediaCollection($request->type);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Contenido agregado exitosamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(WebContent $webContent)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(WebContent $webContent)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, WebContent $webContent)
     {
-        //
+        $request->validate([
+            'title' => 'nullable|string|max:255',
+            'content' => 'nullable|string',
+            'link_url' => 'nullable|url',
+            'is_published' => 'boolean',
+            'end_date' => 'nullable|date',
+        ]);
+
+        $webContent->update($request->all());
+
+        return redirect()->back()->with('success', 'Contenido actualizado.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(WebContent $webContent)
     {
-        //
+        $webContent->delete();
+        return redirect()->back()->with('success', 'Contenido eliminado.');
     }
 }
