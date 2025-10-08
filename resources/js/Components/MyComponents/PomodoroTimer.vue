@@ -5,7 +5,8 @@ const { state, displayTime, startTimer, pauseTimer, resetTimer, toggleModal, sav
 
 const handleSave = () => {
     saveSettings();
-    resetTimer(true); // Reset to apply new settings
+    // No reseteamos inmediatamente para permitir al usuario guardar sin interrumpir.
+    // El reset se aplicará al iniciar la siguiente sesión.
 };
 </script>
 
@@ -43,6 +44,7 @@ const handleSave = () => {
                         </p>
                     </div>
                     
+                    <!-- Formulario de configuración visible solo si el timer no está corriendo -->
                     <div v-if="!state.isRunning || state.isPaused" class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                              <div>
@@ -52,6 +54,15 @@ const handleSave = () => {
                             <div>
                                 <label for="break-minutes" class="block text-sm font-medium text-left text-gray-700 dark:text-gray-300">Descanso (min)</label>
                                 <input v-model.number="state.settings.break_minutes" @change="handleSave" type="number" id="break-minutes" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-gray-900 dark:text-white">
+                            </div>
+                            <!-- Nuevos campos de configuración -->
+                             <div>
+                                <label for="long-break-minutes" class="block text-sm font-medium text-left text-gray-700 dark:text-gray-300">Descanso largo (min)</label>
+                                <input v-model.number="state.settings.long_break_minutes" @change="handleSave" type="number" id="long-break-minutes" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-gray-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label for="sessions-before-long-break" class="block text-sm font-medium text-left text-gray-700 dark:text-gray-300">Sesiones p/ d. largo</label>
+                                <input v-model.number="state.settings.sessions_before_long_break" @change="handleSave" type="number" id="sessions-before-long-break" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-gray-900 dark:text-white">
                             </div>
                         </div>
                     </div>

@@ -1,8 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\PomodoroController;
+use App\Http\Controllers\PomodoroController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientPaymentController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HostingClientController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LandingController;
@@ -22,15 +23,19 @@ Route::get('/', [LandingController::class, 'index'])->name('landing.index');
 // Nueva ruta para cambiar el idioma
 Route::get('language/{locale}', [LanguageController::class, 'switch'])->name('language.switch');
 
+
+// Rutas del Dashboard --------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
+
+Route::get('/dashboard/performance/{user}', [DashboardController::class, 'getWeeklyPerformance'])->middleware('auth')->name('dashboard.performance');
+Route::get('/dashboard/financials', [DashboardController::class, 'getFinancialsByYear'])->name('dashboard.financials.by-year');
 
 
 // Rutas de Clientes --------------------------------------------------------------------------------------
@@ -84,6 +89,7 @@ Route::middleware('auth:sanctum')->prefix('pomodoro')->group(function () {
     Route::post('/settings', [PomodoroController::class, 'saveSettings']);
     Route::post('/pause-tasks', [PomodoroController::class, 'pauseActiveTasks']);
     Route::post('/resume-tasks', [PomodoroController::class, 'resumePausedTasks']);
+    Route::post('/log-session', [PomodoroController::class, 'logSession']);
 });
 
 
