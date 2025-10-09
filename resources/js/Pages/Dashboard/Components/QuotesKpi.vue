@@ -14,19 +14,21 @@ onMounted(() => {
     const documentStyle = getComputedStyle(document.documentElement);
     
     chartData.value = {
-        labels: ['Aceptadas', 'Rechazadas', 'Pendientes'],
+        labels: ['Aceptadas', 'Rechazadas', 'Pendientes', 'Enviadas'],
         datasets: [
             {
-                data: [props.data.accepted, props.data.rejected, props.data.pending],
+                data: [props.data.accepted, props.data.rejected, props.data.pending, props.data.sent],
                 backgroundColor: [
                     '#86EFAC', // Un verde claro
                     '#FCA5A5', // Un rojo claro
-                    '#FDE047'  // Un amarillo claro
+                    '#FDE047', // Un amarillo claro
+                    '#93C5FD'  // Un azul claro
                 ],
                 hoverBackgroundColor: [
                     '#4ADE80',
                     '#F87171',
-                    '#FACC15'
+                    '#FACC15',
+                    '#60A5FA'
                 ]
             }
         ]
@@ -64,4 +66,3 @@ onMounted(() => {
         </template>
     </Card>
 </template>
-

@@ -22,12 +22,12 @@ use Inertia\Inertia;
 // --------------------------------------------------------------------------------------------
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
 Route::get('/landing-projects/{project}', [LandingController::class, 'showProject'])->name('landing-projects.show');
-// Rutas para las páginas de Términos y Privacidad
-Route::get('/terminos-de-servicio', [LegalController::class, 'showTerms'])
-    ->name('terms.show');
 
-Route::get('/politica-de-privacidad', [LegalController::class, 'showPrivacy'])
-    ->name('privacy.show');
+
+// Rutas para mostrar los documentos legales
+Route::get('/terms-of-service', [LegalController::class, 'showTerms'])->name('terms.show');
+Route::get('/privacy-policy', [LegalController::class, 'showPrivacy'])->name('privacy.show');
+
 
 // Nueva ruta para cambiar el idioma
 Route::get('language/{locale}', [LanguageController::class, 'switch'])->name('language.switch');

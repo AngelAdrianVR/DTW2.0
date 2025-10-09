@@ -189,6 +189,12 @@ const onRowClick = (event) => {
                             :row-class="() => 'cursor-pointer'">
                             <template #empty> No se encontraron proyectos. </template>
 
+                            <Column header="ID" style="width: 4%">
+                                <template #body="{ data }">
+                                        <span class="font-bold">{{ data.id }}</span>
+                                </template>
+                            </Column>
+
                             <Column header="Proyecto" style="width: 30%">
                                 <template #body="{ data }">
                                    <div class="flex flex-col">

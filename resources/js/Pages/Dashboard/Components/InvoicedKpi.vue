@@ -52,7 +52,7 @@ const grandTotalFormatted = computed(() => formatCurrency(props.data?.total_invo
             </AccordionTab>
         </Accordion>
         
-        <p class="text-sm text-gray-400 dark:text-gray-500 mt-3">Suma de cotizaciones aceptadas.</p>
+        <p class="text-sm text-gray-400 dark:text-gray-500 mt-3">Suma de cotizaciones aceptadas y pagadas.</p>
     </div>
 </template>
 

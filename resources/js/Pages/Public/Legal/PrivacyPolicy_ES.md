@@ -1,7 +1,7 @@
 Política de Privacidad
-Fecha de última actualización: [Fecha de Vigencia]
+Fecha de última actualización: 09/10/2025
 
-[Nombre de su Empresa] ("nosotros", "nuestro") opera el sitio web y los servicios de software (el "Servicio"). Esta página le informa de nuestras políticas con respecto a la recopilación, uso y divulgación de datos personales cuando utiliza nuestro Servicio y las opciones que ha asociado con esos datos.
+DTW (Desarrollo de tecnologías Web) ("nosotros", "nuestro") opera el sitio web y los servicios de software (el "Servicio"). Esta página le informa de nuestras políticas con respecto a la recopilación, uso y divulgación de datos personales cuando utiliza nuestro Servicio y las opciones que ha asociado con esos datos.
 
 1. Información que Recopilamos
 Recopilamos varios tipos de información para diversos fines para proporcionar y mejorar nuestro Servicio para usted.
@@ -29,7 +29,7 @@ Para monitorear el uso de nuestro Servicio.
 La seguridad de sus datos es importante para nosotros, pero recuerde que ningún método de transmisión por Internet o método de almacenamiento electrónico es 100% seguro. Si bien nos esforzamos por utilizar medios comercialmente aceptables para proteger sus Datos Personales, no podemos garantizar su seguridad absoluta.
 
 4. Sus Derechos de Protección de Datos
-Usted tiene ciertos derechos de protección de datos. [Nombre de su Empresa] tiene como objetivo tomar medidas razonables para permitirle corregir, modificar, eliminar o limitar el uso de sus Datos Personales.
+Usted tiene ciertos derechos de protección de datos. DTW (Desarrollo de tecnologías Web) tiene como objetivo tomar medidas razonables para permitirle corregir, modificar, eliminar o limitar el uso de sus Datos Personales.
 
 5. Cookies y Tecnologías Similares
 Utilizamos cookies y tecnologías de seguimiento similares para rastrear la actividad en nuestro Servicio y mantener cierta información.

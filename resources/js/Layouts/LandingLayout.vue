@@ -262,11 +262,11 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                             </Link>
                         </div>
 
-                        <div class="hidden md:flex items-center gap-4">
+                        <!-- <div class="hidden md:flex items-center gap-4">
                             <div class="w-px h-6 bg-white/10"></div>
                             <Button @click="$inertia.visit(route('login'))" :label="t('Login')" severity="info" text />
                             <Button @click="$inertia.visit(route('register'))" :label="t('Register')" severity="info" raised />
-                        </div>
+                        </div> -->
                     </div>
                 </template>
             </div>

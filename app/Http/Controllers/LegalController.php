@@ -17,7 +17,7 @@ class LegalController extends Controller
     {
         list($content, $title) = $this->getLegalContent('TermsOfService', 'Términos de Servicio', 'Terms of Service');
 
-        return Inertia::render('Public/Legal/Show', [
+        return Inertia::render('LandingPage/Legal/Show', [
             'title' => $title,
             'content' => $content,
         ]);
@@ -30,7 +30,7 @@ class LegalController extends Controller
     {
         list($content, $title) = $this->getLegalContent('PrivacyPolicy', 'Política de Privacidad', 'Privacy Policy');
 
-        return Inertia::render('Public/Legal/Show', [
+        return Inertia::render('LandingPage/Legal/Show', [
             'title' => $title,
             'content' => $content,
         ]);

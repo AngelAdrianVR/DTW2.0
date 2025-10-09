@@ -49,9 +49,9 @@ const printQuote = () => {
 
 <template>
     <Head :title="`Cotización ${quote.quote_code}`" />
-    <div class="py-10 print:bg-white font-sans">
+    <div class="py-6 print:bg-white font-sans">
         <!-- Botones de Acción (se ocultan al imprimir) -->
-        <div class="max-w-4xl mx-auto mb-6 px-4 sm:px-6 lg:px-8 print:hidden">
+        <div class="max-w-4xl mx-auto mb-4 px-4 sm:px-6 lg:px-8 print:hidden">
             <div class="flex justify-between items-center">
                 <Link :href="route('quotes.index')">
                     <Button label="Volver al Listado" icon="pi pi-arrow-left" severity="secondary" outlined />
@@ -69,32 +69,30 @@ const printQuote = () => {
 
             <div class="relative z-10">
                 <!-- Encabezado con decoración -->
-                <header class="relative p-4 md:p-8">
+                <header class="relative p-4 md:p-6">
                     <div class="flex justify-between items-start">
                         <div>
-                            <img src="/images/black_logo.png" alt="Logo de la Empresa" class="h-20">
-                             <div class="mt-4 text-xs text-gray-500">
+                            <img src="/images/black_logo.png" alt="Logo de la Empresa" class="h-16">
+                             <div class="mt-3 text-xs text-gray-500">
                                 <p>Zapopan, Jalisco, México</p>
                                 <p>contacto@dtw.com.mx</p>
                             </div>
                         </div>
                         <div class="text-right">
-                            <h2 class="text-4xl font-bold uppercase text-gray-800 tracking-wider">Cotización</h2>
-                            <p class="font-mono mt-2 text-gray-500">{{ quote.quote_code }}</p>
-                            <p class="mt-4 text-sm">Fecha de Emisión: <span class="font-semibold text-gray-700">{{ formatDate(quote.created_at) }}</span></p>
+                            <h2 class="text-3xl font-bold uppercase text-gray-800 tracking-wider">Cotización</h2>
+                            <p class="font-mono mt-1 text-gray-500">{{ quote.quote_code }}</p>
+                            <p class="mt-3 text-sm">Fecha de Emisión: <span class="font-semibold text-gray-700">{{ formatDate(quote.created_at) }}</span></p>
                             <p class="text-sm">Válido hasta: <span class="font-semibold text-gray-700">{{ formatDate(quote.valid_until) }}</span></p>
                         </div>
                     </div>
                 </header>
                 
-                <main class="p-4 md:p-7">
+                <main class="p-4 md:p-6">
                     <!-- Información del Cliente -->
-                    <section class="pb-6 border-b-2 border-dashed">
+                    <section class="pb-4 border-b-2 border-dashed">
                         <h3 class="text-sm uppercase font-semibold text-gray-500">Cotización para:</h3>
                         <div v-if="quote.client">
                             <p class="text-xl font-bold text-gray-800">{{ quote.client.name }}</p>
-                            <!-- <p class="text-gray-600">{{ quote.client.address }}</p>
-                            <p class="text-gray-600">RFC: {{ quote.client.tax_id }}</p> -->
                         </div>
                         <div v-else>
                            <p class="text-gray-500">Cliente no especificado.</p>
@@ -102,37 +100,37 @@ const printQuote = () => {
                     </section>
                     
                     <!-- Descripción del Servicio -->
-                    <section class="mt-8">
+                    <section class="mt-6">
                         <div class="border-2 border-gray-100 rounded-lg">
                             <h3 class="text-base font-bold text-gray-800 bg-gray-50 p-3 rounded-t-md">{{ quote.title }}</h3>
-                            <div class="prose max-w-none p-4 text-gray-700" v-html="quote.description"></div>
+                            <div class="prose max-w-none p-3 text-gray-700" v-html="quote.description"></div>
                         </div>
                     </section>
 
                     <!-- Detalles del Proyecto -->
-                     <section class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
-                        <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-300">
+                     <section class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                        <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-300">
                             <h4 class="font-bold text-gray-800 mb-2">Duración del Proyecto</h4>
                             <p class="text-gray-600">La entrega estimada para la implementación final del proyecto es <strong>{{ quote.work_days }} días hábiles</strong>, iniciando a partir del primer pago al inicio del proyecto.</p>
                         </div>
-                        <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-300">
+                        <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-300">
                             <h4 class="font-bold text-gray-800 mb-2">Condiciones de Pago</h4>
                             <p class="text-gray-600">{{ quote.Payment_type }}</p>
-                            <p class="text-gray-500 text-xs mt-2">Esta cotización no incluye costos adicionales por cambios significativos en el alcance del proyecto.</p>
+                            <p class="text-gray-500 text-xs mt-1">Esta cotización no incluye costos adicionales por cambios significativos en el alcance del proyecto.</p>
                         </div>
                     </section>
 
                     <!-- Secciones Adicionales -->
-                    <section v-if="quote.show_process" class="mt-8 text-sm">
-                        <h4 class="font-bold text-gray-800 border-b pb-2 mb-2">Nuestro Proceso</h4>
+                    <section v-if="quote.show_process" class="mt-6 text-sm">
+                        <h4 class="font-bold text-gray-800 border-b pb-1 mb-2">Nuestro Proceso</h4>
                         <p class="text-gray-600">
                             El proyecto inicia con el diseño de todas las vistas de la aplicación para aprobación del cliente. Una vez aprobado, se procede con la programación y desarrollo. Finalmente, la aplicación se despliega en la nube y se entrega, corrigiendo cualquier error funcional. Se incluye capacitación online para hasta 5 usuarios y un año de soporte técnico integral para asegurar el funcionamiento óptimo del sistema.
                         </p>
                     </section>
 
-                    <section v-if="quote.show_benefits" class="mt-8 text-sm">
-                        <h4 class="font-bold text-gray-800 border-b pb-2 mb-2">Beneficios de Adquirir el Software</h4>
-                        <ul class="list-disc list-inside space-y-2 text-gray-600">
+                    <section v-if="quote.show_benefits" class="mt-6 text-sm">
+                        <h4 class="font-bold text-gray-800 border-b pb-1 mb-2">Beneficios de Adquirir el Software</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600">
                             <li><b>Compatibilidad Total:</b> Funciona en computadoras, laptops, tablets y móviles.</li>
                             <li><b>Seguridad en la Nube:</b> Datos protegidos con respaldos automáticos.</li>
                             <li><b>Acceso Remoto:</b> Accede a tu información desde cualquier lugar.</li>
@@ -145,10 +143,10 @@ const printQuote = () => {
                 </main>
                 
                 <!-- Footer con Totales -->
-                <footer class="p-8 md:p-10 bg-gray-50 rounded-b-lg">
-                    <div class="border-t-2 border-gray-200 border-dashed pt-6">
+                <footer class="p-6 bg-gray-50 rounded-b-lg">
+                    <div class="border-t-2 border-gray-200 border-dashed pt-4">
                          <!-- Totales -->
-                        <div class="w-full sm:w-2/3 md:w-1/2 ml-auto text-right space-y-3 text-gray-700">
+                        <div class="w-full sm:w-2/3 md:w-1/2 ml-auto text-right space-y-2 text-gray-700">
                             <div class="flex justify-between">
                                 <span class="font-semibold">Subtotal:</span>
                                 <span>{{ formatCurrency(quote.amount) }}</span>
@@ -157,16 +155,16 @@ const printQuote = () => {
                                 <span class="font-semibold">Descuento ({{ quote.percentage_discount }}%):</span>
                                 <span>- {{ formatCurrency((quote.amount * quote.percentage_discount) / 100) }}</span>
                             </div>
-                            <div class="flex justify-between items-center bg-white p-3 rounded-md shadow-inner">
+                            <div class="flex justify-between items-center bg-white p-2 rounded-md shadow-inner">
                                 <span class="text-lg font-bold text-gray-800">Total:</span>
-                                <span class="text-3xl font-bold text-blue-600">{{ formatCurrency(totalWithDiscount) }} <span class="text-base font-normal">MXN</span></span>
+                                <span class="text-2xl font-bold text-blue-600">{{ formatCurrency(totalWithDiscount) }} <span class="text-sm font-normal">MXN</span></span>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1 text-right">Los precios no incluyen IVA.</p>
+                            <p class="text-xs text-gray-500 text-right">Los precios no incluyen IVA.</p>
                         </div>
                     </div>
 
                     <!-- Datos Bancarios -->
-                    <div v-if="quote.show_bank_info" class="mt-8 border border-gray-200 bg-white p-4 rounded-lg text-xs">
+                    <div v-if="quote.show_bank_info" class="mt-6 border border-gray-200 bg-white p-3 rounded-lg text-xs">
                         <h4 class="font-bold text-gray-800 mb-2">Datos para la realización de pagos</h4>
                         <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600">
                             <p><b>Beneficiario:</b></p><p>Miguel Osvaldo Vázquez Rodríguez</p>
@@ -176,7 +174,7 @@ const printQuote = () => {
                         </div>
                     </div>
                     
-                    <div class="text-center text-gray-500 text-sm mt-10">
+                    <div class="text-center text-gray-500 text-xs mt-8">
                         <p>Gracias por su confianza.</p>
                     </div>
                 </footer>
@@ -188,12 +186,16 @@ const printQuote = () => {
 <style>
 /* Estilos para la vista previa de la cotización */
 .prose {
-    font-size: 1rem;
-    line-height: 1.75;
+    font-size: 0.875rem; /* Reducido de 1rem */
+    line-height: 1.6;    /* Reducido de 1.75 */
+}
+.prose p, .prose ul {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }
 .prose ul {
     list-style-type: disc;
-    padding-left: 1.5rem;
+    padding-left: 1.25rem;
 }
 .prose li p {
     margin: 0;
@@ -216,7 +218,6 @@ const printQuote = () => {
         border-radius: 0;
         margin: 0;
         max-width: 100%;
-        border-top-width: 8px; /* Asegura que el borde se imprima */
     }
     .prose {
         color: #000 !important;
@@ -227,4 +228,3 @@ const printQuote = () => {
     }
 }
 </style>
-

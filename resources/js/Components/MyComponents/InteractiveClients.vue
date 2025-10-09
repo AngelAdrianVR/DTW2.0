@@ -25,12 +25,12 @@
             <!-- Logos originales -->
             <div v-for="(client, index) in clientLogos" :key="`logo-a-${index}`" class="logo-item">
               <!-- MODIFICACIÓN: Aumentada la altura de h-10 a h-14 -->
-              <img :src="client.url" :alt="client.name" class="h-24 w-auto object-contain" />
+              <img :src="client.url" :alt="client.name" class="h-20 w-auto object-contain" />
             </div>
             <!-- Logos duplicados para el efecto de bucle infinito -->
             <div v-for="(client, index) in clientLogos" :key="`logo-b-${index}`" aria-hidden="true" class="logo-item">
               <!-- MODIFICACIÓN: Aumentada la altura de h-10 a h-14 -->
-              <img :src="client.url" :alt="client.name" class="h-20 w-auto object-contain" />
+              <img :src="client.url" :alt="client.name" class="h-12 w-auto object-contain" />
             </div>
           </div>
         </div>
@@ -51,8 +51,8 @@ export default {
   data() {
     return {
       counters: [
-        { id: 'clients', label: 'Happy Clients', target: 40, displayValue: 0 },
-        { id: 'projects', label: 'Projects Completed', target: 28, displayValue: 0 },
+        { id: 'clients', label: 'Happy Clients', target: 20, displayValue: 0 },
+        { id: 'projects', label: 'Projects Completed', target: 30, displayValue: 0 },
         { id: 'experience', label: 'Years of Experience', target: 4, displayValue: 0 },
       ],
       observer: null,

@@ -27,6 +27,7 @@ class DashboardController extends Controller
             ->all();
 
         // --- KPI de Clientes ---
+        // Nota: La deuda se sigue calculando solo sobre cotizaciones 'Aceptado' que aún no se han pagado.
         $totalOwedPerClient = DB::table('quotes')
             ->select('client_id', DB::raw('SUM(amount * (1 - COALESCE(percentage_discount, 0) / 100)) as total_owed'))
             ->where('status', 'Aceptado')
@@ -73,17 +74,16 @@ class DashboardController extends Controller
         });
 
         // --- KPI Financieros y Gráfica de Ingresos ---
-        // CORRECCIÓN: Especificamos la tabla 'quotes' en el 'where' para evitar ambigüedad.
-        $acceptedQuotesQuery = Quote::where('quotes.status', 'Aceptado');
+        // Se incluyen cotizaciones con estado 'Aceptado' y 'Pagado' para los cálculos de facturación.
+        $acceptedAndPaidQuotesQuery = Quote::whereIn('quotes.status', ['Aceptado', 'Pagado']);
     
         // Total facturado (Gran Total)
-        $totalInvoiced = (clone $acceptedQuotesQuery)->get()->sum('final_amount');
+        $totalInvoiced = (clone $acceptedAndPaidQuotesQuery)->get()->sum('final_amount');
     
-        // Desglose de facturación por cliente. Ya no es necesario clonar la consulta anterior
-        // porque la condición se repite de forma segura.
+        // Desglose de facturación por cliente.
         $invoicedPerClient = Quote::query()
             ->join('clients', 'quotes.client_id', '=', 'clients.id')
-            ->where('quotes.status', 'Aceptado') // Se especifica la tabla aquí también.
+            ->whereIn('quotes.status', ['Aceptado', 'Pagado']) // Se incluyen ambos estados.
             ->select('clients.name', DB::raw('SUM(quotes.amount * (1 - COALESCE(quotes.percentage_discount, 0) / 100)) as total'))
             ->groupBy('clients.name')
             ->orderBy('total', 'desc')
@@ -139,9 +139,10 @@ class DashboardController extends Controller
             'kpis' => [
                 'quotes' => [
                     'total' => array_sum($quoteStatusCounts),
-                    'accepted' => $quoteStatusCounts['Aceptado'] ?? 0,
+                    'accepted' => ($quoteStatusCounts['Aceptado'] ?? 0) + ($quoteStatusCounts['Pagado'] ?? 0),
                     'rejected' => $quoteStatusCounts['Rechazado'] ?? 0,
                     'pending' => $quoteStatusCounts['Pendiente'] ?? 0,
+                    'sent' => $quoteStatusCounts['Enviado'] ?? 0,
                 ],
                 'clients' => [
                     'total' => $clientsCount,
