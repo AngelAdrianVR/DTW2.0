@@ -19,15 +19,17 @@ class WebContent extends Model implements HasMedia
      */
     protected $fillable = [
         'type',
-        'title',
         'subtitle',
-        'content', // Puedes usarlo para la descripción
         'link_url',
         'link_text',
         'is_published',
         'publish_date',
         'end_date',
         'sort_order',
+        'spanish_title',
+        'english_title',
+        'spanish_content',
+        'english_content',
     ];
 
     /**

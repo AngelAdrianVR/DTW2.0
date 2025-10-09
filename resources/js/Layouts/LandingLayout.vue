@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, h } from 'vue';
 import { Link, usePage, Head } from '@inertiajs/vue3';
 import AplicationLogo from '@/Components/ApplicationLogo.vue';
 import Button from 'primevue/button';
+import MiniGlobe from '@/Components/MyComponents/MiniGlobe.vue'; // Asegúrate de que la ruta sea correcta
 
 // --- Props ---
 const props = defineProps({
@@ -92,19 +93,17 @@ onBeforeUnmount(() => {
 // --- Lógica de Flash Messages (Inertia) ---
 const page = usePage();
 watch(() => page.props.flash, (newFlash) => {
-    // Verificamos que el nuevo flash tenga un mensaje para evitar activaciones accidentales.
     if (newFlash && newFlash.message) {
         flashData.value = {
             message: newFlash.message,
             type: newFlash.type || 'success'
         };
         showFlash.value = true;
-        // El notch se expandirá para mostrar el mensaje y se cerrará después de 5 segundos.
         setTimeout(() => {
             showFlash.value = false;
         }, 5000);
     }
-}, { deep: true }); // No es necesario 'immediate: true' si el middleware lo maneja correctamente.
+}, { deep: true });
 
 // Watcher para cerrar el menú móvil si el notch se contrae.
 watch(isNotchExpanded, (newValue) => {
@@ -182,7 +181,6 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
     h('line', { x1: "18", y1: "6", x2: "6", y2: "18" }),
     h('line', { x1: "6", y1: "6", x2: "18", y2: "18" })
 ]);
-
 </script>
 
 <template>
@@ -305,12 +303,15 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
             <div class="container mx-auto py-16 px-6 lg:px-8">
                 <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left">
                     
-                    <!-- Columna 1: Logo y Lema -->
-                    <div class="flex flex-col items-center md:items-start space-y-4">
-                        <Link href="/">
-                            <AplicationLogo class="h-10 text-white hover:text-indigo-400 transition-colors duration-300" />
+                    <!-- Columna 1: Logo y Lema con MiniGlobo -->
+                    <div class="flex flex-col items-center md:items-start relative h-44">
+                        <Link href="/login" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                            <AplicationLogo class="h-12" />
                         </Link>
-                        <p class="text-sm text-gray-400 max-w-xs">
+
+                        <MiniGlobe />
+
+                        <p class="text-sm text-gray-400 w-full text-center">
                             {{ t('Building the digital future, one line of code at a time.') }}
                         </p>
                     </div>
@@ -328,29 +329,32 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                         </ul>
                     </div>
                     
-                    <!-- Columna 3: Legal (Ejemplo) -->
+                    <!-- Columna 3: Legal -->
                      <div>
                         <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Legal') }}</h3>
                         <ul class="mt-4 space-y-3">
-                            <li><a href="#" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Terms of Service') }}</a></li>
-                            <li><a href="#" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Privacy Policy') }}</a></li>
+                            <li><Link :href="route('terms.show')" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Terms of Service') }}</Link></li>
+                            <li><Link :href="route('privacy.show')" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Privacy Policy') }}</Link></li>
                         </ul>
                     </div>
 
-                    <!-- Columna 4: Redes Sociales -->
+                    <!-- Columna 4: Contacto -->
                     <div class="flex flex-col items-center md:items-start">
-                         <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Connect') }}</h3>
-                        <div class="mt-4 flex space-x-5">
-                            <a href="#" class="text-gray-400 hover:text-white transition-transform duration-300 transform hover:-translate-y-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4 -4.3-2.5 -6-3m12 5v-3.5c0-1 .1-1.4 -.5-2c2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0 -1.3-3.2a4.2 4.2 0 0 0 -.1-3.2s-1.1-.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4-1.6 -3.5-1.3 -3.5-1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6.5 -.6 1.2 -.5 2V21"/></svg>
-                            </a>
-                            <a href="#" class="text-gray-400 hover:text-white transition-transform duration-300 transform hover:-translate-y-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0 -2-2a2 2 0 0 0 -2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-                            </a>
-                             <a href="#" class="text-gray-400 hover:text-white transition-transform duration-300 transform hover:-translate-y-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 1.4 3.3 4.4 3.3 4.4s-1.4 1.4-2.1 .7c-.7-.7-1.4-1.4-2.8-2.1-.7.7-1.4 1.4-2.1 2.1s-1.4 1.4-2.1 2.1c-1.4.7-2.8 0-2.8 0s1.4-2.1 2.1-3.5C8.4 8.1 6.8 6.1 6.8 6.1s1.4-1.4 2.8 0c1.4.7 2.8 2.1 4.2 2.8 1.4-.7 2.8-1.4 3.5-2.1.7-.7 1.4-1.4 2.1-1.4zm-4.9 4.9c-1.4 1.4-2.8 2.8-4.2 4.2s-2.8 2.8-4.2 4.2"/></svg>
-                            </a>
-                        </div>
+                         <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Contact') }}</h3>
+                        <ul class="mt-4 space-y-4">
+                            <li class="flex items-center justify-center md:justify-start">
+                                <a href="https://wa.me/5213321705650" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300 flex items-center gap-3 group">
+                                    <!-- <component :is="WhatsAppIcon" class="..."/> -->
+                                    <span>+52 1 33 2170 5650</span>
+                                </a>
+                            </li>
+                            <li class="flex items-center justify-center md:justify-start">
+                                <a href="mailto:contacto@dtw.com.mx" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300 flex items-center gap-3 group">
+                                    <!-- <component :is="MailIcon" class="..."/> -->
+                                    <span>contacto@dtw.com.mx</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
                 
@@ -455,3 +459,4 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
     }
 }
 </style>
+

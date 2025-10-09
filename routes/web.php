@@ -8,6 +8,7 @@ use App\Http\Controllers\HostingClientController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\TaskController;
@@ -20,6 +21,13 @@ use Inertia\Inertia;
 // ruta principal que muestra la página de inicio ---------------------------------------------
 // --------------------------------------------------------------------------------------------
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
+Route::get('/landing-projects/{project}', [LandingController::class, 'showProject'])->name('landing-projects.show');
+// Rutas para las páginas de Términos y Privacidad
+Route::get('/terminos-de-servicio', [LegalController::class, 'showTerms'])
+    ->name('terms.show');
+
+Route::get('/politica-de-privacidad', [LegalController::class, 'showPrivacy'])
+    ->name('privacy.show');
 
 // Nueva ruta para cambiar el idioma
 Route::get('language/{locale}', [LanguageController::class, 'switch'])->name('language.switch');

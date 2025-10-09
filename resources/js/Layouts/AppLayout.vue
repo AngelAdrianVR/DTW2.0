@@ -1,10 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, watchEffect, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, computed, onMounted, watch } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import Banner from '@/Components/Banner.vue';
 import Sidebar from '@/Components/MyComponents/SideBar.vue';
-import BottomNavBar from '@/Components/MyComponents/BottomNavBar.vue';
-// 1. Importa el PomodoroTimer y el composable
+import MobileSideBar from '@/Components/MyComponents/MobileSideBar.vue';
+import DarkModeSwitch from '@/Components/MyComponents/DarkModeSwitch.vue';
 import PomodoroTimer from '@/Components/MyComponents/PomodoroTimer.vue';
 import { usePomodoro } from '@/Composables/usePomodoro';
 
@@ -12,10 +12,10 @@ const props = defineProps({
     title: String,
 });
 
-// 2. Usa el composable
 const { state, displayTime } = usePomodoro();
 
-// 3. Crea el título dinámico para la pestaña del navegador
+const isMobileMenuOpen = ref(false);
+
 const pageTitle = computed(() => {
     if (state.isRunning) {
         return `${displayTime.value} - ${state.isWorkSession ? 'Enfoque' : 'Descanso'}`;
@@ -23,8 +23,6 @@ const pageTitle = computed(() => {
     return props.title;
 });
 
-
-// Definición de los módulos de navegación con más items para la barra inferior
 const navigationMenu = computed(() => [
     {
         name: 'Dashboard',
@@ -90,13 +88,6 @@ const navigationMenu = computed(() => [
 // --- Lógica para el Modo Oscuro ---
 const isDarkMode = ref(false);
 
-const toggleDarkMode = () => {
-    isDarkMode.value = !isDarkMode.value;
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('darkMode', isDarkMode.value);
-    }
-};
-
 onMounted(() => {
     if (typeof window !== 'undefined') {
         if (localStorage.getItem('darkMode') === 'true' ||
@@ -106,16 +97,16 @@ onMounted(() => {
     }
 });
 
-watchEffect(() => {
+watch(isDarkMode, (newValue) => {
     if (typeof window !== 'undefined') {
-        if (isDarkMode.value) {
+        if (newValue) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
         }
+        localStorage.setItem('darkMode', newValue);
     }
 });
-
 
 const switchToTeam = (team) => {
     router.put(route('current-team.update'), {
@@ -131,23 +122,24 @@ const switchToTeam = (team) => {
         <Head :title="pageTitle" />
         <Banner />
         
-        <!-- 4. Renderiza el componente del modal -->
         <PomodoroTimer />
 
         <div class="flex min-h-screen bg-gray-100 dark:bg-slate-950">
-            <!-- Sidebar ahora solo se pasa la navegación -->
             <Sidebar :navigation="navigationMenu" />
-
-            <!-- Navegación inferior para móviles -->
-            <BottomNavBar :navigation="navigationMenu" />
+            <MobileSideBar v-model:isOpen="isMobileMenuOpen" :navigation="navigationMenu" />
 
             <div class="flex-1 flex flex-col w-full px-2">
-                <!-- Barra de Navegación Superior -->
                 <nav class="bg-white dark:bg-gray-800 shadow-md max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3 rounded-2xl w-full">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div class="flex justify-between items-center h-16">
-                           <!-- Lado Izquierdo (o central) para el Timer -->
-                            <div>
+                           <!-- Lado Izquierdo: Botón de Menú Móvil y Timer -->
+                            <div class="flex items-center gap-x-4">
+                                <!-- Botón de Menú Móvil -->
+                                <button @click="isMobileMenuOpen = true" class="lg:hidden p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                                    <span class="sr-only">Open main menu</span>
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                                </button>
+                                
                                <transition
                                     enter-active-class="transition ease-out duration-200"
                                     enter-from-class="opacity-0 scale-95"
@@ -164,19 +156,17 @@ const switchToTeam = (team) => {
                                     </div>
                                </transition>
                             </div>
-                            <!-- Lado Derecho para Dark Mode -->
-                             <div class="flex items-center">
-                                <span class="text-sm font-medium text-gray-800 dark:text-gray-300 mr-3">Dark Mode</span>
-                                <button @click="toggleDarkMode" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :class="isDarkMode ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'">
-                                    <span class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform" :class="{ 'translate-x-6': isDarkMode, 'translate-x-1': !isDarkMode }"/>
-                                </button>
+
+                            <!-- Lado Derecho para el nuevo Dark Mode Switch -->
+                            <div class="flex items-center">
+                                <DarkModeSwitch v-model="isDarkMode" />
                             </div>
                         </div>
                     </div>
                 </nav>
 
                 <!-- Contenido de la Página -->
-                <main class="mb-12 mt-2 lg:mb-0 lg:mx-auto h-[calc(100vh-9rem)] lg:h-[calc(100vh-7rem)] overflow-auto lg:w-[90%]">
+                <main class="mt-2 lg:mx-auto h-[calc(100vh-7rem)] overflow-auto lg:w-[90%]">
                     <slot />
                 </main>
             </div>

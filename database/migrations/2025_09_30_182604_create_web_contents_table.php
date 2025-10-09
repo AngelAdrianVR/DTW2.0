@@ -14,10 +14,11 @@ return new class extends Migration
         Schema::create('web_contents', function (Blueprint $table) {
             $table->id();
             $table->string('type')->comment('ej. hero_banner, portfolio_project, special_offer');
-            $table->string('title');
+            $table->string('spanish_title')->nullable();
+            $table->string('english_title')->nullable();
             $table->string('subtitle')->nullable();
-            $table->text('content')->nullable();
-            $table->string('image_url')->nullable();
+            $table->text('spanish_content')->nullable();
+            $table->text('english_content')->nullable();
             $table->string('link_url')->nullable();
             $table->string('link_text')->nullable();
             $table->boolean('is_published')->default(false);

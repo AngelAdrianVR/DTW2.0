@@ -57,8 +57,10 @@ const types = ref([
 // Formulario para crear nuevo contenido
 const form = useForm({
     type: 'portfolio',
-    title: '',
-    content: '',
+    spanish_title: '',
+    english_title: '',
+    spanish_content: '',
+    english_content: '',
     link_url: '',
     images: [],
     is_published: true,
@@ -68,8 +70,10 @@ const form = useForm({
 // Formulario para editar contenido
 const editForm = useForm({
     id: null,
-    title: '',
-    content: '',
+    spanish_title: '',
+    english_title: '',
+    spanish_content: '',
+    english_content: '',
     link_url: '',
     is_published: true,
     end_date: null,
@@ -95,8 +99,10 @@ const submit = () => {
 // Función para abrir el modal de edición
 const editContent = (content) => {
     editForm.id = content.id;
-    editForm.title = content.title;
-    editForm.content = content.content;
+    editForm.spanish_title = content.spanish_title;
+    editForm.english_title = content.english_title;
+    editForm.spanish_content = content.spanish_content;
+    editForm.english_content = content.english_content;
     editForm.link_url = content.link_url;
     editForm.is_published = content.is_published;
     editForm.end_date = content.end_date ? new Date(content.end_date) : null;
@@ -136,6 +142,18 @@ const getSectionName = (key) => {
     return type ? type.label : key;
 };
 
+// Formatea la fecha
+const formatDate = (value) => {
+    if (value) {
+        return new Date(value).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+    return '';
+};
+
 </script>
 
 <template>
@@ -147,9 +165,14 @@ const getSectionName = (key) => {
     <Dialog header="Editar Contenido" v-model:visible="isEditModalVisible" :modal="true" :style="{ width: '50vw' }">
         <form @submit.prevent="updateContent" class="p-fluid">
              <div class="field">
-                <label for="edit_title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título (Opcional)</label>
-                <InputText id="edit_title" type="text" v-model="editForm.title" />
-                <small v-if="editForm.errors.title" class="p-error">{{ editForm.errors.title }}</small>
+                <label for="edit_spanish_title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título en Español (Opcional)</label>
+                <InputText id="edit_spanish_title" type="text" v-model="editForm.spanish_title" />
+                <small v-if="editForm.errors.spanish_title" class="p-error">{{ editForm.errors.spanish_title }}</small>
+            </div>
+             <div class="field mt-4">
+                <label for="edit_english_title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título en Inglés (Opcional)</label>
+                <InputText id="edit_english_title" type="text" v-model="editForm.english_title" />
+                <small v-if="editForm.errors.english_title" class="p-error">{{ editForm.errors.english_title }}</small>
             </div>
              <div class="field mt-4">
                 <label for="edit_link_url" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">URL (Opcional)</label>
@@ -157,9 +180,14 @@ const getSectionName = (key) => {
                 <small v-if="editForm.errors.link_url" class="p-error">{{ editForm.errors.link_url }}</small>
             </div>
             <div class="field mt-4">
-                <label for="edit_content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción (Opcional)</label>
-                <Textarea id="edit_content" v-model="editForm.content" rows="4" />
-                <small v-if="editForm.errors.content" class="p-error">{{ editForm.errors.content }}</small>
+                <label for="edit_spanish_content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción en Español (Opcional)</label>
+                <Textarea id="edit_spanish_content" v-model="editForm.spanish_content" rows="4" />
+                <small v-if="editForm.errors.spanish_content" class="p-error">{{ editForm.errors.spanish_content }}</small>
+            </div>
+             <div class="field mt-4">
+                <label for="edit_english_content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción en Inglés (Opcional)</label>
+                <Textarea id="edit_english_content" v-model="editForm.english_content" rows="4" />
+                <small v-if="editForm.errors.english_content" class="p-error">{{ editForm.errors.english_content }}</small>
             </div>
             <div class="field mt-4">
                 <label for="edit_end_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Fecha de Finalización (Opcional)</label>
@@ -192,30 +220,44 @@ const getSectionName = (key) => {
                         <h3 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Agregar Nuevo Contenido</h3>
                         <form @submit.prevent="submit">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="p-fluid">
+                                <div class="p-fluid md:col-span-2">
                                     <label for="type" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Sección</label>
                                     <Dropdown id="type" v-model="form.type" :options="types" optionLabel="label" optionValue="value" placeholder="Selecciona una sección" class="w-full" />
                                 </div>
                                 <div class="p-fluid">
-                                     <label for="title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título (Opcional)</label>
-                                    <InputText id="title" type="text" v-model="form.title" class="w-full" />
-                                    <small v-if="form.errors.title" class="p-error">{{ form.errors.title }}</small>
+                                     <label for="spanish_title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título en Español (Opcional)</label>
+                                    <InputText id="spanish_title" type="text" v-model="form.spanish_title" class="w-full" />
+                                    <small v-if="form.errors.spanish_title" class="p-error">{{ form.errors.spanish_title }}</small>
                                 </div>
-                                 <div class="p-fluid">
+                                <div class="p-fluid">
+                                     <label for="english_title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título en Inglés (Opcional)</label>
+                                    <InputText id="english_title" type="text" v-model="form.english_title" class="w-full" />
+                                    <small v-if="form.errors.english_title" class="p-error">{{ form.errors.english_title }}</small>
+                                </div>
+
+                                 <div class="md:col-span-2">
+                                     <label for="spanish_content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción en Español (Opcional)</label>
+                                    <Textarea id="spanish_content" v-model="form.spanish_content" rows="3" class="w-full" />
+                                     <small v-if="form.errors.spanish_content" class="p-error">{{ form.errors.spanish_content }}</small>
+                                </div>
+                                 <div class="md:col-span-2">
+                                     <label for="english_content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción en Inglés (Opcional)</label>
+                                    <Textarea id="english_content" v-model="form.english_content" rows="3" class="w-full" />
+                                     <small v-if="form.errors.english_content" class="p-error">{{ form.errors.english_content }}</small>
+                                </div>
+                                
+                                <div class="p-fluid">
                                     <label for="link_url" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">URL (Opcional)</label>
                                     <InputText id="link_url" type="url" v-model="form.link_url" class="w-full" />
                                      <small v-if="form.errors.link_url" class="p-error">{{ form.errors.link_url }}</small>
                                 </div>
-                                 <div class="md:col-span-2">
-                                     <label for="content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción (Opcional)</label>
-                                    <Textarea id="content" v-model="form.content" rows="3" class="w-full" />
-                                     <small v-if="form.errors.content" class="p-error">{{ form.errors.content }}</small>
-                                </div>
+
                                 <div class="p-fluid">
                                     <label for="end_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Fecha de Finalización (Opcional)</label>
                                     <Calendar id="end_date" v-model="form.end_date" dateFormat="yy-mm-dd" class="w-full" />
                                     <small class="text-gray-500 dark:text-gray-400">El contenido se ocultará automáticamente después de esta fecha.</small>
                                 </div>
+
                                 <div class="md:col-span-2">
                                     <label for="images" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Imágenes</label>
                                     <FileUpload ref="fileUploadRef" name="images[]" :multiple="true" :showUploadButton="false" :showCancelButton="false" accept="image/*" chooseLabel="Seleccionar Imágenes">
@@ -245,29 +287,37 @@ const getSectionName = (key) => {
                     <TabView>
                         <TabPanel v-for="(group, type) in webcontents" :key="type" :header="getSectionName(type)">
                              <div v-if="group.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                <Card v-for="content in group" :key="content.id" class="overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl bg-gray-100 dark:bg-gray-800">
+                                <Card v-for="content in group" :key="content.id" class="overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl bg-gray-100 dark:bg-gray-800 flex flex-col">
                                      <template #header>
                                         <Carousel :value="content.media" :numVisible="1" :numScroll="1" :show-indicators="content.media.length > 1">
                                             <template #item="slotProps">
                                                 <div class="p-2 bg-gray-50 dark:bg-gray-800">
-                                                    <img :src="slotProps.data.original_url" :alt="content.title" class="w-full h-48 object-contain rounded-md">
+                                                    <img :src="slotProps.data.original_url" :alt="content.spanish_title || content.english_title" class="w-full h-48 object-contain rounded-md">
                                                 </div>
                                             </template>
                                         </Carousel>
                                     </template>
                                     <template #title>
-                                       <div class="truncate"> {{ content.title || 'Sin título' }} </div>
+                                       <div class="truncate font-semibold"> {{ content.spanish_title || 'Sin título' }} </div>
+                                       <div class="truncate text-sm text-gray-500 dark:text-gray-400"> {{ content.english_title || '' }} </div>
                                     </template>
                                     <template #subtitle>
                                         <a :href="content.link_url" target="_blank" class="text-blue-500 hover:underline truncate block">{{ content.link_url || '' }}</a>
                                     </template>
                                     <template #content>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400 h-16 overflow-hidden">
-                                            {{ content.content || 'Sin descripción' }}
-                                        </p>
+                                        <div class="text-sm text-gray-600 dark:text-gray-400 h-20 overflow-y-auto flex-grow">
+                                            <p><strong class="font-semibold">ES:</strong> {{ content.spanish_content || 'Sin descripción' }}</p>
+                                            <p class="mt-1"><strong class="font-semibold">EN:</strong> {{ content.english_content || 'No description' }}</p>
+                                        </div>
+                                        <!-- INICIO: Mostrar fecha de expiración -->
+                                        <div v-if="content.end_date" class="mt-2 text-xs text-red-500 dark:text-red-400 flex items-center">
+                                            <i class="pi pi-calendar-times mr-1"></i>
+                                            <span>Expira: {{ formatDate(content.end_date) }}</span>
+                                        </div>
+                                        <!-- FIN: Mostrar fecha de expiración -->
                                     </template>
                                     <template #footer>
-                                         <div class="flex justify-between items-center">
+                                         <div class="flex justify-between items-center mt-auto">
                                              <Tag :value="content.is_published ? 'Publicado' : 'Borrador'" :severity="content.is_published ? 'success' : 'warning'" />
                                              <div class="flex items-center gap-1">
                                                 <Button @click="editContent(content)" icon="pi pi-pencil" class="p-button-rounded p-button-text" />
@@ -288,4 +338,3 @@ const getSectionName = (key) => {
         </div>
     </AppLayout>
 </template>
-

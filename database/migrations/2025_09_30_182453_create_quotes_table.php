@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('client_id')->nullable()->constrained('clients');
             $table->foreignId('user_id')->nullable()->constrained('users')->comment('Usuario que creó la cotización');
-            $table->foreignId('project_id')->nullable()->constrained('projects')->comment('Proyecto asociado, si aplica');
+            $table->unsignedInteger('project_id')->nullable();
 
             $table->string('client_name')->nullable(); // En caso de que el origen sea 'Web'
             $table->string('client_email')->nullable(); // En caso de que el origen sea 'Web'
             $table->string('client_phone')->nullable(); // En caso de que el origen sea 'Web'
 
-            $table->string('quote_code')->unique()->comment('Código único (ej. COT-2024-001)');
-            $table->unsignedTinyInteger('work_days'); // Total de días de trabajo estimados
+            $table->string('quote_code')->nullable()->unique()->comment('Código único (ej. COT-2024-001)');
+            $table->unsignedTinyInteger('work_days')->nullable(); // Total de días de trabajo estimados
             $table->unsignedTinyInteger('percentage_discount')->nullable(); // Porcentage de descuento
             $table->string('payment_type')->nullable(); // Forma de pago (ej. 50% anticipo, 50% contra entrega)
             $table->string('title')->nullable();
