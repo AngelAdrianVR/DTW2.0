@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 
 // Usamos el helper de formularios de Inertia para manejar el estado y envío
@@ -11,19 +10,14 @@ const form = useForm({
   description: '',
 });
 
-const formSubmitted = ref(false);
-
 // Función para manejar el envío del formulario
 const handleSubmit = () => {
   form.post('/quote-request', { // La ruta que definiremos en Laravel
     preserveScroll: true,
     onSuccess: () => {
-      form.reset(); // Limpia el formulario
-      formSubmitted.value = true; // Muestra el mensaje de éxito
-      // Oculta el mensaje después de 5 segundos
-      setTimeout(() => formSubmitted.value = false, 5000);
+      form.reset(); // Limpia el formulario en caso de éxito
     },
-    // Opcional: Manejo de errores
+    // Opcional: Manejo de errores en el lado del cliente si es necesario
     onError: (errors) => {
       console.error('Error submitting form:', errors);
     },
@@ -38,41 +32,48 @@ const handleSubmit = () => {
       <h2 class="text-4xl font-bold text-center mb-12 section-title"><span>{{ t("Request a Quote") }}</span></h2>
       <div class="contact-form p-8 md:p-12 relative overflow-hidden">
         
-        <!-- Mensaje de éxito -->
-        <transition name="fade-in-up">
-          <div v-if="formSubmitted" class="success-message">
-            <i class="pi pi-check-circle" style="font-size: 2rem"></i>
-            <p class="font-semibold">{{ t('Quote request sent successfully!') }}</p>
-          </div>
-        </transition>
-
         <form @submit.prevent="handleSubmit">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Columna Izquierda -->
-            <div class="flex flex-col gap-8">
-              <span class="p-float-label">
-                <InputText id="name" v-model="form.client_name" class="w-full" />
-                <label for="name">{{ t('Name') }}</label>
-              </span>
-              <span class="p-float-label">
-                <InputText id="email" v-model="form.client_email" type="email" class="w-full" />
-                <label for="email">{{ t('Email') }}</label>
-              </span>
-              <span class="p-float-label">
-                <InputText id="phone" v-model="form.client_phone" class="w-full" />
-                <label for="phone">{{ t('Phone') }}</label>
-              </span>
+            <div class="flex flex-col gap-6">
+              <div class="field">
+                <span class="p-float-label">
+                  <InputText id="name" v-model="form.client_name" class="w-full" :class="{'p-invalid': form.errors.client_name}" />
+                  <label for="name">{{ t('Name') }}</label>
+                </span>
+                <!-- <small v-if="form.errors.client_name" class="p-error">{{ form.errors.client_name }}</small> -->
+              </div>
+              <div class="field">
+                <span class="p-float-label">
+                  <InputText id="email" v-model="form.client_email" type="email" class="w-full" :class="{'p-invalid': form.errors.client_email}" />
+                  <label for="email">{{ t('Email') }}</label>
+                </span>
+                <!-- <small v-if="form.errors.client_email" class="p-error">{{ form.errors.client_email }}</small> -->
+              </div>
+              <div class="field">
+                <span class="p-float-label">
+                  <InputText id="phone" v-model="form.client_phone" class="w-full" :class="{'p-invalid': form.errors.client_phone}" />
+                  <label for="phone">{{ t('Phone') }}</label>
+                </span>
+                <!-- <small v-if="form.errors.client_phone" class="p-error">{{ form.errors.client_phone }}</small> -->
+              </div>
             </div>
             <!-- Columna Derecha -->
-            <div class="flex flex-col gap-8">
-              <span class="p-float-label">
-                <InputText id="title" v-model="form.title" class="w-full" />
-                <label for="title">{{ t('Service of Interest') }}</label>
-              </span>
-              <span class="p-float-label h-full">
-                <Textarea id="description" v-model="form.description" class="w-full h-full" />
-                <label for="description">{{ t('Tell us about your project') }}</label>
-              </span>
+            <div class="flex flex-col gap-6">
+              <div class="field">
+                <span class="p-float-label">
+                  <InputText id="title" v-model="form.title" class="w-full" :class="{'p-invalid': form.errors.title}" />
+                  <label for="title">{{ t('Service of Interest') }}</label>
+                </span>
+                 <!-- <small v-if="form.errors.title" class="p-error">{{ form.errors.title }}</small> -->
+              </div>
+              <div class="field h-full">
+                <span class="p-float-label h-full">
+                  <Textarea id="description" v-model="form.description" class="w-full h-full" :class="{'p-invalid': form.errors.description}" />
+                  <label for="description">{{ t('Tell us about your project') }}</label>
+                </span>
+                 <!-- <small v-if="form.errors.description" class="p-error">{{ form.errors.description }}</small> -->
+              </div>
             </div>
           </div>
 
@@ -120,6 +121,20 @@ const handleSubmit = () => {
 }
 :deep(.p-float-label > label) { color: #9ca3af !important; }
 
+/* Estilos para los errores de validación */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem; /* Espacio entre el input y el mensaje de error */
+}
+:deep(.p-error) {
+  color: #fca5a5; /* Un rojo claro para el texto del error */
+  font-size: 0.875rem;
+}
+:deep(.p-inputtext.p-invalid), :deep(.p-textarea.p-invalid) {
+    border-color: #f87171 !important; /* Borde rojo para el input inválido */
+}
+
 /* Nuevo Botón Minimalista */
 .submit-button {
   padding: 0.75rem 2.5rem; font-size: 1rem; font-weight: 500;
@@ -144,22 +159,5 @@ const handleSubmit = () => {
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* Mensaje de éxito */
-.success-message {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(23, 25, 48, 0.95); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; z-index: 10;
-  color: #17EDF4; text-align: center; gap: 1rem;
-}
-
-/* Transición para el mensaje de éxito */
-.fade-in-up-enter-active, .fade-in-up-leave-active {
-  transition: all 0.5s ease;
-}
-.fade-in-up-enter-from, .fade-in-up-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
 }
 </style>

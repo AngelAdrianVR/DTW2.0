@@ -8,9 +8,12 @@ const state = reactive({
     isPaused: false,
     isWorkSession: true,
     secondsRemaining: 25 * 60,
+    completedSessions: 0,
     settings: {
         work_minutes: 25,
         break_minutes: 5,
+        long_break_minutes: 15,
+        sessions_before_long_break: 4
     },
     originalTitle: document.title,
     countdown: null,
@@ -27,18 +30,20 @@ export function usePomodoro() {
     });
 
     // --- API CALLS ---
-    // NOTA: Se ha corregido la ruta de la API. Se eliminó el prefijo '/api'.
-    // Si tus rutas están en 'routes/api.php', deberías volver a añadirlo.
-    // La ruta correcta depende de dónde hayas definido las rutas en Laravel.
     const fetchSettings = async () => {
         try {
             const response = await axios.get('/pomodoro/settings');
-            state.settings.work_minutes = response.data.work_minutes;
-            state.settings.break_minutes = response.data.break_minutes;
-            resetTimer(); // Reset timer with fetched settings
+            const { data } = response;
+            state.settings.work_minutes = data.work_minutes;
+            state.settings.break_minutes = data.break_minutes;
+            state.settings.long_break_minutes = data.long_break_minutes;
+            state.settings.sessions_before_long_break = data.sessions_before_long_break;
+            
+            if (!state.isRunning) {
+                resetTimer();
+            }
         } catch (error) {
             console.error("Error fetching pomodoro settings:", error);
-            // Puedes agregar una notificación al usuario aquí si lo deseas.
         }
     };
 
@@ -53,7 +58,7 @@ export function usePomodoro() {
     const pauseTasks = async () => {
         try {
             await axios.post('/pomodoro/pause-tasks');
-            console.log('User tasks paused.');
+            console.log('User tasks paused and time logged.');
         } catch (error) {
             console.error('Failed to pause tasks:', error);
         }
@@ -68,15 +73,25 @@ export function usePomodoro() {
         }
     };
 
+    /**
+     * NUEVO: Registra una sesión completada en la base de datos.
+     */
+    const logSession = async () => {
+        try {
+            const sessionType = state.isWorkSession ? 'work' : 'break';
+            await axios.post('/pomodoro/log-session', { type: sessionType });
+            console.log(`Session of type '${sessionType}' logged successfully.`);
+        } catch (error) {
+            console.error('Failed to log pomodoro session:', error);
+        }
+    };
 
     // --- AUDIO & NOTIFICATIONS ---
-    // Sonido de alarma mejorado: más largo y notorio.
     const playAlarm = () => {
         try {
             state.audioContext = state.audioContext || new(window.AudioContext || window.webkitAudioContext)();
             const now = state.audioContext.currentTime;
 
-            // Genera una secuencia de 4 pitidos para que sea más fácil de escuchar
             for (let i = 0; i < 4; i++) {
                 const oscillator = state.audioContext.createOscillator();
                 const gainNode = state.audioContext.createGain();
@@ -84,7 +99,7 @@ export function usePomodoro() {
                 gainNode.connect(state.audioContext.destination);
 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, now + i * 0.5); // Nota A5
+                oscillator.frequency.setValueAtTime(880, now + i * 0.5);
 
                 gainNode.gain.setValueAtTime(1, now + i * 0.5);
                 gainNode.gain.exponentialRampToValueAtTime(0.00001, now + i * 0.5 + 0.3);
@@ -104,11 +119,9 @@ export function usePomodoro() {
     };
 
     // --- BROWSER EVENT HANDLING ---
-    // Muestra una alerta si se intenta recargar la página con el temporizador activo.
     const beforeUnloadListener = (event) => {
         if (state.isRunning && !state.isPaused) {
             event.preventDefault();
-            // Estándar para la mayoría de los navegadores
             event.returnValue = 'El temporizador está en marcha. ¿Seguro que quieres salir?';
             return 'El temporizador está en marcha. ¿Seguro que quieres salir?';
         }
@@ -124,7 +137,7 @@ export function usePomodoro() {
 
     onUnmounted(() => {
         window.removeEventListener('beforeunload', beforeUnloadListener);
-        clearInterval(state.countdown); // Limpia el intervalo si el componente se desmonta
+        clearInterval(state.countdown);
     });
 
 
@@ -132,10 +145,16 @@ export function usePomodoro() {
     const startTimer = () => {
         if (state.isRunning && !state.isPaused) return;
 
+        // MODIFICADO: Cierra el modal automáticamente al iniciar el timer.
+        state.isModalOpen = false;
+
         state.isRunning = true;
         state.isPaused = false;
+        
+        if (state.isWorkSession) {
+            resumeTasks();
+        }
 
-        // Usamos un cálculo de tiempo final para mayor precisión
         const endTime = Date.now() + state.secondsRemaining * 1000;
 
         clearInterval(state.countdown);
@@ -154,6 +173,9 @@ export function usePomodoro() {
     const pauseTimer = () => {
         state.isPaused = true;
         clearInterval(state.countdown);
+        if (state.isWorkSession) {
+            pauseTasks();
+        }
     };
 
     const resetTimer = (isFullReset = true) => {
@@ -162,29 +184,41 @@ export function usePomodoro() {
         state.isPaused = false;
         if (isFullReset) {
             state.isWorkSession = true;
+            state.completedSessions = 0;
         }
         state.secondsRemaining = (state.isWorkSession ? state.settings.work_minutes : state.settings.break_minutes) * 60;
         document.title = state.originalTitle;
     };
     
-    // Lógica de fin de sesión actualizada para iniciar descansos automáticamente.
     const handleSessionEnd = () => {
         playAlarm();
+
+        // NUEVO: Registra la sesión que acaba de terminar.
+        logSession();
+        
         if (state.isWorkSession) {
-            showNotification('¡Tiempo de enfoque terminado! Toma un descanso.');
-            pauseTasks();
-            state.isWorkSession = false;
-            state.secondsRemaining = state.settings.break_minutes * 60;
-            // El descanso inicia automáticamente
-            startTimer();
+            state.completedSessions++;
+            pauseTasks(); 
+            
+            if (state.completedSessions > 0 && state.completedSessions % state.settings.sessions_before_long_break === 0) {
+                showNotification(`¡Gran trabajo! Tómate un descanso largo de ${state.settings.long_break_minutes} minutos.`);
+                state.isWorkSession = false;
+                state.secondsRemaining = state.settings.long_break_minutes * 60;
+            } else {
+                showNotification(`¡Tiempo de enfoque terminado! Toma un descanso corto de ${state.settings.break_minutes} minutos.`);
+                state.isWorkSession = false;
+                state.secondsRemaining = state.settings.break_minutes * 60;
+            }
         } else {
-            // Después del descanso, inicia automáticamente la siguiente sesión de trabajo
             showNotification('El descanso ha terminado. ¡A enfocarse de nuevo!');
-            resumeTasks();
             state.isWorkSession = true;
             state.secondsRemaining = state.settings.work_minutes * 60;
-            startTimer();
         }
+
+        // MODIFICADO: Reinicia el estado 'isRunning' para permitir que el siguiente timer inicie automáticamente.
+        state.isRunning = false;
+        
+        startTimer();
     };
     
     // --- MODAL CONTROL ---

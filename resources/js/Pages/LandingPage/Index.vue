@@ -27,7 +27,14 @@ export default {
     InteractiveOwnProjects,
   },
 
-  // Los datos contienen las CLAVES de traducción
+  props: {
+      portfolio: Array,
+      ownProjects: Array,
+      clientLogos: Array, // MODIFICACIÓN: Recibe los logos de los clientes
+      advertising: Array,
+    },
+
+  // Los datos contienen las CLAVES de traducción para contenido estático
   data() {
     return {
       services: [
@@ -76,25 +83,6 @@ export default {
             ]
         }
       ],
-      projects: [
-        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Alpha', title: 'E-learning Platform', description: 'Learning management system with gamification.' },
-        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Beta', title: 'Analytics Dashboard', description: 'Real-time data visualization for business intelligence.' },
-        { image: 'https://placehold.co/600x400/1A202C/7B8A9E?text=Project+Gamma', title: 'Social Fitness App', description: 'Social network for athletes with activity tracking.' },
-      ],
-      ownProjects: [
-        {
-          id: 'ezyventas',
-          logo: 'https://placehold.co/200x80/111827/FFFFFF?text=EZY+Ventas',
-          titleKey: 'EzyVentas POS System',
-          descriptionKey: 'Ideal for retail stores, boutiques, and more. Full control over your business.',
-          url: '#', // Aquí irá la URL real del proyecto
-          images: [
-            { url: 'https://placehold.co/600x400/1A202C/7B8A9E?text=POS+Screen', alt: 'POS Screen', class: 'image-style-1' },
-            { url: 'https://placehold.co/400x300/1A202C/17EDF4?text=Inventory', alt: 'Inventory Management', class: 'image-style-2' },
-            { url: 'https://placehold.co/300x400/1A202C/6215C0?text=Reports', alt: 'Sales Reports', class: 'image-style-3' },
-          ]
-        }
-      ],
       contactForm: {
         name: '',
         email: '',
@@ -103,7 +91,6 @@ export default {
     };
   },
 
-  // Las propiedades computadas ahora usan `this.t()`, que es el helper global.
   computed: {
     translatedServices() {
       return this.services.map(service => ({
@@ -113,26 +100,11 @@ export default {
         detailedDescription: this.t(service.detailedDescription)
       }));
     },
-    translatedProjects() {
-        return this.projects.map(project => ({
-        ...project,
-        title: this.t(project.title),
-        description: this.t(project.description)
-      }));
-    },
-    translatedOwnProjects() {
-        return this.ownProjects?.map(project => ({
-        ...project,
-        titleKey: project.titleKey,
-        descriptionKey: project.descriptionKey,
-      }));
-    }
   }
 }
 </script>
 
 <template>
-    <!-- El template usa `t()` directamente, que ahora es una función global reconocida. -->
     <LandingLayout 
       :title="t('Home') + ' DTW'" 
       :welcomeMessage="t('Welcome to DTW - Digital Innovation')"
@@ -145,13 +117,15 @@ export default {
             <InteractiveServices :services="translatedServices" />
 
             <!-- SECCIÓN PROYECTOS -->
-            <InteractiveProjects :projects="translatedProjects" />
+            <InteractiveProjects :projects="portfolio" />
 
             <!-- SECCIÓN PROYECTOS PROPIOS -->
-            <InteractiveOwnProjects :projects="translatedOwnProjects" />
+            <!-- Pasamos la prop 'ownProjects' directamente desde el controlador -->
+            <InteractiveOwnProjects :projects="ownProjects" />
 
             <!-- SECCIÓN CLIENTES -->
-            <InteractiveClients />
+            <!-- MODIFICACIÓN: Pasamos los logos al componente -->
+            <InteractiveClients :clientLogos="clientLogos" />
 
             <!-- SECCIÓN CONTACTO -->
             <InteractiveContact />
@@ -282,4 +256,3 @@ export default {
 }
 
 </style>
-

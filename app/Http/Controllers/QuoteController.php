@@ -212,11 +212,11 @@ class QuoteController extends Controller
             'description' => 'required|string|max:5000',
         ]);
 
-        // if ($validator->fails()) {
-        //     // Si la validación falla, regresamos con los errores y los datos enviados.
-        //     // Laravel e Inertia se encargarán de mostrar los errores automáticamente.
-        //     return back()->withErrors($validator)->withInput();
-        // }
+        if ($validator->fails()) {
+            // Si la validación falla, regresamos con los errores y los datos enviados.
+            // Laravel e Inertia se encargarán de mostrar los errores automáticamente.
+            return back()->withErrors($validator)->withInput();
+        }
 
         // 2. Creación de la cotización
         try {

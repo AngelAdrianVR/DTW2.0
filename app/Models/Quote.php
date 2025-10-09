@@ -114,12 +114,4 @@ class Quote extends Model implements HasMedia
         return (float) $this->getFinalAmountAttribute() - $totalPaid;
     }
 
-    /**
-     * NEW: Defines the relationship to invoices.
-     * A quote can have multiple invoices (e.g., for partial payments).
-     */
-    public function invoices(): HasMany
-    {
-        return $this->hasMany(Invoice::class);
-    }
 }

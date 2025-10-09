@@ -266,7 +266,7 @@ const formatDate = (dateString) => {
                                         <ul class="space-y-3">
                                             <li class="flex justify-between">
                                                 <span class="font-semibold text-gray-500 dark:text-gray-400">Cliente:</span>
-                                                <span>{{ project.client.name }}</span>
+                                                <span>{{ project.client?.name }}</span>
                                             </li>
                                             <li class="flex justify-between">
                                                 <span class="font-semibold text-gray-500 dark:text-gray-400">Estado:</span>

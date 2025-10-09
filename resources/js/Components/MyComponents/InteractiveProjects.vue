@@ -1,35 +1,88 @@
-<script>
-export default {
-  props: {
-    // Definimos una propiedad 'projects' para recibir los datos desde el componente padre
-    projects: {
-      type: Array,
-      required: true,
-    },
+<script setup>
+import { computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+
+// Obtenemos el idioma actual desde las props de la página de Inertia
+const { props: pageProps } = usePage();
+const locale = computed(() => pageProps.locale || 'en'); // Por defecto 'en' si no está definido
+
+// Definimos las props que el componente espera recibir
+const props = defineProps({
+  projects: {
+    type: Array,
+    required: true,
   },
-}
+});
+
+// Función auxiliar para obtener el título traducido con fallbacks
+const getTitle = (project) => {
+  if (locale.value === 'es' && project.spanish_title) {
+    return project.spanish_title;
+  }
+  // Si el idioma es inglés o el título en español no existe, usa el inglés.
+  // Si el inglés tampoco existe, usa el español como último recurso.
+  return project.english_title || project.spanish_title || 'Proyecto sin título';
+};
+
+// Función auxiliar para obtener el contenido traducido con fallbacks
+const getContent = (project) => {
+  if (locale.value === 'es' && project.spanish_content) {
+    return project.spanish_content;
+  }
+  return project.english_content || project.spanish_content || '';
+};
+
+// Filtrar solo los proyectos que están publicados
+const publishedProjects = computed(() => {
+  return props.projects.filter(project => project.is_published);
+});
+
+// Título de la sección traducido
+const sectionTitle = computed(() => {
+    return locale.value === 'es' ? 'Proyectos Destacados' : 'Featured Projects';
+});
 </script>
 
 <template>
   <!-- SECCIÓN DE PROYECTOS -->
   <section id="proyectos" class="py-20 px-4 bg-gray-900/50">
     <div class="container mx-auto">
-      <h2 class="text-4xl font-bold text-center mb-16 section-title"><span>{{ t('Featured Projects') }}</span></h2>
-      <div class="grid md:grid-cols-3 gap-8">
-        <!-- Iteramos sobre el array 'projects' recibido como prop -->
-        <div 
-          v-for="project in projects" 
-          :key="project.title" 
-          class="project-card group"
+      <h2 class="text-4xl font-bold text-center mb-16 section-title"><span>{{ sectionTitle }}</span></h2>
+      
+      <!-- Grid de proyectos -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Iteramos sobre los proyectos publicados -->
+        <Link 
+          v-for="project in publishedProjects" 
+          :key="project.id" 
+          :href="`/landing-projects/${project.id}`"
+          class="project-card-link"
         >
-          <img :src="project.image" :alt="project.title" class="project-image">
-          <div class="project-info">
-            <div>
-              <h3 class="text-2xl font-bold text-white">{{ project.title }}</h3>
-              <p class="text-gray-300 mt-2">{{ project.description }}</p>
+          <div class="project-card group">
+            <!-- Contenedor de la imagen para controlar el zoom -->
+            <div class="image-container">
+                <img 
+                  v-if="project.media && project.media.length > 0"
+                  :src="project.media[0].original_url" 
+                  :alt="getTitle(project)" 
+                  class="project-image"
+                  onerror="this.onerror=null;this.src='https://placehold.co/600x400/1A202C/7B8A9E?text=Image+Not+Found';"
+                >
+                 <img 
+                  v-else
+                  src="https://placehold.co/600x400/1A202C/7B8A9E?text=No+Image" 
+                  :alt="getTitle(project)" 
+                  class="project-image"
+                >
+            </div>
+            <div class="project-info">
+              <div>
+                <h3 class="text-2xl font-bold text-white">{{ getTitle(project) }}</h3>
+                <p class="text-gray-400 mt-2 line-clamp-3">{{ getContent(project) }}</p>
+              </div>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   </section>
@@ -61,6 +114,14 @@ export default {
   border-radius: 2px;
 }
 
+/* Link que envuelve la tarjeta */
+.project-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s ease;
+}
+
 /* Contenedor principal de la tarjeta del proyecto */
 .project-card {
   position: relative;
@@ -68,12 +129,45 @@ export default {
   overflow: hidden;
   background-color: #1A202C;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  border: 1px solid rgba(98, 21, 192, 0.2);
-  transition: border-color 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: box-shadow 0.3s ease;
+  height: 100%;
+  /* Estructura flexible para separar imagen y texto */
+  display: flex;
+  flex-direction: column;
 }
 
-.project-card:hover {
-  border-color: rgba(98, 21, 192, 0.7);
+/* Efecto de borde con gradiente al pasar el ratón */
+.project-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  padding: 1px;
+  background: linear-gradient(45deg, #6215C0, #17EDF4);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.project-card-link:hover .project-card::before {
+  opacity: 1;
+}
+
+.project-card-link:hover .project-card {
+  box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+}
+
+
+/* Contenedor de la imagen para el efecto de zoom */
+.image-container {
+  height: 250px;
+  overflow: hidden;
+  position: relative;
 }
 
 /* Imagen del proyecto */
@@ -84,28 +178,35 @@ export default {
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.group:hover .project-image {
+.project-card-link:hover .project-image {
   transform: scale(1.1);
 }
 
-/* Capa de información superpuesta */
+/* Capa de información (ya no es un overlay) */
 .project-info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   padding: 1.5rem;
-  background: linear-gradient(to top, rgba(10, 10, 25, 0.95) 0%, rgba(10, 10, 25, 0.8) 50%, transparent 100%);
-  transform: translateY(100%);
-  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  flex-grow: 1; /* Ocupa el espacio restante */
   display: flex;
-  align-items: flex-end;
-  height: 100%;
-  opacity: 0;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.group:hover .project-info {
-  transform: translateY(0);
-  opacity: 1;
+.project-info h3 {
+    color: #f0f0f0;
+}
+
+/* Limita el texto del contenido para evitar desbordamiento */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+/* === MEDIA QUERIES PARA RESPONSIVIDAD === */
+@media (min-width: 768px) {
+    .project-card-link:hover {
+        transform: translateY(-8px);
+    }
 }
 </style>
