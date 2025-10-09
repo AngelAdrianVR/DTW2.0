@@ -1,266 +1,258 @@
 <script>
 import LandingLayout from '@/Layouts/LandingLayout.vue';
+import InteractiveHero from '@/Components/MyComponents/InteractiveHero.vue';
+import InteractiveServices from '@/Components/MyComponents/InteractiveServices.vue';
+import InteractiveProjects from '@/Components/MyComponents/InteractiveProjects.vue';
+import InteractiveOwnProjects from '@/Components/MyComponents/InteractiveOwnProjects.vue';
+import InteractiveContact from '@/Components/MyComponents/InteractiveContact.vue';
+import InteractiveClients from '@/Components/MyComponents/InteractiveClients.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import Tag from 'primevue/tag';
 
 export default {
-    components: {
-        LandingLayout,
-        Button,
-        Card,
-        InputText,
-        Textarea,
-        Tag
-    },
-    // Usando Options API
-    data() {
-        return {
-            // Datos para la sección de servicios
-            services: [
-                {
-                    icon: 'pi pi-chip',
-                    title: 'Soluciones IoT',
-                    description: 'Conectamos tus dispositivos y máquinas para transmitir información clave en tiempo real, optimizando procesos y permitiendo un mantenimiento predictivo.'
-                },
-                {
-                    icon: 'pi pi-palette',
-                    title: 'Branding y Diseño',
-                    description: 'Creamos identidades de marca memorables. Desde el logo hasta la estrategia digital, damos vida a tu visión con un diseño que impacta y comunica.'
-                },
-                {
-                    icon: 'pi pi-sitemap',
-                    title: 'Sistemas Empresariales',
-                    description: 'Desarrollamos software a la medida (ERP, CRM, PMS) que centraliza operaciones, automatiza tareas y transforma tus datos en decisiones inteligentes.'
-                }
-            ],
-            // Datos para el portafolio
-            portfolio: [
-                { image: 'https://placehold.co/600x400/1e293b/94a3b8?text=Proyecto+Alfa', title: 'Dashboard Industrial IoT', category: 'IoT', tags: ['Vue.js', 'Laravel', 'MQTT'] },
-                { image: 'https://placehold.co/600x400/1e293b/94a3b8?text=Proyecto+Beta', title: 'Rediseño de Marca Tech', category: 'Branding', tags: ['Figma', 'Illustrator', 'SEO'] },
-                { image: 'https://placehold.co/600x400/1e293b/94a3b8?text=Proyecto+Gamma', title: 'Sistema de Gestión de Proyectos', category: 'Sistemas', tags: ['React', 'Node.js', 'MongoDB'] },
-                { image: 'https://placehold.co/600x400/1e293b/94a3b8?text=Proyecto+Delta', title: 'Plataforma E-commerce', category: 'Sistemas', tags: ['Vue.js', 'Inertia.js', 'MySQL'] },
-            ],
-            // Logos de clientes
-            clients: [
-                { name: 'Emblems3D USA', logo: 'https://placehold.co/200x100/e2e8f0/334155?text=Emblems3D' },
-                { name: 'Nala Jewelry', logo: 'https://placehold.co/200x100/e2e8f0/334155?text=Nala+Jewelry' },
-                { name: 'Ingeniería Zafiro', logo: 'https://placehold.co/200x100/e2e8f0/334155?text=Ingeniería+Zafiro' },
-                { name: 'ADTI', logo: 'https://placehold.co/200x100/e2e8f0/334155?text=ADTI' },
-            ],
-             // Proyectos propios
-            ownProjects: [
-                { image: 'https://placehold.co/600x400/0f172a/64748b?text=EZY+Ventas', title: 'EZY Ventas', description: 'Un sistema de punto de venta en la nube, intuitivo y potente para pequeños y medianos negocios.', link: '#' },
-                { image: 'https://placehold.co/600x400/0f172a/64748b?text=Finanzas+App', title: 'FINANZAS', description: 'Aplicación para el control de finanzas personales y empresariales, simple y segura.', link: '#' },
-            ],
-            // Modelo para el formulario de contacto
-            contactForm: {
-                name: '',
-                email: '',
-                message: ''
-            }
-        };
-    },
-    mounted() {
-        // Lógica para animaciones al hacer scroll
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('fade-in-up');
-                }
-            });
-        }, { threshold: 0.1 });
+  // Registra los componentes
+  components: {
+    Card,
+    Button,
+    InputText,
+    Textarea,
+    LandingLayout,
+    InteractiveHero,
+    InteractiveClients,
+    InteractiveContact,
+    InteractiveProjects,
+    InteractiveServices,
+    InteractiveOwnProjects,
+  },
 
-        this.$el.querySelectorAll('.fade-target').forEach(el => {
-            observer.observe(el);
-        });
+  props: {
+      portfolio: Array,
+      ownProjects: Array,
+      clientLogos: Array, // MODIFICACIÓN: Recibe los logos de los clientes
+      advertising: Array,
     },
-    methods: {
-        handleContactSubmit() {
-            // Aquí iría la lógica para enviar el formulario con Inertia
-            console.log('Formulario enviado:', this.contactForm);
-            // this.$inertia.post('/contacto', this.contactForm);
+
+  // Los datos contienen las CLAVES de traducción para contenido estático
+  data() {
+    return {
+      services: [
+        {
+          id: 'web',
+          icon: 'pi pi-code',
+          title: 'Custom Web Development',
+          description: 'Robust and scalable web solutions, from landing pages to complex applications.',
+          detailedDescription: 'From corporate websites to complex e-commerce platforms and custom web applications, we create digital experiences that captivate and convert. We use modern technologies like Vue.js, React, and Node.js to build fast, secure, and scalable solutions tailored to your needs.',
+          images: [
+            'https://placehold.co/600x400/111827/17EDF4?text=Dashboard+UI',
+            'https://placehold.co/600x400/111827/6215C0?text=API+Integration'
+          ]
+        },
+        {
+          id: 'mobile',
+          icon: 'pi pi-mobile',
+          title: 'Mobile Applications',
+          description: 'Native and hybrid apps for iOS and Android, focused on user experience.',
+          detailedDescription: 'We design and develop mobile applications for iOS and Android that stand out for their intuitive interface and flawless performance. Whether native or hybrid, we focus on creating apps that users love and that drive business growth.',
+          images: [
+            'https://placehold.co/600x400/111827/17EDF4?text=iOS+App+Screen',
+            'https://placehold.co/600x400/111827/6215C0?text=Android+UI/UX'
+          ]
+        },
+        {
+          id: 'cloud',
+          icon: 'pi pi-cloud',
+          title: 'Cloud Solutions',
+          description: 'Cloud infrastructure, microservices, and continuous deployment for maximum efficiency.',
+          detailedDescription: 'We help you migrate, manage, and optimize your infrastructure in the cloud. We design scalable architectures with microservices, implement CI/CD pipelines for agile deployments, and ensure the security and availability of your applications on platforms like AWS, Google Cloud, and Azure.',
+          images: [
+            'https://placehold.co/600x400/111827/17EDF4?text=Cloud+Server',
+            'https://placehold.co/600x400/111827/6215C0?text=Deployment+Flow'
+          ]
+        },
+        {
+            id: 'iot',
+            icon: 'pi pi-globe',
+            title: 'IoT & Automations',
+            description: 'Connecting the physical world to the digital, creating intelligent systems.',
+            detailedDescription: 'We specialize in developing IoT solutions that connect devices, collect data, and enable intelligent automation. From smart homes to industrial applications, we transform processes and create new opportunities through connectivity and real-time data analysis.',
+            images: [
+                'https://placehold.co/600x400/111827/17EDF4?text=Smart+Sensor',
+                'https://placehold.co/600x400/111827/6215C0?text=Control+Panel'
+            ]
         }
-    }
-};
+      ],
+      contactForm: {
+        name: '',
+        email: '',
+        message: '',
+      }
+    };
+  },
+
+  computed: {
+    translatedServices() {
+      return this.services.map(service => ({
+        ...service,
+        title: this.t(service.title),
+        description: this.t(service.description),
+        detailedDescription: this.t(service.detailedDescription)
+      }));
+    },
+  }
+}
 </script>
 
 <template>
-    <LandingLayout :welcomeMessage="'Bienvenido a DTW'" >
-        <!-- SECCIÓN HERO -->
-        <section id="inicio" class="relative text-center h-[80vh] flex flex-col justify-center items-center overflow-hidden">
-            <div class="absolute inset-0 bg-gray-900 z-10 opacity-60"></div>
-            <video autoplay loop muted playsinline class="absolute z-0 w-auto min-w-full min-h-full max-w-none">
-                 <source src="https://cdn.pixabay.com/video/2022/05/23/116290-715392822_large.mp4" type="video/mp4">
-                 Your browser does not support the video tag.
-            </video>
-            <div class="container mx-auto px-4 z-20">
-                <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-4 animate-fade-in-down">
-                    Transformamos <span class="text-cyan-400">Ideas</span> en Soluciones Digitales
-                </h1>
-                <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8 animate-fade-in-up">
-                    Expertos en IoT, Branding y Sistemas Empresariales para impulsar el crecimiento de tu negocio.
-                </p>
-                <Button label="Hablemos de tu Proyecto" icon="pi pi-arrow-right" iconPos="right" size="large" severity="info" />
-            </div>
-        </section>
+    <LandingLayout 
+      :title="t('Home') + ' DTW'" 
+      :welcomeMessage="t('Welcome to DTW - Digital Innovation')"
+    >
+        <div class="page-container selection:bg-cyan-300/50">
+            <!-- SECCIÓN INICIO (HERO) -->
+            <InteractiveHero />
 
-        <!-- SECCIÓN DE SERVICIOS -->
-        <section id="servicios" class="py-20 bg-gray-900/50">
-            <div class="container mx-auto px-4 text-center">
-                <h2 class="text-3xl font-bold mb-2 fade-target">Nuestros Servicios</h2>
-                <p class="text-gray-400 mb-12 fade-target">Soluciones integrales para la era digital.</p>
-                <div class="grid md:grid-cols-3 gap-8">
-                    <div v-for="service in services" :key="service.title" class="fade-target">
-                        <Card class="bg-gray-800/50 border border-white/10 text-gray-200 h-full">
-                            <template #header>
-                                <div class="p-6 text-cyan-400">
-                                    <i :class="service.icon" style="font-size: 2.5rem"></i>
-                                </div>
-                            </template>
-                            <template #title><h3 class="text-white">{{ service.title }}</h3></template>
-                            <template #content><p>{{ service.description }}</p></template>
-                        </Card>
-                    </div>
-                </div>
-            </div>
-        </section>
+            <!-- SECCIÓN SERVICIOS -->
+            <InteractiveServices :services="translatedServices" />
 
-        <!-- SECCIÓN PORTAFOLIO -->
-        <section id="proyectos" class="py-20">
-            <div class="container mx-auto px-4 text-center">
-                 <h2 class="text-3xl font-bold mb-2 fade-target">Portafolio de Proyectos</h2>
-                 <p class="text-gray-400 mb-12 fade-target">Casos de éxito que hablan por nosotros.</p>
-                 <div class="grid md:grid-cols-2 gap-8">
-                     <div v-for="(item, index) in portfolio" :key="index" class="fade-target">
-                        <Card class="bg-gray-800/50 border border-white/10 text-left overflow-hidden group">
-                            <template #header>
-                                <img :alt="item.title" :src="item.image" class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500" />
-                            </template>
-                            <template #title><h3 class="text-white">{{ item.title }}</h3></template>
-                            <template #subtitle><p class="text-cyan-400">{{ item.category }}</p></template>
-                            <template #content>
-                                <div class="flex flex-wrap gap-2">
-                                     <Tag v-for="tag in item.tags" :key="tag" :value="tag" severity="info"></Tag>
-                                </div>
-                            </template>
-                        </Card>
-                     </div>
-                 </div>
-            </div>
-        </section>
+            <!-- SECCIÓN PROYECTOS -->
+            <InteractiveProjects :projects="portfolio" />
 
-         <!-- SECCIÓN CLIENTES -->
-        <section id="clientes" class="py-20 bg-gray-900/50">
-            <div class="container mx-auto px-4 text-center">
-                <h2 class="text-3xl font-bold mb-12 fade-target">Confían en Nosotros</h2>
-                <div class="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60">
-                    <div v-for="client in clients" :key="client.name" class="fade-target">
-                        <img :src="client.logo" :alt="client.name" class="h-10 transition-opacity hover:opacity-100" />
-                    </div>
-                </div>
-            </div>
-        </section>
+            <!-- SECCIÓN PROYECTOS PROPIOS -->
+            <!-- Pasamos la prop 'ownProjects' directamente desde el controlador -->
+            <InteractiveOwnProjects :projects="ownProjects" />
 
-        <!-- SECCIÓN PROYECTOS PROPIOS -->
-        <section id="proyectos-propios" class="py-20">
-             <div class="container mx-auto px-4">
-                 <h2 class="text-3xl font-bold mb-12 text-center fade-target">Nuestras Iniciativas</h2>
-                 <div class="max-w-4xl mx-auto space-y-12">
-                     <div v-for="(project, index) in ownProjects" :key="project.title" 
-                          class="fade-target flex flex-col md:flex-row items-center gap-8"
-                          :class="{'md:flex-row-reverse': index % 2 !== 0}">
-                         <img :src="project.image" :alt="project.title" class="w-full md:w-1/2 rounded-lg shadow-2xl">
-                         <div class="md:w-1/2">
-                             <h3 class="text-2xl font-bold text-white mb-3">{{ project.title }}</h3>
-                             <p class="text-gray-400 mb-6">{{ project.description }}</p>
-                             <Button label="Ver más" icon="pi pi-external-link" severity="info" outlined />
-                         </div>
-                     </div>
-                 </div>
-             </div>
-        </section>
+            <!-- SECCIÓN CLIENTES -->
+            <!-- MODIFICACIÓN: Pasamos los logos al componente -->
+            <InteractiveClients :clientLogos="clientLogos" />
 
-        <!-- SECCIÓN CONTACTO -->
-        <section id="contacto" class="py-20 bg-gray-900/50">
-            <div class="container mx-auto px-4">
-                <div class="max-w-2xl mx-auto text-center">
-                    <h2 class="text-3xl font-bold mb-2 fade-target">¿Tienes una idea?</h2>
-                    <p class="text-gray-400 mb-8 fade-target">Contáctanos. Hagamos que suceda.</p>
-                    <form @submit.prevent="handleContactSubmit" class="space-y-6 fade-target">
-                        <span class="p-float-label">
-                            <InputText id="name" v-model="contactForm.name" class="w-full" />
-                            <label for="name">Nombre</label>
-                        </span>
-                        <span class="p-float-label">
-                            <InputText id="email" v-model="contactForm.email" type="email" class="w-full" />
-                            <label for="email">Email</label>
-                        </span>
-                        <span class="p-float-label">
-                            <Textarea id="message" v-model="contactForm.message" rows="5" class="w-full" />
-                            <label for="message">Mensaje</label>
-                        </span>
-                        <Button type="submit" label="Enviar Mensaje" icon="pi pi-send" severity="info" size="large" class="w-full" />
-                    </form>
-                </div>
-            </div>
-        </section>
+            <!-- SECCIÓN CONTACTO -->
+            <InteractiveContact />
 
+            
+        </div>
     </LandingLayout>
 </template>
 
 <style scoped>
-/* Estilos para PrimeVue Inputs en tema oscuro */
-:deep(.p-inputtext), :deep(.p-textarea) {
-    background: rgba(31, 41, 55, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    color: #e5e7eb !important;
+/* Estilos generales y de fondo */
+.page-container {
+  position: relative;
+  overflow-x: hidden;
 }
 
-:deep(.p-float-label label) {
+.grid-background {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(rgba(17, 24, 39, 0) 0%, #111827 90%),
+    radial-gradient(ellipse at center, rgba(30, 30, 50, 0.6) 0%, transparent 70%),
+    linear-gradient(to right, rgba(29, 78, 216, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(29, 78, 216, 0.1) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+  z-index: 0;
+}
+
+.hero-section {
+  position: relative;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Efecto de brillo en texto */
+.text-glow {
+  text-shadow: 0 0 8px rgba(23, 237, 244, 0.6), 0 0 20px rgba(98, 21, 192, 0.5);
+}
+
+/* Títulos de sección */
+.section-title {
+  position: relative;
+  display: inline-block;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  padding-bottom: 0.5rem;
+}
+.section-title span {
+  position: relative;
+  z-index: 1;
+}
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 3px;
+  background: linear-gradient(90deg, #6215C0, #17EDF4);
+  border-radius: 2px;
+}
+
+
+/* Tarjetas de Servicio */
+.service-card {
+  background-color: rgba(23, 25, 48, 0.5) !important;
+  border: 1px solid rgba(23, 237, 244, 0.2) !important;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease-in-out;
+  border-radius: 1rem !important;
+}
+
+.service-card:hover {
+  transform: translateY(-10px);
+  border-color: rgba(23, 237, 244, 0.7) !important;
+  box-shadow: 0 0 25px rgba(23, 237, 244, 0.3);
+}
+
+/* Tarjetas de Proyecto */
+.project-card {
+  background-color: rgba(23, 25, 48, 0.8) !important;
+  border: 1px solid rgba(98, 21, 192, 0.2) !important;
+  transition: all 0.3s ease-in-out;
+  border-radius: 1rem !important;
+  overflow: hidden;
+}
+
+.project-card:hover {
+    border-color: rgba(98, 21, 192, 0.7) !important;
+    box-shadow: 0 0 25px rgba(98, 21, 192, 0.3);
+}
+.project-card img {
+    transition: transform 0.3s ease-in-out;
+}
+.project-card:hover img {
+    transform: scale(1.05);
+}
+
+/* Formulario de Contacto */
+.contact-form {
+  background-color: rgba(23, 25, 48, 0.5) !important;
+  border: 1px solid rgba(23, 237, 244, 0.2) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 1rem !important;
+}
+
+/* Estilos para los inputs de PrimeVue */
+:deep(.p-inputtext), :deep(.p-textarea) {
+  background: rgba(0,0,0,0.3) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  color: #fff !important;
+}
+
+:deep(.p-inputtext:enabled:focus) {
+  box-shadow: 0 0 0 1px rgba(23, 237, 244, 0.8) !important;
+  border-color: rgba(23, 237, 244, 0.8) !important;
+}
+
+:deep(.p-float-label > label) {
     color: #9ca3af !important;
 }
 
-/* Animaciones de entrada */
-.fade-target {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-
-.fade-in-up {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-.animate-fade-in-down {
-    animation: fadeInDown 0.8s ease-out forwards;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-.animate-fade-in-up {
-    animation: fadeInUp 0.8s 0.2s ease-out forwards;
-    opacity: 0;
-}
 </style>

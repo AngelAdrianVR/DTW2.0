@@ -1,6 +1,35 @@
 <template>
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M11.395 44.428C4.557 40.198 0 32.632 0 24 0 10.745 10.745 0 24 0a23.891 23.891 0 0113.997 4.502c-.2 17.907-11.097 33.245-26.602 39.926z" fill="#6875F5" />
-        <path d="M14.134 45.885A23.914 23.914 0 0024 48c13.255 0 24-10.745 24-24 0-3.516-.756-6.856-2.115-9.866-4.659 15.143-16.608 27.092-31.75 31.751z" fill="#6875F5" />
-    </svg>
+  <!-- 
+    Envolvemos las imágenes en un solo div.
+    v-bind="$attrs" aplica cualquier atributo no-prop (como la clase "block h-9 w-auto"
+    del componente padre) a este div.
+  -->
+  <div v-bind="$attrs">
+    <img 
+      class="dark:block hidden w-auto"
+      :class="`h-${height}`" 
+      src="@/../../public/images/white_logo.png" 
+      alt="Logo Dark"
+    >
+    <img 
+      class="dark:hidden block w-auto"
+      :class="`h-${height}`" 
+      src="@/../../public/images/black_logo.png" 
+      alt="Logo Light"
+    >
+  </div>
 </template>
+
+<script>
+export default {
+  // Para evitar que los atributos se apliquen automáticamente al elemento raíz incorrecto
+  inheritAttrs: false,
+  props: {
+    height: {
+      type: String,
+      default: '10' // Altura por defecto (Tailwind: h-10)
+    },
+  }
+}
+</script>
+

@@ -1,0 +1,34 @@
+Terms of Service
+Last updated: 09/10*2025
+
+Welcome to DTW (Desarrollo de TEcnologías Web) ("us", "we", or "our"). These Terms of Service ("Terms") govern your use of our software services, websites, and applications (collectively, the "Service").
+
+By accessing or using our Service, you agree to be bound by these Terms. If you disagree with any part of the terms, then you may not access the Service.
+
+1. Use of the Service
+You agree to use the Service only for lawful purposes and in accordance with these Terms. You are responsible for ensuring that your use of the Service does not violate any applicable laws or regulations.
+
+2. Enterprise Software and Custom Solutions
+We provide enterprise software solutions and custom development. The specific terms, licenses, and service level agreements for each solution will be detailed in a separate contract between you and DTW (Desarrollo de TEcnologías Web).
+
+3. Intellectual Property
+The Service and its original content (excluding content provided by users), features, and functionality are and will remain the exclusive property of DTW (Desarrollo de TEcnologías Web) and its licensors. The Service is protected by copyright, trademark, and other laws of both Mexico and foreign countries.
+
+4. User Accounts
+When you create an account with us, you must provide us with information that is accurate, complete, and current at all times. Failure to do so constitutes a breach of the Terms, which may result in immediate termination of your account on our Service.
+
+5. Limitation of Liability
+In no event shall DTW (Desarrollo de TEcnologías Web), nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
+
+6. Termination
+We may terminate or suspend your access to our Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
+
+7. Governing Law
+These Terms shall be governed and construed in accordance with the laws of Mexico, without regard to its conflict of law provisions.
+
+8. Changes
+We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will notify you of any changes by posting the new Terms on this page.
+
+9. Contact Us
+If you have any questions about these Terms, please contact us:
+Email: contacto@dtw.com.mx
