@@ -52,9 +52,12 @@ class DashboardController extends Controller
         $clientsCount = Client::count();
 
         // --- KPI de Desempeño ---
-        $users = User::with(['assignedTasks', 'timeLogs'])->get();
+        // Se optimiza la consulta para no cargar 'timeLogs', que ya no son necesarios aquí.
+        $users = User::with('assignedTasks')->get();
         $performanceData = $users->map(function ($user) {
-            $totalMinutes = $user->timeLogs->sum('duration_minutes');
+            // Se calcula el total de minutos sumando directamente desde las tareas asignadas.
+            $totalMinutes = $user->assignedTasks->sum('total_invested_minutes');
+
             $hours = floor($totalMinutes / 60);
             $minutes = $totalMinutes % 60;
             $tasks = $user->assignedTasks;
