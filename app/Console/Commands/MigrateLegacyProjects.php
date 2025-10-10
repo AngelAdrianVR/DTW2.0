@@ -34,12 +34,12 @@ class MigrateLegacyProjects extends Command
 
         if ($this->confirm('¿Deseas eliminar TODOS los datos de "projects", "project_members", "tasks" y "time_logs" antes de empezar?', true)) {
             try {
-                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                DB::statement('SET FOREIGN_key_CHECKS=0;');
                 DB::table('time_logs')->truncate();
                 DB::table('tasks')->truncate();
                 DB::table('project_members')->truncate();
                 DB::table('projects')->truncate();
-                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+                DB::statement('SET FOREIGN_key_CHECKS=1;');
                 $this->warn('Las tablas de destino han sido limpiadas.');
             } catch (Throwable $e) {
                 $this->error("Error al limpiar las tablas: " . $e->getMessage());
@@ -53,8 +53,7 @@ class MigrateLegacyProjects extends Command
 
             $newDb->transaction(function () use ($oldDb, $newDb) {
                 
-                // CAMBIO CLAVE: Desactivamos las llaves foráneas al inicio de la transacción
-                $newDb->statement('SET FOREIGN_KEY_CHECKS=0;');
+                $newDb->statement('SET FOREIGN_key_CHECKS=0;');
 
                 // --- 1. Migrar Proyectos ---
                 $this->line('');
@@ -63,8 +62,6 @@ class MigrateLegacyProjects extends Command
                 $progressBar = $this->output->createProgressBar($old_projects->count());
 
                 foreach ($old_projects as $project) {
-                    // AÑADIDO: Verificamos si la cotización y el cliente existen en la BD ANTIGUA
-                    // para evitar intentar insertar IDs que no existen.
                     $quoteId = null;
                     if ($project->quote_id) {
                        $quoteId = $oldDb->table('quotes')->where('id', $project->quote_id)->exists() ? $project->quote_id : null;
@@ -78,14 +75,14 @@ class MigrateLegacyProjects extends Command
                     $newDb->table('projects')->insert([
                         'id' => $project->id,
                         'client_id' => $clientId,
-                        'quote_id' => $quoteId, // Ahora es seguro usar el ID, o null si no existe.
+                        'quote_id' => $quoteId,
                         'name' => $project->name,
                         'description' => $project->description,
                         'status' => $this->mapProjectStatus($project->state),
                         'start_date' => $project->start_date,
                         'end_date' => $project->finish_date,
                         'budget' => $project->price,
-                        'total_invested_minutes' => 0,
+                        'total_invested_minutes' => 0, // Se inicializa en 0
                         'created_at' => $project->created_at,
                         'updated_at' => $project->updated_at,
                     ]);
@@ -94,18 +91,35 @@ class MigrateLegacyProjects extends Command
                 $progressBar->finish();
                 $this->info(' -> Proyectos migrados con éxito.');
 
+                // --- NUEVO: Crear un mapa de IDs de usuarios ---
+                $this->line('');
+                $this->info('Creando mapa de correspondencia de usuarios (antiguo ID -> nuevo ID)...');
+                $oldUsers = $oldDb->table('users')->select('id', 'name')->get();
+                $newUsers = $newDb->table('users')->select('id', 'name')->get()->keyBy('name');
+                $userIdMap = [];
+                foreach ($oldUsers as $oldUser) {
+                    if (isset($newUsers[$oldUser->name])) {
+                        $userIdMap[$oldUser->id] = $newUsers[$oldUser->name]->id;
+                    }
+                }
+                $this->info(' -> Mapa de usuarios creado.');
+
                 // --- 2. Migrar Miembros del Proyecto ---
                 $this->line('');
                 $this->info('Migrando Miembros de Proyectos...');
                 $progressBar = $this->output->createProgressBar($old_projects->count());
                 foreach ($old_projects as $project) {
                     if ($project->responsible_id) {
-                        $newDb->table('project_members')->insertOrIgnore([ // Usamos insertOrIgnore para evitar errores de duplicados
-                            'project_id' => $project->id,
-                            'user_id' => $project->responsible_id,
-                            'created_at' => $project->created_at,
-                            'updated_at' => $project->updated_at,
-                        ]);
+                        $newResponsibleId = $userIdMap[$project->responsible_id] ?? null;
+
+                        if ($newResponsibleId) {
+                            $newDb->table('project_members')->insertOrIgnore([
+                                'project_id' => $project->id,
+                                'user_id' => $newResponsibleId,
+                                'created_at' => $project->created_at,
+                                'updated_at' => $project->updated_at,
+                            ]);
+                        }
                     }
                     $progressBar->advance();
                 }
@@ -118,10 +132,12 @@ class MigrateLegacyProjects extends Command
                 $old_tasks = $oldDb->table('project_tasks')->orderBy('id')->get();
                 $progressBar = $this->output->createProgressBar($old_tasks->count());
                 foreach ($old_tasks as $task) {
+                    $newAssignedToId = $userIdMap[$task->user_id] ?? null;
+
                     $newDb->table('tasks')->insert([
                         'id' => $task->id,
                         'project_id' => $task->project_id,
-                        'assigned_to' => $task->user_id,
+                        'assigned_to' => $newAssignedToId,
                         'title' => $task->title,
                         'description' => $task->description,
                         'estimated_hours' => null,
@@ -143,16 +159,20 @@ class MigrateLegacyProjects extends Command
                 $old_tasks_with_time = $oldDb->table('project_tasks')->where('minutes', '>', 0)->whereNotNull('started_at')->orderBy('id')->get();
                 $progressBar = $this->output->createProgressBar($old_tasks_with_time->count());
                 foreach ($old_tasks_with_time as $task) {
-                    $newDb->table('time_logs')->insert([
-                        'task_id' => $task->id,
-                        'user_id' => $task->user_id,
-                        'start_time' => $task->started_at,
-                        'end_time' => $task->paused_at,
-                        'duration_minutes' => $task->minutes,
-                        'notes' => 'Registro migrado desde el sistema anterior.',
-                        'created_at' => $task->created_at,
-                        'updated_at' => $task->updated_at,
-                    ]);
+                    $newUserId = $userIdMap[$task->user_id] ?? null;
+
+                    if ($newUserId) {
+                        $newDb->table('time_logs')->insert([
+                            'task_id' => $task->id,
+                            'user_id' => $newUserId,
+                            'start_time' => $task->started_at,
+                            'end_time' => $task->paused_at,
+                            'duration_minutes' => $task->minutes,
+                            'notes' => 'Registro migrado desde el sistema anterior.',
+                            'created_at' => $task->created_at,
+                            'updated_at' => $task->updated_at,
+                        ]);
+                    }
                     $progressBar->advance();
                 }
                 $progressBar->finish();
@@ -173,16 +193,31 @@ class MigrateLegacyProjects extends Command
                 $progressBar->finish();
                 $this->info(' -> Cotizaciones actualizadas con éxito.');
 
-                // CAMBIO CLAVE: Reactivamos las llaves foráneas al final de la transacción.
-                $newDb->statement('SET FOREIGN_KEY_CHECKS=1;');
+                // --- 6. Calcular y actualizar el tiempo total invertido por proyecto ---
+                $this->line('');
+                $this->info('Calculando y actualizando el tiempo total invertido por proyecto...');
+                $project_times = $oldDb->table('project_tasks')
+                    ->select('project_id', DB::raw('SUM(minutes) as total_minutes'))
+                    ->groupBy('project_id')
+                    ->get();
+                $progressBar = $this->output->createProgressBar($project_times->count());
+                foreach ($project_times as $time) {
+                    $newDb->table('projects')->where('id', $time->project_id)->update([
+                        'total_invested_minutes' => $time->total_minutes
+                    ]);
+                    $progressBar->advance();
+                }
+                $progressBar->finish();
+                $this->info(' -> Tiempos de proyectos actualizados con éxito.');
+
+                $newDb->statement('SET FOREIGN_key_CHECKS=1;');
             });
 
             $this->line('');
             $this->info("\n¡MIGRACIÓN COMPLETADA EXITOSAMENTE!");
 
         } catch (Throwable $e) {
-            // En caso de error, nos aseguramos de reactivar las llaves foráneas.
-            DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=1;');
+            DB::connection('mysql')->statement('SET FOREIGN_key_CHECKS=1;');
             $this->error("\n\nERROR DURANTE LA MIGRACIÓN: " . $e->getMessage());
             $this->error("No se realizó ningún cambio en la nueva base de datos. Revisa el error y vuelve a intentarlo.");
             Log::error('Error en migración de proyectos: ' . $e->getFile() . ' en línea ' . $e->getLine() . ' - ' . $e->getMessage());
@@ -192,7 +227,36 @@ class MigrateLegacyProjects extends Command
         return 0;
     }
 
-    private function mapProjectStatus(string $oldStatus): string { /* ...código sin cambios... */ return match (strtolower($oldStatus)) {'en revisión', 'pendiente' => 'Pendiente','en proceso' => 'En proceso','terminado', 'completado' => 'Completado','pausado' => 'Pausado','cancelado' => 'Cancelado',default => 'Pendiente',}; }
-    private function mapTaskStatus(string $oldStatus, bool $isPaused): string { if ($isPaused) { return 'Pausada'; } return match (strtolower($oldStatus)) {'por hacer' => 'Pendiente','en progreso' => 'En proceso','hecho', 'completada' => 'Completada',default => 'Pendiente',}; }
-    private function mapTaskPriority(string $oldPriority): string { return match (strtolower($oldPriority)) {'baja' => 'Baja','media' => 'Media','alta' => 'Alta',default => 'Media',}; }
+    private function mapProjectStatus(string $oldStatus): string {
+        return match (strtolower($oldStatus)) {
+            'en revisión', 'pendiente' => 'Pendiente',
+            'en proceso' => 'En proceso',
+            'terminado', 'completado' => 'Completado',
+            'pausado' => 'Pausado',
+            'cancelado' => 'Cancelado',
+            default => 'Pendiente',
+        };
+    }
+
+    private function mapTaskStatus(string $oldStatus, bool $isPaused): string {
+        if ($isPaused) {
+            return 'Pausada';
+        }
+        return match (strtolower($oldStatus)) {
+            'por hacer' => 'Pendiente',
+            'en progreso' => 'En proceso',
+            'hecho', 'completada' => 'Completada',
+            default => 'Pendiente',
+        };
+    }
+
+    private function mapTaskPriority(string $oldPriority): string {
+        return match (strtolower($oldPriority)) {
+            'baja' => 'Baja',
+            'media' => 'Media',
+            'alta' => 'Alta',
+            default => 'Media',
+        };
+    }
 }
+

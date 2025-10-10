@@ -25,6 +25,50 @@ const { props } = usePage();
 const project = computed(() => props.project);
 const totalTimeInvested = computed(() => props.totalTimeInvested);
 
+// --- Funciones de formato ---
+const formatMinutesToHours = (totalMinutes) => {
+    if (!totalMinutes || totalMinutes <= 0) {
+        return '00:00';
+    }
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    // Usamos padStart para asegurar que siempre haya dos dígitos (e.g., 01:05)
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+// --- Nueva propiedad computada para el desglose de tiempo por usuario ---
+const timeInvestedByUser = computed(() => {
+    if (!project.value || !project.value.tasks) {
+        return [];
+    }
+
+    // Usamos reduce para agrupar los minutos por usuario
+    const timeByUser = project.value.tasks.reduce((acc, task) => {
+        // Nos aseguramos de que la tarea tenga un usuario asignado y minutos invertidos
+        if (task.assignee && task.total_invested_minutes > 0) {
+            const userId = task.assignee.id;
+
+            // Si es la primera vez que vemos a este usuario, lo inicializamos en el acumulador
+            if (!acc[userId]) {
+                acc[userId] = {
+                    user: task.assignee, // Guardamos el objeto completo del usuario
+                    totalMinutes: 0,
+                };
+            }
+            // Sumamos los minutos de la tarea actual
+            acc[userId].totalMinutes += task.total_invested_minutes;
+        }
+        return acc;
+    }, {});
+
+    // Convertimos el objeto de usuarios en un array, formateamos el tiempo y lo ordenamos
+    return Object.values(timeByUser).map(item => ({
+        ...item,
+        formattedTime: formatMinutesToHours(item.totalMinutes),
+    })).sort((a, b) => b.totalMinutes - a.totalMinutes); // Ordenamos de mayor a menor tiempo
+});
+
+
 // --- State para Modales ---
 const isCreateTaskModalVisible = ref(false);
 const isEditTaskModalVisible = ref(false);
@@ -187,9 +231,19 @@ const formatDate = (dateString) => {
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
                         <div>
                             <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ project.name }}</h1>
-                            <div class="flex items-center gap-3 text-cyan-600 dark:text-cyan-400">
+                            <!-- Total Time -->
+                            <div class="flex items-center gap-3 text-cyan-600 dark:text-cyan-400 mb-3">
                                 <i class="pi pi-clock" style="font-size: 1.2rem"></i>
                                 <span class="text-lg font-semibold">{{ totalTimeInvested }}</span>
+                                <span class="text-gray-500 dark:text-gray-400 text-sm">(Total del proyecto)</span>
+                            </div>
+
+                            <!-- Breakdown by user -->
+                            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
+                                <div v-for="item in timeInvestedByUser" :key="item.user.id" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                    <Avatar :image="item.user.profile_photo_url" shape="circle" size="small" v-tooltip.top="item.user.name" />
+                                    <span class="font-medium">{{ item.formattedTime }}</span>
+                                </div>
                             </div>
                         </div>
                         <Button label="Crear Tarea" icon="pi pi-plus" class="p-button-raised p-button-cyan mt-4 md:mt-0" @click="openCreateTaskModal" />

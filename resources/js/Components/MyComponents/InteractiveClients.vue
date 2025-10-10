@@ -24,13 +24,13 @@
           <div class="logo-scroller-inner">
             <!-- Logos originales -->
             <div v-for="(client, index) in clientLogos" :key="`logo-a-${index}`" class="logo-item">
-              <!-- MODIFICACIÓN: Aumentada la altura de h-10 a h-14 -->
-              <img :src="client.url" :alt="client.name" class="h-20 w-auto object-contain" />
+              <!-- MODIFICACIÓN: Aumentada la altura de h-10 a h-16 -->
+              <img :src="client.url" :alt="client.name" class="h-16 w-auto object-contain" />
             </div>
             <!-- Logos duplicados para el efecto de bucle infinito -->
             <div v-for="(client, index) in clientLogos" :key="`logo-b-${index}`" aria-hidden="true" class="logo-item">
               <!-- MODIFICACIÓN: Aumentada la altura de h-10 a h-14 -->
-              <img :src="client.url" :alt="client.name" class="h-12 w-auto object-contain" />
+              <img :src="client.url" :alt="client.name" class="h-10 w-auto object-contain" />
             </div>
           </div>
         </div>
