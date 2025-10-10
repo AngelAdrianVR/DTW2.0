@@ -11,6 +11,16 @@ import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 
+//images
+import ioT from '@/../../public/images/IoT.webp';
+import ioT2 from '@/../../public/images/IOT2.png';
+import mov1 from '@/../../public/images/sistemas.webp';
+import mov2 from '@/../../public/images/home_IoT.webp';
+import web1 from '@/../../public/images/web1.png';
+import web2 from '@/../../public/images/web2.png';
+import cloud1 from '@/../../public/images/cloud1.png';
+import cloud2 from '@/../../public/images/cloud2.png';
+
 export default {
   // Registra los componentes
   components: {
@@ -33,7 +43,6 @@ export default {
       clientLogos: Array, // MODIFICACIÓN: Recibe los logos de los clientes
       advertising: Array,
     },
-
   // Los datos contienen las CLAVES de traducción para contenido estático
   data() {
     return {
@@ -45,8 +54,8 @@ export default {
           description: 'Robust and scalable web solutions, from landing pages to complex applications.',
           detailedDescription: 'From corporate websites to complex e-commerce platforms and custom web applications, we create digital experiences that captivate and convert. We use modern technologies like Vue.js, React, and Node.js to build fast, secure, and scalable solutions tailored to your needs.',
           images: [
-            'https://placehold.co/600x400/111827/17EDF4?text=Dashboard+UI',
-            'https://placehold.co/600x400/111827/6215C0?text=API+Integration'
+            web1,
+            web2
           ]
         },
         {
@@ -56,8 +65,8 @@ export default {
           description: 'Native and hybrid apps for iOS and Android, focused on user experience.',
           detailedDescription: 'We design and develop mobile applications for iOS and Android that stand out for their intuitive interface and flawless performance. Whether native or hybrid, we focus on creating apps that users love and that drive business growth.',
           images: [
-            'https://placehold.co/600x400/111827/17EDF4?text=iOS+App+Screen',
-            'https://placehold.co/600x400/111827/6215C0?text=Android+UI/UX'
+            mov1,
+            mov2
           ]
         },
         {
@@ -67,8 +76,8 @@ export default {
           description: 'Cloud infrastructure, microservices, and continuous deployment for maximum efficiency.',
           detailedDescription: 'We help you migrate, manage, and optimize your infrastructure in the cloud. We design scalable architectures with microservices, implement CI/CD pipelines for agile deployments, and ensure the security and availability of your applications on platforms like AWS, Google Cloud, and Azure.',
           images: [
-            'https://placehold.co/600x400/111827/17EDF4?text=Cloud+Server',
-            'https://placehold.co/600x400/111827/6215C0?text=Deployment+Flow'
+            cloud1,
+            cloud2
           ]
         },
         {
@@ -78,8 +87,8 @@ export default {
             description: 'Connecting the physical world to the digital, creating intelligent systems.',
             detailedDescription: 'We specialize in developing IoT solutions that connect devices, collect data, and enable intelligent automation. From smart homes to industrial applications, we transform processes and create new opportunities through connectivity and real-time data analysis.',
             images: [
-                'https://placehold.co/600x400/111827/17EDF4?text=Smart+Sensor',
-                'https://placehold.co/600x400/111827/6215C0?text=Control+Panel'
+                ioT,
+                ioT2
             ]
         }
       ],
