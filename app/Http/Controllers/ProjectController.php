@@ -99,15 +99,17 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        // Cargar relaciones necesarias para evitar N+1
         $project->load([
-            'client:id,name', 
-            'members:id,name,profile_photo_path', 
-            'tasks.assignee:id,name,profile_photo_path'
+            'client:id,name',
+            'members:id,name,profile_photo_path',
+            'tasks' => function ($query) {
+                $query->latest()->with('assignee:id,name,profile_photo_path');
+            },
         ]);
 
-        // Calcular el tiempo total invertido sumando los logs de tiempo de las tareas
-        $totalMinutes = TimeLog::whereIn('task_id', $project->tasks->pluck('id'))->sum('duration_minutes');
+        // Calcular el tiempo total invertido sumando el campo 'total_invested_minutes' de las tareas ya cargadas.
+        // Esto es más eficiente que hacer una nueva consulta a la tabla de TimeLogs.
+        $totalMinutes = $project->tasks->sum('total_invested_minutes');
         
         // Formatear el tiempo a "Xh Ym"
         $hours = floor($totalMinutes / 60);

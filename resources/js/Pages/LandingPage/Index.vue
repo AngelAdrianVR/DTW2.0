@@ -115,9 +115,7 @@ export default {
 
 <template>
     <LandingLayout 
-      :title="t('Home') + ' DTW'" 
-      :welcomeMessage="t('Welcome to DTW - Digital Innovation')"
-    >
+      :title="t('Home') + ' DTW'" >
         <div class="page-container selection:bg-cyan-300/50">
             <!-- SECCIÓN INICIO (HERO) -->
             <InteractiveHero />
