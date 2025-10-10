@@ -286,7 +286,7 @@ const formatDate = (value) => {
                     <!-- VISUALIZACIÓN DEL CONTENIDO EXISTENTE -->
                     <TabView>
                         <TabPanel v-for="(group, type) in webcontents" :key="type" :header="getSectionName(type)">
-                             <div v-if="group.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                             <div v-if="group.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                                 <Card v-for="content in group" :key="content.id" class="overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl bg-gray-100 dark:bg-gray-800 flex flex-col">
                                      <template #header>
                                         <Carousel :value="content.media" :numVisible="1" :numScroll="1" :show-indicators="content.media.length > 1">
