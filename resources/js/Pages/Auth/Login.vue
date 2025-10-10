@@ -74,6 +74,14 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
+            <!-- Checkbox para "Mantener sesión abierta" -->
+            <div class="block">
+                <label class="flex items-center">
+                    <Checkbox v-model:checked="form.remember" name="remember" />
+                    <span class="ms-2 text-sm text-gray-400">Mantener sesión abierta</span>
+                </label>
+            </div>
+
             <div class="pt-4">
                  <PrimaryButton class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold tracking-wider text-white uppercase bg-gradient-to-r from-fuchsia-600 to-cyan-500 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-500 focus:ring-offset-gray-900" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                     Iniciar sesión
@@ -88,4 +96,3 @@ const submit = () => {
         </form>
     </AuthenticationCard>
 </template>
-
