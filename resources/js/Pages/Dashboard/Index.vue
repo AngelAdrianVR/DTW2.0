@@ -26,8 +26,7 @@ const props = defineProps({
                 <div class="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm overflow-hidden shadow-xl sm:rounded-lg p-5 mb-8">
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Resumen General</h2>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                        
+                    <div class="md:grid md:grid-cols-2 lg:grid-cols-4 gap-5 space-y-4 md:space-y-0">
                         <!-- Componentes Modulares Existentes -->
                         <QuotesKpi :data="kpis.quotes" />
                         <ClientsKpi :data="kpis.clients" />
