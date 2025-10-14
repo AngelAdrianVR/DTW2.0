@@ -155,11 +155,11 @@ class ProjectController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             // La cotización debe ser única, ignorando el proyecto actual
-            'quote_id' => [
-                'nullable',
-                'exists:quotes,id',
-                Rule::unique('projects')->ignore($project->id),
-            ],
+            // 'quote_id' => [
+            //     'nullable',
+            //     'exists:quotes,id',
+            //     Rule::unique('projects')->ignore($project->id),
+            // ],
             'client_id' => 'required_without:quote_id|nullable|exists:clients,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',

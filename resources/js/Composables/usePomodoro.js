@@ -151,9 +151,9 @@ export function usePomodoro() {
         state.isRunning = true;
         state.isPaused = false;
         
-        if (state.isWorkSession) {
-            resumeTasks();
-        }
+        // if (state.isWorkSession) {
+        //     resumeTasks();
+        // }
 
         const endTime = Date.now() + state.secondsRemaining * 1000;
 
@@ -173,9 +173,9 @@ export function usePomodoro() {
     const pauseTimer = () => {
         state.isPaused = true;
         clearInterval(state.countdown);
-        if (state.isWorkSession) {
-            pauseTasks();
-        }
+        // if (state.isWorkSession) {
+        //     pauseTasks();
+        // }
     };
 
     const resetTimer = (isFullReset = true) => {
@@ -198,7 +198,7 @@ export function usePomodoro() {
         
         if (state.isWorkSession) {
             state.completedSessions++;
-            pauseTasks(); 
+            // pauseTasks(); 
             
             if (state.completedSessions > 0 && state.completedSessions % state.settings.sessions_before_long_break === 0) {
                 showNotification(`¡Gran trabajo! Tómate un descanso largo de ${state.settings.long_break_minutes} minutos.`);
