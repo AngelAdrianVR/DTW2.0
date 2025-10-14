@@ -238,11 +238,11 @@ const onRowClick = (event) => {
                                 </template>
                             </Column>
 
-                            <Column field="status" header="Estado" style="width: 10%">
+                            <!-- <Column field="status" header="Estado" style="width: 10%">
                                 <template #body="{ data }">
                                     <Tag :value="data.status" :severity="getStatusSeverity(data.status)" rounded />
                                 </template>
-                            </Column>
+                            </Column> -->
 
                             <Column header="Acciones" style="width: 10%" bodyClass="text-center">
                                 <template #body="{ data }">
