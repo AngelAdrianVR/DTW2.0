@@ -101,7 +101,8 @@ const submitCreateTask = () => {
     createTaskForm.post(route('tasks.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            isCreateTaskModalVisible.value = false;
+            window.location.reload();
+            // isCreateTaskModalVisible.value = false;
         },
     });
 };
@@ -181,6 +182,7 @@ const onDrop = (newStatus) => {
         // del servidor después de que el controlador haga la redirección.
         // Así es como 'project' y 'totalTimeInvested' se refrescan.
         onSuccess: () => {
+            window.location.reload();
             // La UI se actualiza sola gracias a las propiedades computadas.
             // ¡No hay que hacer nada aquí!
         },
