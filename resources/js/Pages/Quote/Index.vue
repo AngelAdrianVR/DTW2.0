@@ -81,7 +81,7 @@ const menuItems = computed(() => {
             icon: 'pi pi-send',
             command: () => changeQuoteStatus(quote, 'Enviado')
         });
-    } else if (quote.status === 'Enviado') {
+    } else if (quote.status === 'Enviado' || quote.status === 'Aceptado' || quote.status === 'Rechazado') {
         statusActions.push({
             label: 'Marcar como Aceptado',
             icon: 'pi pi-check',
