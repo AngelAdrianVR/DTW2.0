@@ -48,7 +48,7 @@ const printQuote = () => {
 </script>
 
 <template>
-    <Head :title="`Cotización ${quote.quote_code}`" />
+    <Head :title="`COT-0${quote.id}`" />
     <div class="py-6 print:bg-white font-sans">
         <!-- Botones de Acción (se ocultan al imprimir) -->
         <div class="max-w-4xl mx-auto mb-4 px-4 sm:px-6 lg:px-8 print:hidden">
@@ -80,14 +80,14 @@ const printQuote = () => {
                         </div>
                         <div class="text-right">
                             <h2 class="text-3xl font-bold uppercase text-gray-800 tracking-wider">Cotización</h2>
-                            <p class="font-mono mt-1 text-gray-500">{{ quote.quote_code }}</p>
+                            <p class="font-mono mt-1 text-gray-500">COT-0{{ quote.id }}</p>
                             <p class="mt-3 text-sm">Fecha de Emisión: <span class="font-semibold text-gray-700">{{ formatDate(quote.created_at) }}</span></p>
                             <p class="text-sm">Válido hasta: <span class="font-semibold text-gray-700">{{ formatDate(quote.valid_until) }}</span></p>
                         </div>
                     </div>
                 </header>
                 
-                <main class="p-4 md:p-6">
+                <main class="p-4 md:p-5">
                     <!-- Información del Cliente -->
                     <section class="pb-4 border-b-2 border-dashed">
                         <h3 class="text-sm uppercase font-semibold text-gray-500">Cotización para:</h3>
@@ -100,7 +100,7 @@ const printQuote = () => {
                     </section>
                     
                     <!-- Descripción del Servicio -->
-                    <section class="mt-6">
+                    <section class="mt-5">
                         <div class="border-2 border-gray-100 rounded-lg">
                             <h3 class="text-base font-bold text-gray-800 bg-gray-50 p-3 rounded-t-md">{{ quote.title }}</h3>
                             <div class="prose max-w-none p-3 text-gray-700" v-html="quote.description"></div>
