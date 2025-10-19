@@ -31,6 +31,7 @@ const page = usePage();
 const confirm = useConfirm();
 const toast = useToast();
 const fileUploadRef = ref(null);
+const editFileUploadRef = ref(null); // <-- Referencia para el FileUpload de edición
 const isEditModalVisible = ref(false);
 
 // Watcher para notificaciones de éxito y error
@@ -77,6 +78,9 @@ const editForm = useForm({
     link_url: '',
     is_published: true,
     end_date: null,
+    media: [], // <-- Para almacenar las imágenes existentes
+    new_images: [], // <-- Para las nuevas imágenes a subir
+    _method: 'put', // <-- Para "engañar" al método POST
 });
 
 
@@ -106,16 +110,26 @@ const editContent = (content) => {
     editForm.link_url = content.link_url;
     editForm.is_published = content.is_published;
     editForm.end_date = content.end_date ? new Date(content.end_date) : null;
+    editForm.media = content.media; // <-- Cargar las imágenes existentes
     isEditModalVisible.value = true;
 };
 
 // Función para enviar el formulario de edición
 const updateContent = () => {
-    editForm.put(route('admin.webcontents.update', editForm.id), {
+    // Asignar los nuevos archivos antes de enviar
+    if (editFileUploadRef.value) {
+        editForm.new_images = editFileUploadRef.value.files;
+    }
+
+    // Usamos POST porque PUT no soporta multipart/form-data de forma nativa
+    editForm.post(route('admin.webcontents.update', editForm.id), {
         preserveScroll: true,
         onSuccess: () => {
             isEditModalVisible.value = false;
             editForm.reset();
+             if (editFileUploadRef.value) {
+                editFileUploadRef.value.clear();
+            }
         },
     });
 };
@@ -135,6 +149,27 @@ const deleteContent = (id) => {
         },
     });
 };
+
+// --- INICIO: Nueva función para confirmar y eliminar una imagen ---
+const confirmDeleteImage = (mediaId) => {
+     confirm.require({
+        message: '¿Estás seguro de que quieres eliminar esta imagen?',
+        header: 'Confirmación de eliminación',
+        icon: 'pi pi-info-circle',
+        rejectClass: 'p-button-text p-button-text',
+        acceptClass: 'p-button-danger p-button-text',
+        accept: () => {
+             useForm({}).delete(route('admin.media.destroy', mediaId), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Remover la imagen de la lista en el frontend
+                    editForm.media = editForm.media.filter(img => img.id !== mediaId);
+                }
+            });
+        },
+    });
+};
+// --- FIN: Nueva función para confirmar y eliminar una imagen ---
 
 // Devuelve el nombre legible de la seccion
 const getSectionName = (key) => {
@@ -162,42 +197,78 @@ const formatDate = (value) => {
     <ConfirmDialog></ConfirmDialog>
 
     <!-- Modal de Edición -->
-    <Dialog header="Editar Contenido" v-model:visible="isEditModalVisible" :modal="true" :style="{ width: '50vw' }">
-        <form @submit.prevent="updateContent" class="p-fluid">
+    <Dialog header="Editar Contenido" v-model:visible="isEditModalVisible" :modal="true" :style="{ width: '70vw' }" :breakpoints="{'960px': '80vw', '641px': '95vw'}">
+        <form @submit.prevent="updateContent" class="p-fluid w-full">
              <div class="field">
                 <label for="edit_spanish_title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título en Español (Opcional)</label>
-                <InputText id="edit_spanish_title" type="text" v-model="editForm.spanish_title" />
+                <InputText id="edit_spanish_title" type="text" v-model="editForm.spanish_title" class="w-full" />
                 <small v-if="editForm.errors.spanish_title" class="p-error">{{ editForm.errors.spanish_title }}</small>
             </div>
              <div class="field mt-4">
                 <label for="edit_english_title" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Título en Inglés (Opcional)</label>
-                <InputText id="edit_english_title" type="text" v-model="editForm.english_title" />
+                <InputText id="edit_english_title" type="text" v-model="editForm.english_title" class="w-full" />
                 <small v-if="editForm.errors.english_title" class="p-error">{{ editForm.errors.english_title }}</small>
             </div>
              <div class="field mt-4">
                 <label for="edit_link_url" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">URL (Opcional)</label>
-                <InputText id="edit_link_url" type="url" v-model="editForm.link_url" />
+                <InputText id="edit_link_url" type="url" v-model="editForm.link_url" class="w-full" />
                 <small v-if="editForm.errors.link_url" class="p-error">{{ editForm.errors.link_url }}</small>
             </div>
             <div class="field mt-4">
                 <label for="edit_spanish_content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción en Español (Opcional)</label>
-                <Textarea id="edit_spanish_content" v-model="editForm.spanish_content" rows="4" />
+                <Textarea id="edit_spanish_content" v-model="editForm.spanish_content" class="w-full" rows="4" />
                 <small v-if="editForm.errors.spanish_content" class="p-error">{{ editForm.errors.spanish_content }}</small>
             </div>
              <div class="field mt-4">
                 <label for="edit_english_content" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Descripción en Inglés (Opcional)</label>
-                <Textarea id="edit_english_content" v-model="editForm.english_content" rows="4" />
+                <Textarea id="edit_english_content" v-model="editForm.english_content" rows="4" class="w-full" />
                 <small v-if="editForm.errors.english_content" class="p-error">{{ editForm.errors.english_content }}</small>
             </div>
             <div class="field mt-4">
                 <label for="edit_end_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">Fecha de Finalización (Opcional)</label>
-                <Calendar id="edit_end_date" v-model="editForm.end_date" dateFormat="yy-mm-dd" />
+                <Calendar id="edit_end_date" v-model="editForm.end_date" dateFormat="yy-mm-dd" /><br>
                 <small class="text-gray-500 dark:text-gray-400">El contenido se ocultará automáticamente después de esta fecha.</small>
             </div>
             <div class="field-checkbox mt-4">
                 <Checkbox id="edit_is_published" v-model="editForm.is_published" :binary="true" />
                 <label for="edit_is_published" class="ml-2">Publicado</label>
             </div>
+
+            <!-- INICIO: Sección para gestionar imágenes -->
+            <div class="field mt-6 border-t pt-4 dark:border-gray-600">
+                <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Imágenes Actuales</h4>
+                <div v-if="editForm.media.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div v-for="image in editForm.media" :key="image.id" class="relative group">
+                        <img :src="image.original_url" :alt="image.name" class="w-full h-24 object-cover rounded-lg shadow-md">
+                        <Button
+                            icon="pi pi-times"
+                            class="p-button-danger p-button-rounded absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            @click="confirmDeleteImage(image.id)"
+                        />
+                    </div>
+                </div>
+                 <div v-else class="text-sm text-gray-500 dark:text-gray-400">No hay imágenes para este contenido.</div>
+            </div>
+
+            <div class="field mt-4">
+                <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Agregar Nuevas Imágenes</h4>
+                <FileUpload
+                    ref="editFileUploadRef"
+                    name="new_images[]"
+                    :multiple="true"
+                    :showUploadButton="false"
+                    :showCancelButton="false"
+                    accept="image/*"
+                    chooseLabel="Seleccionar Imágenes"
+                >
+                    <template #empty>
+                        <p>Arrastra y suelta las imágenes aquí.</p>
+                    </template>
+                </FileUpload>
+                <small v-if="editForm.errors.new_images" class="p-error">{{ editForm.errors.new_images }}</small>
+            </div>
+            <!-- FIN: Sección para gestionar imágenes -->
+
         </form>
          <template #footer>
             <Button label="Cancelar" icon="pi pi-times" @click="isEditModalVisible = false" class="p-button-text"/>

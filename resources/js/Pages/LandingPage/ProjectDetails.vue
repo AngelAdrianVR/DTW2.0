@@ -82,7 +82,7 @@ onMounted(() => {
                 <img
                   :src="media.original_url"
                   :alt="`Imagen ${index + 1} de ${title}`"
-                  class="gallery-image"
+                  class="object-contain"
                   onerror="this.onerror=null;this.src='https://placehold.co/1200x800/111827/7B8A9E?text=Image+Not+Found';"
                 />
               </div>

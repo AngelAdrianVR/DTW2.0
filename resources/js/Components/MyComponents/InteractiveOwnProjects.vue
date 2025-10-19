@@ -17,7 +17,7 @@
                 <img :key="currentImageKey(project)"
                      :src="currentImageUrl(project)"
                      :alt="currentImageAlt(project)"
-                     class="main-image object-cover w-full h-full">
+                     class="main-image object-contain w-full h-full">
               </transition>
             </template>
             <!-- Placeholder si no hay imágenes -->

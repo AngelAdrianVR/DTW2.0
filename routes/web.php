@@ -109,6 +109,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::put('/web-contents/{webContent}', [WebContentController::class, 'update'])->name('webcontents.update');
     Route::post('/web-contents/{webContent}/update-image', [WebContentController::class, 'updateImage'])->name('webcontents.updateImage');
     Route::delete('/web-contents/{webContent}', [WebContentController::class, 'destroy'])->name('webcontents.destroy');
+    Route::delete('/media/{media}', [WebContentController::class, 'destroyMedia'])->name('media.destroy');
 });
 
 

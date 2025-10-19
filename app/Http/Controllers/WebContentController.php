@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\WebContent;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class WebContentController extends Controller
 {
@@ -65,5 +66,12 @@ class WebContentController extends Controller
     {
         $webContent->delete();
         return redirect()->back()->with('success', 'Contenido eliminado.');
+    }
+
+    // --- INICIO: Nuevo método para eliminar una imagen específica ---
+    public function destroyMedia(Media $media)
+    {
+        $media->delete();
+        return redirect()->back()->with('success', 'Imagen eliminada correctamente.');
     }
 }

@@ -271,7 +271,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                 </template>
             </div>
 
-            <div v-if="!isNotchExpanded" class="absolute h-2 w-10 bg-indigo-500/50 rounded-full animate-pulse-slow"></div>
+            <div v-if="!isNotchExpanded" class="absolute h-2 w-12 bg-indigo-200/100 rounded-full animate-pulse-slow"></div>
         </header>
 
         <main class="pt-20">
