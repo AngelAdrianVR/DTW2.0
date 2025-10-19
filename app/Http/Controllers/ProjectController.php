@@ -68,7 +68,7 @@ class ProjectController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'quote_id' => 'nullable|exists:quotes,id|unique:projects,quote_id',
-            'client_id' => 'required_without:quote_id|nullable|exists:clients,id',
+            'client_id' => 'nullable|exists:clients,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -160,7 +160,7 @@ class ProjectController extends Controller
             //     'exists:quotes,id',
             //     Rule::unique('projects')->ignore($project->id),
             // ],
-            'client_id' => 'required_without:quote_id|nullable|exists:clients,id',
+            'client_id' => 'nullable|exists:clients,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',

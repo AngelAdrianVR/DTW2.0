@@ -121,7 +121,8 @@ const submitUpdateTask = () => {
     editTaskForm.put(route('tasks.update', { task: selectedTask.value.id }), {
         preserveScroll: true,
         onSuccess: () => {
-            isEditTaskModalVisible.value = false;
+            window.location.reload();
+            // isEditTaskModalVisible.value = false;
         },
     });
 };
@@ -248,7 +249,10 @@ const formatDate = (dateString) => {
                                 </div>
                             </div>
                         </div>
-                        <Button label="Crear Tarea" icon="pi pi-plus" class="p-button-raised p-button-cyan mt-4 md:mt-0" @click="openCreateTaskModal" />
+                        <div class="flex items-center space-x-2">
+                            <Button label="Editar proyecto" icon="pi pi-pencil" class="p-button-raised p-button-cyan mt-4 md:mt-0" @click="$inertia.visit(route('projects.edit', project.id))" />
+                            <Button label="Crear Tarea" icon="pi pi-plus" class="p-button-raised p-button-cyan mt-4 md:mt-0" @click="openCreateTaskModal" />
+                        </div>
                     </div>
 
                     <!-- Tabs -->
@@ -375,7 +379,7 @@ const formatDate = (dateString) => {
                      <div class="field ">
                         <span class="p-float-label flex flex-col">
                             <label for="description">Descripción</label>
-                            <Textarea id="description" v-model="createTaskForm.description" rows="3" />
+                            <Textarea id="description" v-model="createTaskForm.description" rows="5" />
                         </span>
                     </div>
                     <div class="field">
@@ -412,7 +416,7 @@ const formatDate = (dateString) => {
                      <div class="field">
                         <span class="p-float-label flex flex-col">
                             <label for="edit-description">Descripción</label>
-                            <Textarea id="edit-description" v-model="editTaskForm.description" rows="3" />
+                            <Textarea id="edit-description" v-model="editTaskForm.description" rows="5" />
                         </span>
                     </div>
                     <div class="field">
