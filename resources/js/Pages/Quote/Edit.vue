@@ -329,6 +329,10 @@ const formatCurrency = (value) => {
 .prose {
     font-size: 1rem;
     line-height: 1.75;
+    /* Propiedades para manejar el desbordamiento de texto */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
 }
 .prose ul {
     list-style-type: disc;

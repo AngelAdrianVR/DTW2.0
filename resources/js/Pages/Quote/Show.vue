@@ -206,6 +206,10 @@ const deleteFile = (fileId) => {
 .prose {
     font-size: 1rem;
     line-height: 1.75;
+    /* Propiedades para manejar el desbordamiento de texto */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
 }
 .prose :first-child {
     margin-top: 0;
@@ -214,4 +218,3 @@ const deleteFile = (fileId) => {
     margin-bottom: 0;
 }
 </style>
-

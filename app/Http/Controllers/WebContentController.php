@@ -50,14 +50,28 @@ class WebContentController extends Controller
     public function update(Request $request, WebContent $webContent)
     {
         $request->validate([
-            'title' => 'nullable|string|max:255',
-            'content' => 'nullable|string',
+            'spanish_title' => 'nullable|string|max:255',
+            'english_title' => 'nullable|string|max:255',
+            'spanish_content' => 'nullable|string',
+            'english_content' => 'nullable|string',
             'link_url' => 'nullable|url',
             'is_published' => 'boolean',
             'end_date' => 'nullable|date',
+            // --- INICIO: Validación para nuevas imágenes ---
+            'new_images' => 'nullable|array',
+            'new_images.*' => 'image|max:2048',
+            // --- FIN: Validación para nuevas imágenes ---
         ]);
 
-        $webContent->update($request->all());
+        $webContent->update($request->except('new_images'));
+
+        // --- INICIO: Lógica para agregar nuevas imágenes ---
+        if ($request->hasFile('new_images')) {
+            foreach ($request->file('new_images') as $file) {
+                $webContent->addMedia($file)->toMediaCollection($webContent->type);
+            }
+        }
+        // --- FIN: Lógica para agregar nuevas imágenes ---
 
         return redirect()->back()->with('success', 'Contenido actualizado.');
     }
