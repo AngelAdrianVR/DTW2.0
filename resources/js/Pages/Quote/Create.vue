@@ -227,18 +227,18 @@ const formatCurrency = (value) => {
                            </section>
                            
                            <section class="mt-6">
-                               <h3 class="text-base font-bold text-gray-800 bg-gray-100 p-2 rounded-t-md">{{ form.title }}</h3>
+                               <h3 class="text-base font-bold text-gray-800 bg-gray-100 p-2 rounded-t-md">{{ form.title || 'Título de la cotización' }}</h3>
                                <div class="prose max-w-none p-4 border rounded-b-md" v-html="form.description"></div>
                            </section>
 
                             <section class="mt-6 space-y-4 text-xs">
                                 <div>
                                     <h4 class="font-bold text-gray-800">Duración</h4>
-                                    <p>La entrega estimada para la implementación final del proyecto es {{ form.work_days }} días hábiles, iniciando a partir del primer pago al inicio del proyecto.</p>
+                                    <p>La entrega estimada para la implementación final del proyecto es {{ form.work_days || '...' }} días hábiles, iniciando a partir del primer pago al inicio del proyecto.</p>
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-gray-800">Condiciones de pago</h4>
-                                    <p>{{ form.payment_type }}</p>
+                                    <p>{{ form.payment_type || '...' }}</p>
                                     <p>Esta cotización no incluye costos adicionales que puedan surgir debido a cambios significativos en el alcance del proyecto.</p>
                                 </div>
                             </section>
@@ -321,6 +321,10 @@ const formatCurrency = (value) => {
 .prose {
     font-size: 1rem;
     line-height: 1.75;
+    /* Propiedades para manejar el desbordamiento de texto */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
 }
 .prose ul {
     list-style-type: disc;
@@ -330,4 +334,3 @@ const formatCurrency = (value) => {
     margin: 0;
 }
 </style>
-

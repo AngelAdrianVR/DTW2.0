@@ -61,7 +61,7 @@ const printQuote = () => {
         </div>
 
         <!-- Hoja de Cotización -->
-        <div id="quote-sheet" class="max-w-4xl mx-auto bg-white shadow-2xl rounded-lg relative">
+        <div id="quote-sheet" class="max-w-4xl mx-auto bg-white shadow-2xl rounded-lg relative overflow-hidden">
             <!-- Marca de agua de fondo -->
             <div class="absolute inset-0 flex items-center justify-center z-0 opacity-5 pointer-events-none print:hidden">
                  <img src="/images/black_logo.png" alt="Logo Watermark" class="h-64 transform -rotate-12">
@@ -103,7 +103,8 @@ const printQuote = () => {
                     <section class="mt-5">
                         <div class="border-2 border-gray-100 rounded-lg">
                             <h3 class="text-base font-bold text-gray-800 bg-gray-50 p-3 rounded-t-md">{{ quote.title }}</h3>
-                            <div class="prose max-w-none p-3 text-gray-700" v-html="quote.description"></div>
+                            <!-- Contenedor con overflow-x-auto para el contenido que pueda desbordarse -->
+                            <div class="prose max-w-none p-3 text-gray-700 overflow-x-auto" v-html="quote.description"></div>
                         </div>
                     </section>
 
@@ -188,6 +189,10 @@ const printQuote = () => {
 .prose {
     font-size: 0.875rem; /* Reducido de 1rem */
     line-height: 1.6;    /* Reducido de 1.75 */
+    /* Estas propiedades ayudan a manejar el desbordamiento de texto */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
 }
 .prose p, .prose ul {
     margin-top: 0.5em;
@@ -200,6 +205,12 @@ const printQuote = () => {
 .prose li p {
     margin: 0;
 }
+/* Agregamos una clase para tablas si las hubiera en la descripción */
+.prose table {
+    width: 100%;
+    table-layout: fixed;
+}
+
 
 /* Estilos específicos para impresión */
 @media print {
