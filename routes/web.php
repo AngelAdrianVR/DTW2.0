@@ -12,6 +12,10 @@ use App\Http\Controllers\LegalController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TpspInventoryMovementController;
+use App\Http\Controllers\TpspKitComponentController;
+use App\Http\Controllers\TpspProductController;
+use App\Http\Controllers\TpspProductionOrderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebContentController;
 use Illuminate\Foundation\Application;
@@ -111,5 +115,43 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::delete('/web-contents/{webContent}', [WebContentController::class, 'destroy'])->name('webcontents.destroy');
     Route::delete('/media/{media}', [WebContentController::class, 'destroyMedia'])->name('media.destroy');
 });
+
+
+// --- INICIO: Rutas del Módulo de Producción (TPSP) ---
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->prefix('tpsp')->name('tpsp.')->group(function () {
+
+    // CRUD de Productos (Materiales y Kits)
+    // /produccion/products
+    Route::resource('products', TpspProductController::class);
+
+    // Rutas para administrar los componentes de un Kit (Producto anidado)
+    // /produccion/products/{product}/components/...
+    Route::resource('products.components', TpspKitComponentController::class)
+        ->shallow() // Optimiza rutas, ej: /produccion/components/{component}/edit
+        ->except(['show']); // Rara vez se necesita una vista "show" para un componente
+
+    // CRUD de Órdenes de Producción (Tarjetas)
+    // /produccion/production-orders
+    Route::resource('production-orders', TpspProductionOrderController::class);
+    
+    // Ruta para actualizar el estado de una orden
+    Route::patch('production-orders/{order}/status', [TpspProductionOrderController::class, 'updateStatus'])
+         ->name('production-orders.updateStatus');
+
+    // Log de Movimientos de Inventario (Solo ver y crear ajustes)
+    // /produccion/inventory-movements
+    Route::resource('inventory-movements', TpspInventoryMovementController::class)
+         ->only(['index', 'create', 'store', 'show']);
+
+});
+
+// Historial público de órdenes de producción terminadas
+Route::get('/produccion/historial', [TpspProductionOrderController::class, 'publicHistory'])
+     ->name('produccion.public-history');
+// --- FIN: Rutas del Módulo de Producción (TPSP) ---
 
 

@@ -83,6 +83,13 @@ const navigationMenu = computed(() => [
         active: route().current('admin.webcontents.*'),
         show: true,
     },
+    {
+        name: 'TPSP',
+        route: 'tpsp.production-orders.index',
+        icon: `<i class="fa-solid fa-shoe-prints text-xl"></i>`,
+        active: route().current('tpsp.*'),
+        show: true,
+    },
 ]);
 
 // --- Lógica para el Modo Oscuro ---
