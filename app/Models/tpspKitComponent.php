@@ -39,7 +39,7 @@ class tpspKitComponent extends Model
     /**
      * Obtiene el producto componente (hijo).
      */
-    public function component()
+    public function componentProduct()
     {
         return $this->belongsTo(tpspProduct::class, 'component_product_id');
     }

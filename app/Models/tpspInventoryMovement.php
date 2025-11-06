@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Tpsp\tpspProduct;
+use App\Models\tpspProduct;
 use Illuminate\Database\Eloquent\Model;
 
 class tpspInventoryMovement extends Model

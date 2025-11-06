@@ -28,6 +28,13 @@ return new class extends Migration
                 'Ajuste'
             ])->comment('Tipo de movimiento de inventario');
 
+            // --- CAMPOS NUEVOS ---
+            // Guardar el precio unitario al momento de la venta
+            $table->decimal('unit_price', 10, 2)->nullable()->comment('Precio unitario al momento de la venta');
+            // Guardar el precio total (cantidad * unit_price) para reportes
+            $table->decimal('total_price', 10, 2)->nullable()->comment('Monto total de la venta');
+            // --- FIN DE CAMPOS NUEVOS ---
+
             $table->morphs('reference'); // Ej: ProductionOrder, PurchaseOrder
             $table->text('notes')->nullable();
             $table->timestamps();

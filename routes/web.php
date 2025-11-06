@@ -12,6 +12,7 @@ use App\Http\Controllers\LegalController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TpspDashboardController;
 use App\Http\Controllers\TpspInventoryMovementController;
 use App\Http\Controllers\TpspKitComponentController;
 use App\Http\Controllers\TpspProductController;
@@ -124,6 +125,10 @@ Route::middleware([
     'verified',
 ])->prefix('tpsp')->name('tpsp.')->group(function () {
 
+    // --- RUTA NUEVA PARA MOSTRAR LA VISTA INDEX ---
+    // Esta es la ruta que carga tu TpspIndex.vue
+    Route::get('/', [TpspDashboardController::class, 'index'])->name('index');
+    
     // CRUD de Productos (Materiales y Kits)
     // /produccion/products
     Route::resource('products', TpspProductController::class);
@@ -141,6 +146,14 @@ Route::middleware([
     // Ruta para actualizar el estado de una orden
     Route::patch('production-orders/{order}/status', [TpspProductionOrderController::class, 'updateStatus'])
          ->name('production-orders.updateStatus');
+        
+    // Ruta para agregar progreso (Entrada_Produccion)
+    Route::post('production-orders/{order}/add-progress', [TpspProductionOrderController::class, 'addProgress'])
+        ->name('production-orders.addProgress');
+
+    // Ruta para entregar (Venta y Completar)
+    Route::post('production-orders/{order}/deliver', [TpspProductionOrderController::class, 'deliverOrder'])
+        ->name('production-orders.deliver');
 
     // Log de Movimientos de Inventario (Solo ver y crear ajustes)
     // /produccion/inventory-movements
@@ -149,9 +162,19 @@ Route::middleware([
 
 });
 
-// Historial público de órdenes de producción terminadas
-Route::get('/produccion/historial', [TpspProductionOrderController::class, 'publicHistory'])
-     ->name('produccion.public-history');
-// --- FIN: Rutas del Módulo de Producción (TPSP) ---
+// --- AÑADIDO: Nuevas rutas públicas ---
+// Ruta para la página pública principal de inventario
+Route::get('/public/inventario', [TpspDashboardController::class, 'publicInventory'])
+     ->name('tpsp.public.inventory');
+
+// Ruta para que el componente Vue filtre y cargue los movimientos de venta
+Route::get('/public-sales-movements', [TpspInventoryMovementController::class, 'publicSalesHistory'])
+     ->name('tpsp.public.sales-history');
+// --- FIN: Nuevas rutas públicas ---
+
+// // Historial público de órdenes de producción terminadas
+// Route::get('/produccion/historial', [TpspProductionOrderController::class, 'publicHistory'])
+//      ->name('produccion.public-history');
+// // --- FIN: Rutas del Módulo de Producción (TPSP) ---
 
 
