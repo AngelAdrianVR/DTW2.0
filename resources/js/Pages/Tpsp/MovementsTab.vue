@@ -63,12 +63,7 @@ const newMovement = ref({
     unit_price: 0
 });
 
-// --- ELIMINADO: Filtros locales de PrimeVue ---
-// const filters = ref({
-//     'type': { value: null, matchMode: 'equals' } 
-// });
-
-// --- AÑADIDO: Refs para los nuevos filtros de backend ---
+// --- Refs para los nuevos filtros de backend ---
 const filterType = ref(null);
 const filterStartDate = ref(null);
 const filterEndDate = ref(null);
@@ -100,12 +95,8 @@ const fetchMovements = async () => {
     }
 
     try {
-        // Tu ruta: Route::resource('inventory-movements', ...)
-        // Añadir los parámetros a la URL
         const response = await axios.get(`/tpsp/inventory-movements?${params.toString()}`);
-        
         movements.value = response.data.data; 
-        
     } catch (error) {
         console.error("Error fetching movements:", error);
     } finally {
@@ -132,7 +123,6 @@ const fetchAllProducts = async () => {
 };
 
 const addMovement = async () => {
-    // ... (Tu función addMovement no necesita cambios) ...
     const movementData = { ...newMovement.value };
     if ((movementData.type === 'Venta' || movementData.type === 'Consumo_Produccion') && movementData.quantity > 0) {
         movementData.quantity = -movementData.quantity;
@@ -173,7 +163,6 @@ onMounted(() => {
     <div class="grid">
         <div class="col-12 md:col-4">
             <Card>
-                <!-- ... (Tu formulario de "Registrar Movimiento" no cambia) ... -->
                 <template #title>Registrar Movimiento</template>
                 <template #content>
                     <div class="p-fluid flex flex-column gap-3">
@@ -206,13 +195,13 @@ onMounted(() => {
         </div>
         <div class="col-12 md:col-8">
             
-            <div class="flex justify-content-end align-items-center mb-3 p-3 bg-gray-100 dark:bg-gray-500  border-round">
+            <div class="flex justify-content-end align-items-center mb-3 p-3 bg-gray-100 dark:bg-gray-800 border-round">
                 <span class="text-xl font-bold dark:text-gray-100 text-gray-700">Venta Histórica Total: </span>
                 <span class="text-xl font-bold text-green-600 dark:text-green-300 ml-2">{{ formatCurrency(historicTotalSales) }}</span>
             </div>
 
             <!-- --- AÑADIDO: Barra de Filtros --- -->
-            <div class="flex flex-wrap gap-3 mb-3 p-3 border-round bg-gray-50 dark:bg-gray-800 border-1 border-gray-300 dark:border-gray-700">
+            <div class="flex flex-wrap gap-3 mb-3 p-3 border-round bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
                 <div class="flex flex-column gap-2">
                     <label for="filterType" class="font-bold">Tipo Movimiento</label>
                     <Dropdown id="filterType" v-model="filterType" :options="movementTypes" placeholder="Todos los tipos" :showClear="true" style="width: 200px;" />
@@ -231,39 +220,93 @@ onMounted(() => {
                 </div>
             </div>
 
-            <DataTable :value="movements" :loading="loading" 
-                responsiveLayout="scroll" :rows="20" :paginator="true"
-                dataKey="id"> <!-- --- ELIMINADO: :filters="filters" --- -->
-                
-                <Column field="created_at" header="Fecha" :sortable="true">
-                    <template #body="slotProps">
-                        {{ formatDisplayDate(slotProps.data.created_at) }}
-                    </template>
-                </Column>
-                <Column field="product.name" header="Producto"></Column>
-                
-                <!-- --- SIMPLIFICADO: Columna de Tipo sin filtro local --- -->
-                <Column field="type" header="Tipo" :sortable="true"></Column>
+            <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
+            <div class="hidden md:block">
+                <DataTable :value="movements" :loading="loading" 
+                    responsiveLayout="scroll" :rows="20" :paginator="true"
+                    dataKey="id">
+                    
+                    <Column field="created_at" header="Fecha" :sortable="true">
+                        <template #body="slotProps">
+                            {{ formatDisplayDate(slotProps.data.created_at) }}
+                        </template>
+                    </Column>
+                    <Column field="product.name" header="Producto"></Column>
+                    <Column field="type" header="Tipo" :sortable="true"></Column>
 
-                <Column field="quantity" header="Cantidad">
-                    <template #body="slotProps">
-                        <span :class="slotProps.data.quantity > 0 ? 'text-green-500' : 'text-red-500'">
-                            {{ slotProps.data.quantity }}
-                        </span>
-                    </template>
-                </Column>
-                
-                <Column field="unit_price" header="Precio Unit.">
-                    <template #body="slotProps">
-                        {{ formatCurrency(slotProps.data.unit_price) }}
-                    </template>
-                </Column>
-                <Column field="total_price" header="Monto Total">
-                     <template #body="slotProps">
-                        {{ formatCurrency(slotProps.data.total_price) }}
-                    </template>
-                </Column>
-            </DataTable>
+                    <Column field="quantity" header="Cantidad">
+                        <template #body="slotProps">
+                            <span :class="slotProps.data.quantity > 0 ? 'text-green-500' : 'text-red-500'">
+                                {{ slotProps.data.quantity }}
+                            </span>
+                        </template>
+                    </Column>
+                    
+                    <Column field="unit_price" header="Precio Unit.">
+                        <template #body="slotProps">
+                            {{ formatCurrency(slotProps.data.unit_price) }}
+                        </template>
+                    </Column>
+                    <Column field="total_price" header="Monto Total">
+                        <template #body="slotProps">
+                            {{ formatCurrency(slotProps.data.total_price) }}
+                        </template>
+                    </Column>
+                </DataTable>
+            </div>
+
+            <!-- Vista de Tarjetas (Móvil) - Oculta en pantallas medianas y grandes -->
+            <div class="md:hidden">
+                <!-- Estado de carga -->
+                <div v-if="loading" class="text-center p-4">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+                    <p>Cargando movimientos...</p>
+                </div>
+                <!-- Estado vacío -->
+                <div v-else-if="movements.length === 0" class="text-center p-4 text-gray-600 dark:text-gray-400">
+                    <p>No se encontraron movimientos (revise los filtros).</p>
+                </div>
+                <!-- Lista de tarjetas -->
+                <div v-else class="px-1 pt-2">
+                    <div v-for="move in movements" :key="move.id" 
+                        class="movement-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                        
+                        <!-- Indicador de color -->
+                        <div class="quantity-indicator" :class="move.quantity > 0 ? 'bg-green-500' : 'bg-red-500'"></div>
+                        
+                        <!-- Detalles del Movimiento -->
+                        <div class="movement-details">
+                            <!-- Header: Producto y Tipo -->
+                            <div class="card-header">
+                                <span class="product-name text-slate-800 dark:text-slate-100">{{ move.product.name }}</span>
+                                <span class="movement-type text-slate-500 dark:text-slate-400">{{ move.type }}</span>
+                            </div>
+
+                            <!-- Body: Cantidad y Precios -->
+                            <div class="card-body">
+                                <span class="quantity" :class="move.quantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+                                    {{ move.quantity > 0 ? '+' : '' }}{{ move.quantity }}
+                                </span>
+                                
+                                <div class="price-info text-slate-700 dark:text-slate-300">
+                                    <span v-if="move.total_price && move.total_price > 0" class="total-price">
+                                        Total: {{ formatCurrency(move.total_price) }}
+                                    </span>
+                                    <span v-if="move.unit_price && move.unit_price > 0" class="unit-price dark:text-slate-400">
+                                        ({{ formatCurrency(move.unit_price) }} c/u)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Footer: Fecha y Notas -->
+                            <div class="card-footer border-t border-slate-100 dark:border-slate-700">
+                                <span class="date text-slate-500 dark:text-slate-400">{{ formatDisplayDate(move.created_at) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </template>
@@ -276,5 +319,89 @@ onMounted(() => {
     font-weight: bold;
     font-size: 1.1rem;
     margin-top: 10px;
+}
+
+/* --- ESTILOS PARA TARJETAS DE MOVIMIENTO (MÓVIL) --- */
+.movement-card {
+    display: flex;
+    position: relative;
+    padding: 0.75rem 1rem 0.75rem 1.25rem; /* Espacio para el indicador */
+    margin-bottom: 0.75rem;
+    border-radius: 8px;
+    overflow: hidden; /* Para que el indicador se alinee bien */
+}
+
+.quantity-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+}
+
+.movement-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.product-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.movement-type {
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+.card-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.quantity {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.price-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.9rem;
+}
+
+.total-price {
+    font-weight: 600;
+}
+
+.unit-price {
+    font-size: 0.8rem;
+    color: #64748b; /* slate-500 */
+}
+/* La clase 'dark:text-slate-400' se aplica directamente en el template */
+
+.card-footer {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    /* El borde se aplica con Tailwind en el template */
+}
+
+.date {
+    font-size: 0.8rem;
 }
 </style>

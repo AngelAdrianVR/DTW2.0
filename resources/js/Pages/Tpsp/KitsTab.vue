@@ -63,7 +63,7 @@ const fetchKitComponentsForm = async (kitId) => {
         // Cargar los datos del producto asociado para el nombre
         currentComponents.value = response.data.map(comp => ({
             ...comp,
-            // Asegurarse de que component_product esté cargado (parece que ya lo está por tu captura)
+            // Asegurarse de que component_product esté cargado
             component_product: comp.component_product || { name: 'Componente no encontrado' } 
         }));
     } catch (error) {
@@ -165,29 +165,24 @@ const addKitComponent = async () => {
 
 /**
  * Actualiza la cantidad de un componente de kit.
- * Se llama desde la tabla de "Componentes Actuales".
  */
 const updateKitComponent = (component) => {
-    // La cantidad se actualiza mediante v-model en el InputNumber
     axios.put(`/tpsp/components/${component.id}`, {
         quantity_required: component.quantity_required
     })
     .then(() => {
         toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Cantidad de componente actualizada', life: 3000 });
-        // Recalcular el stock fabricable de la tabla principal
         fetchAllKitComponents();
     })
     .catch(error => {
         console.error("Error updating kit component:", error);
         toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la cantidad', life: 3000 });
-        // Recargar los datos del formulario para revertir el cambio visual
         fetchKitComponentsForm(selectedKitId.value);
     });
 };
 
 /**
  * Elimina un componente de un kit.
- * Se llama desde la tabla de "Componentes Actuales".
  */
 const deleteKitComponent = (component) => {
     confirm.require({
@@ -201,9 +196,7 @@ const deleteKitComponent = (component) => {
             axios.delete(`/tpsp/components/${component.id}`)
             .then(() => {
                 toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Componente eliminado del kit', life: 3000 });
-                // Recargar datos del formulario
                 fetchKitComponentsForm(selectedKitId.value);
-                // Recalcular el stock fabricable
                 fetchAllKitComponents();
             })
             .catch(error => {
@@ -216,7 +209,6 @@ const deleteKitComponent = (component) => {
 
 /**
  * Elimina un kit completo (producto).
- * Se llama desde la tabla de "Resumen de Kits".
  */
 const deleteKit = (kit) => {
     confirm.require({
@@ -227,17 +219,14 @@ const deleteKit = (kit) => {
         acceptLabel: 'Eliminar Kit',
         rejectLabel: 'Cancelar',
         accept: () => {
-            // Usa la ruta del TpspProductController para eliminar el producto
             axios.delete(`/tpsp/products/${kit.id}`)
             .then(() => {
                 toast.add({ severity: 'success', summary: 'Kit Eliminado', detail: `El kit "${kit.name}" ha sido eliminado.`, life: 3000 });
                 
-                // Si el kit eliminado era el seleccionado, limpiarlo
                 if (selectedKitId.value === kit.id) {
                     selectedKitId.value = null;
                 }
                 
-                // Recargar toda la información
                 fetchProducts().then(() => {
                     fetchAllKitComponents();
                 });
@@ -368,58 +357,127 @@ onMounted(async () => {
     </Card>
 
     <!-- Nueva: Tabla de Resumen de Kits -->
-    <Card class="mt-4">
+    <!-- Se agregó la clase 'kit-summary-card' para poder apuntar a ella con CSS -->
+    <Card class="mt-4 kit-summary-card">
         <template #title>Resumen de Kits y Stock Fabricable</template>
         <template #content>
-            <DataTable 
-                :value="allKitsWithStock" 
-                :loading="loadingTable" 
-                responsiveLayout="scroll" 
-                :rows="10" 
-                :paginator="true"
-            >
-                <Column field="image_url" header="Imagen">
-                    <template #body="slotProps">
-                        <Image 
-                            :src="slotProps.data.image_url || 'https://placehold.co/60x60/EEE/31343C?text=Sin+Foto'" 
-                            alt="Imagen del kit" 
-                            width="60" 
-                            height="60" 
-                            preview 
-                            imageClass="border-round"
-                        />
-                    </template>
-                </Column>
-                <Column field="name" header="Nombre Kit" :sortable="true"></Column>
-                <Column field="calculable_stock" header="Stock Fabricable" :sortable="true">
-                    <template #body="slotProps">
-                        <Tag 
-                            :severity="slotProps.data.calculable_stock > 0 ? 'success' : 'danger'" 
-                            :value="slotProps.data.calculable_stock"
-                        ></Tag>
-                        <span class="ml-2">Kits</span>
-                    </template>
-                </Column>
-                
-                <!-- Columna de Acciones (MODIFICADA) -->
-                <Column header="Acciones" :exportable="false" style="min-width:10rem">
-                    <template #body="slotProps">
-                        <Button 
-                            icon="pi pi-eye" 
-                            class="p-button-rounded p-button-info mr-2" 
-                            v-tooltip.top="'Ver Detalles y Componentes'"
-                            @click="openKitDetails(slotProps.data)" 
-                            :disabled="!slotProps.data.components || slotProps.data.components.length === 0"
-                        />
-                        <Button 
-                            icon="pi pi-trash" 
-                            class="p-button-rounded p-button-danger" 
-                            v-tooltip.top="'Eliminar Kit Permanentemente'"
-                            @click="deleteKit(slotProps.data)" 
-                        />
-                    </template>
-                </Column>
-            </DataTable>
+
+            <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
+            <div class="hidden md:block">
+                <DataTable 
+                    :value="allKitsWithStock" 
+                    :loading="loadingTable" 
+                    responsiveLayout="scroll" 
+                    :rows="10" 
+                    :paginator="true"
+                >
+                    <Column field="image_url" header="Imagen">
+                        <template #body="slotProps">
+                            <Image 
+                                :src="slotProps.data.image_url || 'https://placehold.co/60x60/EEE/31343C?text=Sin+Foto'" 
+                                alt="Imagen del kit" 
+                                width="60" 
+                                height="60" 
+                                preview 
+                                imageClass="border-round"
+                            />
+                        </template>
+                    </Column>
+                    <Column field="name" header="Nombre Kit" :sortable="true"></Column>
+                    <Column field="calculable_stock" header="Stock Fabricable" :sortable="true">
+                        <template #body="slotProps">
+                            <Tag 
+                                :severity="slotProps.data.calculable_stock > 0 ? 'success' : 'danger'" 
+                                :value="slotProps.data.calculable_stock"
+                            ></Tag>
+                            <span class="ml-2">Kits</span>
+                        </template>
+                    </Column>
+                    
+                    <Column header="Acciones" :exportable="false" style="min-width:10rem">
+                        <template #body="slotProps">
+                            <Button 
+                                icon="pi pi-eye" 
+                                class="p-button-rounded p-button-info mr-2" 
+                                v-tooltip.top="'Ver Detalles y Componentes'"
+                                @click="openKitDetails(slotProps.data)" 
+                                :disabled="!slotProps.data.components || slotProps.data.components.length === 0"
+                            />
+                            <Button 
+                                icon="pi pi-trash" 
+                                class="p-button-rounded p-button-danger" 
+                                v-tooltip.top="'Eliminar Kit Permanentemente'"
+                                @click="deleteKit(slotProps.data)" 
+                            />
+                        </template>
+                    </Column>
+                </DataTable>
+            </div>
+
+            <!-- Vista de Tarjetas (Móvil) - Oculta en pantallas medianas y grandes -->
+            <div class="md:hidden">
+                <!-- Estado de carga -->
+                <div v-if="loadingTable" class="text-center p-4">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+                    <p>Cargando kits...</p>
+                </div>
+                <!-- Estado vacío -->
+                <div v-else-if="allKitsWithStock.length === 0" class="text-center p-4">
+                    <p>No se encontraron kits definidos.</p>
+                </div>
+                <!-- Lista de tarjetas -->
+                <!-- Se agregó un contenedor con padding ligero 'px-2 pt-2' para que las tarjetas no peguen a los bordes -->
+                <div v-else class="px-2 pt-2">
+                    <div v-for="kit in allKitsWithStock" :key="kit.id" 
+                         class="kit-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md">
+                        
+                        <!-- Imagen -->
+                        <div class="kit-image-wrapper">
+                            <Image 
+                                :src="kit.image_url || 'https://placehold.co/80x80/EEE/31343C?text=Sin+Foto'" 
+                                alt="Imagen del kit" 
+                                width="80" 
+                                height="80" 
+                                preview 
+                                imageClass="border-round"
+                            />
+                        </div>
+                        
+                        <!-- Detalles del Kit -->
+                        <div class="kit-details">
+                            <div class="kit-info">
+                                <span class="kit-name text-slate-700 dark:text-slate-200">{{ kit.name }}</span>
+                                <span class="kit-sku text-slate-500 dark:text-slate-400">SKU: {{ kit.sku || 'N/A' }}</span>
+                            </div>
+                            
+                            <div class="kit-stock">
+                                <span class="stock-label text-slate-600 dark:text-slate-300">Stock Fabricable:</span>
+                                <Tag 
+                                    :severity="kit.calculable_stock > 0 ? 'success' : 'danger'" 
+                                    :value="kit.calculable_stock"
+                                ></Tag>
+                            </div>
+                            
+                            <div class="kit-actions border-t border-slate-100 dark:border-slate-700">
+                                <Button 
+                                    icon="pi pi-eye" 
+                                    class="p-button-rounded p-button-info" 
+                                    v-tooltip.top="'Ver Detalles'"
+                                    @click="openKitDetails(kit)" 
+                                    :disabled="!kit.components || kit.components.length === 0"
+                                />
+                                <Button 
+                                    icon="pi pi-trash" 
+                                    class="p-button-rounded p-button-danger" 
+                                    v-tooltip.top="'Eliminar Kit'"
+                                    @click="deleteKit(kit)" 
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </template>
     </Card>
 
@@ -482,5 +540,78 @@ h3.mt-0.mb-1 {
 /* Forzar que los botones en la tabla no se separen */
 .p-datatable .p-button {
     margin-right: 0.5rem;
+}
+
+/* --- ESTILOS PARA TARJETAS DE KIT (MÓVIL) --- */
+.kit-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    /* Se eliminan: background-color, border, border-radius, box-shadow (manejados por Tailwind) */
+}
+
+.kit-image-wrapper {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kit-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.kit-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.kit-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    /* Se elimina: color (manejado por Tailwind) */
+}
+
+.kit-sku {
+    font-size: 0.875rem;
+    /* Se elimina: color (manejado por Tailwind) */
+}
+
+.kit-stock {
+    margin-top: 0.75rem;
+}
+
+.stock-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    /* Se elimina: color (manejado por Tailwind) */
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.kit-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    /* Se elimina: border-top (manejado por Tailwind) */
+    padding-top: 0.75rem;
+}
+
+.kit-actions :deep(.p-button) {
+    height: 2.5rem;
+    width: 2.5rem;
+}
+
+/* --- Nuevo: Ajuste de padding para tarjetas móviles --- */
+@media (max-width: 767px) { /* 768px es el breakpoint 'md' */
+    .kit-summary-card :deep(.p-card-content) {
+        /* Se elimina el padding del contenedor de la tarjeta para que 
+           nuestro padding custom 'px-2 pt-2' controle el espacio */
+        padding: 0;
+    }
 }
 </style>

@@ -64,7 +64,8 @@ onMounted(fetchKitProducts);
         <Toast />
 
         <!-- Diálogo (modal) para crear orden de producción -->
-        <Dialog header="Crear Nueva Orden de Producción" v-model:visible="displayNewOrderModal" :modal="true" :style="{width: '50vw'}">
+        <Dialog header="Crear Nueva Orden de Producción" v-model:visible="displayNewOrderModal" :modal="true" :style="{width: '50vw'}" 
+            :breakpoints="{'700px': '90vw'}">
             <div class="p-fluid form-grid">
                 <div class="field col-12 flex flex-col">
                     <label for="orderProduct">Producto (Kit)</label>
