@@ -10,14 +10,13 @@ import Calendar from 'primevue/calendar';
 import Dropdown from 'primevue/dropdown';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import ProgressBar from 'primevue/progressbar'; // <-- Importar ProgressBar
+import ProgressBar from 'primevue/progressbar';
 
 const orders = ref([]);
 const loading = ref(true);
 const toast = useToast();
 
 // --- Estado para Modales ---
-// ... (código existente)
 const progressModalVisible = ref(false);
 const deliverModalVisible = ref(false);
 const selectedOrder = ref(null);
@@ -26,15 +25,12 @@ const deliverData = ref({ delivery_date: null, unit_price: null });
 const isSubmitting = ref(false);
 
 // --- Opciones para el Dropdown de Estado ---
-// ... (código existente)
 const statusOptions = ref([
     { label: 'En Progreso', value: 'En Progreso' },
     { label: 'Cancelado', value: 'Cancelado' },
-    // Omitimos 'Pendiente' y 'Completado' según tu solicitud
 ]);
 
 const fetchOrders = async () => {
-// ... (código existente)
     loading.value = true;
     try {
         const response = await axios.get('/tpsp/production-orders');
@@ -48,45 +44,35 @@ const fetchOrders = async () => {
 };
 
 // --- Formateo de Fechas ---
-// ... (código existente)
 const formatDate = (dateString) => {
-// ... (código existente)
     if (!dateString) return 'N/A';
     try {
         const date = new Date(dateString);
-        // Prevenimos problemas de zona horaria al interpretar la fecha
         const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
         
         return utcDate.toLocaleDateString('es-MX', {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
-            timeZone: 'UTC' // Aseguramos consistencia
-        }).replace('.', '').replace(' de ', '-'); // Limpieza para formato '07-Nov-2025'
+            timeZone: 'UTC'
+        }).replace('.', '').replace(' de ', '-');
     } catch (e) {
         console.error("Error formatting date:", e);
         return dateString;
     }
 };
 
-// --- NUEVO: Función para calcular el progreso ---
-/**
- * Calcula el porcentaje de progreso de producción.
- * @param {number} produced - Cantidad producida
- * @param {number} requested - Cantidad solicitada
- */
+// --- Cálculo de progreso ---
 const getProductionProgress = (produced, requested) => {
     if (!requested || requested === 0) {
         return 0;
     }
     const progress = (produced / requested) * 100;
-    return parseFloat(progress.toFixed(2)); // Redondear a 2 decimales
+    return parseFloat(progress.toFixed(2));
 };
-
 
 // Mapeo de estados a colores de Tag
 const getStatusSeverity = (status) => {
-// ... (código existente)
     switch (status) {
         case 'Pendiente': return 'warning';
         case 'En Progreso': return 'info';
@@ -100,14 +86,12 @@ const getStatusSeverity = (status) => {
 
 // Modal de Progreso
 const openProgressModal = (order) => {
-// ... (código existente)
     selectedOrder.value = order;
-    progressData.value = { quantity: 1 }; // Default a 1
+    progressData.value = { quantity: 1 };
     progressModalVisible.value = true;
 };
 
 const submitAddProgress = async () => {
-// ... (código existente)
     if (!selectedOrder.value || !progressData.value.quantity || progressData.value.quantity <= 0) {
         toast.add({ severity: 'warn', summary: 'Datos inválidos', detail: 'La cantidad debe ser mayor a 0.', life: 3000 });
         return;
@@ -118,7 +102,6 @@ const submitAddProgress = async () => {
         const url = `/tpsp/production-orders/${selectedOrder.value.id}/add-progress`;
         const response = await axios.post(url, progressData.value);
 
-        // Actualizar la orden en la lista local
         const index = orders.value.findIndex(o => o.id === selectedOrder.value.id);
         if (index !== -1) {
             orders.value[index] = response.data;
@@ -137,7 +120,6 @@ const submitAddProgress = async () => {
 
 // Modal de Entrega
 const openDeliverModal = (order) => {
-// ... (código existente)
     if (order.quantity_produced <= 0) {
         toast.add({ severity: 'warn', summary: 'Sin producción', detail: 'No se puede entregar una orden sin producción registrada.', life: 4000 });
         return;
@@ -148,7 +130,6 @@ const openDeliverModal = (order) => {
 };
 
 const submitDeliverOrder = async () => {
-// ... (código existente)
     const { delivery_date, unit_price } = deliverData.value;
     if (!selectedOrder.value || !delivery_date || unit_price == null || unit_price < 0) {
         toast.add({ severity: 'warn', summary: 'Datos inválidos', detail: 'Complete todos los campos correctamente.', life: 3000 });
@@ -160,7 +141,6 @@ const submitDeliverOrder = async () => {
         const url = `/tpsp/production-orders/${selectedOrder.value.id}/deliver`;
         const response = await axios.post(url, deliverData.value);
 
-        // Actualizar la orden en la lista local
         const index = orders.value.findIndex(o => o.id === selectedOrder.value.id);
         if (index !== -1) {
             orders.value[index] = response.data;
@@ -179,29 +159,22 @@ const submitDeliverOrder = async () => {
 
 // --- Manejador de Dropdown de Estado ---
 const onStatusChange = async (event, order) => {
-// ... (código existente)
     const newStatus = event.value;
     if (!newStatus || newStatus === order.status) return;
 
-    // Guardar el estado anterior en caso de error
     const oldStatus = order.status;
-    // Actualización optimista
     order.status = newStatus;
 
     try {
         const url = `/tpsp/production-orders/${order.id}/status`;
         await axios.patch(url, { status: newStatus });
         toast.add({ severity: 'success', summary: 'Actualizado', detail: `Estado cambiado a ${newStatus}`, life: 3000 });
-        // Opcional: recargar solo esta orden
-        // fetchOrders(); // Opcional, la UI ya se actualizó
     } catch (error) {
-        // Revertir en caso de error
         order.status = oldStatus;
         console.error("Error updating status:", error);
         toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el estado.', life: 4000 });
     }
 };
-
 
 onMounted(fetchOrders);
 
@@ -212,93 +185,167 @@ onMounted(fetchOrders);
         <Toast />
         <Button label="Recargar" icon="pi pi-refresh" class="p-button-sm mb-3" @click="fetchOrders" :loading="loading" />
         
-        <DataTable :value="orders" :loading="loading" responsiveLayout="scroll" stripedRows paginator :rows="10">
-            
-            <Column field="order_number" header="N° Orden" :sortable="true" style="min-width: 100px;"></Column>
-            
-            <Column field="product.name" header="Producto" style="min-width: 150px;"></Column>
+        <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
+        <div class="hidden md:block">
+            <DataTable :value="orders" :loading="loading" responsiveLayout="scroll" stripedRows paginator :rows="10">
+                
+                <Column field="order_number" header="N° Orden" :sortable="true" style="min-width: 100px;"></Column>
+                
+                <Column field="product.name" header="Producto" style="min-width: 150px;"></Column>
 
-            <!-- Fechas Formateadas -->
-            <Column header="Creado" :sortable="true" field="created_at" style="min-width: 120px;">
-                <template #body="slotProps">
-                    {{ formatDate(slotProps.data.created_at) }}
-                </template>
-            </Column>
-            <Column header="Entrega" :sortable="true" field="due_date" style="min-width: 120px;">
-                <template #body="slotProps">
-                    {{ formatDate(slotProps.data.due_date) }}
-                </template>
-            </Column>
+                <!-- Fechas Formateadas -->
+                <Column header="Creado" :sortable="true" field="created_at" style="min-width: 120px;">
+                    <template #body="slotProps">
+                        {{ formatDate(slotProps.data.created_at) }}
+                    </template>
+                </Column>
+                <Column header="Entrega" :sortable="true" field="due_date" style="min-width: 120px;">
+                    <template #body="slotProps">
+                        {{ formatDate(slotProps.data.due_date) }}
+                    </template>
+                </Column>
 
-            <!-- 
-                COLUMNAS "SOLICITADO" Y "PRODUCIDO" ELIMINADAS
-                <Column field="quantity_requested" header="Solicitado" align="center"></Column>
-                <Column field="quantity_produced" header="Producido" align="center"></Column>
-            -->
+                <!-- Columna de Progreso -->
+                <Column header="Progreso" style="min-width: 170px;">
+                    <template #body="slotProps">
+                        <div class="flex flex-col">
+                            <ProgressBar :value="getProductionProgress(slotProps.data.quantity_produced, slotProps.data.quantity_requested)" />
+                            <span class="text-xs text-center mt-1 font-semibold">
+                                {{ slotProps.data.quantity_produced }} / {{ slotProps.data.quantity_requested }}
+                            </span>
+                        </div>
+                    </template>
+                </Column>
+                
+                <!-- Estado (Tag) -->
+                <Column field="status" header="Estado" style="min-width: 150px;">
+                    <template #body="slotProps">
+                        <Tag :value="slotProps.data.status" :severity="getStatusSeverity(slotProps.data.status)" />
+                    </template>
+                </Column>
 
-            <!-- NUEVA COLUMNA DE PROGRESO -->
-            <Column header="Progreso" style="min-width: 170px;">
-                <template #body="slotProps">
-                    <div class="flex flex-col">
-                        <!-- La barra de progreso -->
-                        <ProgressBar :value="getProductionProgress(slotProps.data.quantity_produced, slotProps.data.quantity_requested)" />
-                        
-                        <!-- Etiqueta de texto (Ej: 5 / 10) -->
-                        <span class="text-xs text-center mt-1 font-semibold">
-                            {{ slotProps.data.quantity_produced }} / {{ slotProps.data.quantity_requested }}
+                <!-- Dropdown para Cambiar Estado -->
+                <Column header="Cambiar Estado" style="min-width: 170px;">
+                    <template #body="slotProps">
+                        <Dropdown 
+                            v-if="slotProps.data.status !== 'Completado' && slotProps.data.status !== 'Cancelado'"
+                            :modelValue="slotProps.data.status" 
+                            :options="statusOptions" 
+                            optionLabel="label" 
+                            optionValue="value" 
+                            placeholder="Cambiar estado"
+                            class="p-inputtext-sm w-full"
+                            @change="onStatusChange($event, slotProps.data)"
+                        />
+                        <span v-else class="text-gray-500 italic text-sm">No aplica</span>
+                    </template>
+                </Column>
+
+                <!-- Botones de Acción -->
+                <Column header="Acciones" bodyStyle="text-align: center; overflow: visible;" style="min-width: 250px;">
+                    <template #body="slotProps">
+                        <div class="flex gap-2 justify-center">
+                            <Button 
+                                icon="pi pi-plus" 
+                                label="Progreso"
+                                class="p-button-sm p-button-info" 
+                                @click="openProgressModal(slotProps.data)"
+                                :disabled="slotProps.data.status === 'Completado' || slotProps.data.status === 'Cancelado'"
+                            />
+                            <Button 
+                                icon="pi pi-check" 
+                                label="Entregar"
+                                class="p-button-sm p-button-success" 
+                                @click="openDeliverModal(slotProps.data)"
+                                :disabled="slotProps.data.status === 'Completado' || slotProps.data.status === 'Cancelado' || slotProps.data.quantity_produced !== slotProps.data.quantity_requested"
+                            />
+                        </div>
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
+
+        <!-- Vista de Tarjetas (Móvil) - Oculta en pantallas medianas y grandes -->
+        <div class="md:hidden">
+            <!-- Estado de carga -->
+            <div v-if="loading" class="text-center p-4">
+                <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+                <p>Cargando órdenes...</p>
+            </div>
+            <!-- Estado vacío -->
+            <div v-else-if="orders.length === 0" class="text-center p-4">
+                <p>No se encontraron órdenes.</p>
+            </div>
+            <!-- Lista de tarjetas -->
+            <div v-else>
+                <div v-for="order in orders" :key="order.id" class="order-card">
+                    
+                    <!-- Encabezado de la tarjeta: Número, Producto y Estado -->
+                    <div class="card-header">
+                        <div>
+                            <span class="order-number">Orden #{{ order.order_number }}</span>
+                            <div class="product-name">{{ order.product.name }}</div>
+                        </div>
+                        <Tag :value="order.status" :severity="getStatusSeverity(order.status)" />
+                    </div>
+
+                    <!-- Cuerpo: Progreso -->
+                    <div class="progress-section">
+                        <span class="progress-label">
+                            Progreso: {{ order.quantity_produced }} / {{ order.quantity_requested }}
                         </span>
+                        <ProgressBar :value="getProductionProgress(order.quantity_produced, order.quantity_requested)" style="height: 1rem" />
                     </div>
-                </template>
-            </Column>
-            
-            <!-- Estado (Tag) -->
-            <Column field="status" header="Estado" style="min-width: 150px;">
-                <template #body="slotProps">
-                    <Tag :value="slotProps.data.status" :severity="getStatusSeverity(slotProps.data.status)" />
-                </template>
-            </Column>
 
-            <!-- Dropdown para Cambiar Estado -->
-            <Column header="Cambiar Estado" style="min-width: 170px;">
-                <template #body="slotProps">
-                    <!-- Deshabilitado si está Completado o Cancelado -->
-                    <Dropdown 
-                        v-if="slotProps.data.status !== 'Completado' && slotProps.data.status !== 'Cancelado'"
-                        :modelValue="slotProps.data.status" 
-                        :options="statusOptions" 
-                        optionLabel="label" 
-                        optionValue="value" 
-                        placeholder="Cambiar estado"
-                        class="p-inputtext-sm w-full"
-                        @change="onStatusChange($event, slotProps.data)"
-                    />
-                    <span v-else class="text-gray-500 italic text-sm">No aplica</span>
-                </template>
-            </Column>
-
-            <!-- Botones de Acción -->
-            <Column header="Acciones" bodyStyle="text-align: center; overflow: visible;" style="min-width: 250px;">
-                <template #body="slotProps">
-                    <div class="flex gap-2 justify-center">
-                         <!-- Deshabilitado si está Completado o Cancelado -->
-                        <Button 
-                            icon="pi pi-plus" 
-                            label="Progreso"
-                            class="p-button-sm p-button-info" 
-                            @click="openProgressModal(slotProps.data)"
-                            :disabled="slotProps.data.status === 'Completado' || slotProps.data.status === 'Cancelado'"
-                        />
-                        <Button 
-                            icon="pi pi-check" 
-                            label="Entregar"
-                            class="p-button-sm p-button-success" 
-                            @click="openDeliverModal(slotProps.data)"
-                            :disabled="slotProps.data.status === 'Completado' || slotProps.data.status === 'Cancelado' || slotProps.data.quantity_produced !== slotProps.data.quantity_requested"
-                        />
+                    <!-- Información: Fechas -->
+                    <div class="info-grid">
+                        <div>
+                            <span class="info-label">Creado:</span>
+                            <span class="info-value">{{ formatDate(order.created_at) }}</span>
+                        </div>
+                        <div>
+                            <span class="info-label">Entrega:</span>
+                            <span class="info-value">{{ formatDate(order.due_date) }}</span>
+                        </div>
                     </div>
-                </template>
-            </Column>
-        </DataTable>
+
+                    <!-- Acciones -->
+                    <div class="action-section">
+                        <!-- Cambiar Estado -->
+                        <Dropdown 
+                            v-if="order.status !== 'Completado' && order.status !== 'Cancelado'"
+                            :modelValue="order.status" 
+                            :options="statusOptions" 
+                            optionLabel="label" 
+                            optionValue="value" 
+                            placeholder="Cambiar estado"
+                            class="p-inputtext-sm w-full mb-3"
+                            @change="onStatusChange($event, order)"
+                        />
+                        <span v-else class="text-gray-500 italic text-sm mb-3 block">Estado no modificable</span>
+                        
+                        <!-- Botones -->
+                        <div class="flex gap-2 justify-between">
+                            <Button 
+                                icon="pi pi-plus" 
+                                label="Progreso"
+                                class="p-button-sm p-button-info flex-1" 
+                                @click="openProgressModal(order)"
+                                :disabled="order.status === 'Completado' || order.status === 'Cancelado'"
+                            />
+                            <Button 
+                                icon="pi pi-check" 
+                                label="Entregar"
+                                class="p-button-sm p-button-success flex-1" 
+                                @click="openDeliverModal(order)"
+                                :disabled="order.status === 'Completado' || order.status === 'Cancelado' || order.quantity_produced !== order.quantity_requested"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Modal para Agregar Progreso -->
         <Dialog v-model:visible="progressModalVisible" modal header="Agregar Progreso de Producción" :style="{ width: '400px' }">
@@ -367,5 +414,69 @@ onMounted(fetchOrders);
 
 :deep(.p-progressbar .p-progressbar-value) {
     background: #10b981; /* Un verde (success) */
+}
+
+/* Estilos para las tarjetas de órdenes en móvil */
+.order-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.order-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #334155; /* slate-700 */
+    display: block;
+}
+
+.product-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #475569; /* slate-600 */
+}
+
+.progress-section {
+    margin-bottom: 1rem;
+}
+
+.progress-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.info-label {
+    display: block;
+    font-weight: 600;
+    color: #64748b; /* slate-500 */
+}
+
+.info-value {
+    display: block;
+}
+
+.action-section {
+    border-top: 1px solid #f1f5f9; /* slate-100 */
+    padding-top: 1rem;
 }
 </style>

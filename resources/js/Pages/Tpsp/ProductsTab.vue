@@ -23,7 +23,7 @@ const loading = ref(true);
 
 // Opciones de tus migraciones
 const productCategories = ref(['Material', 'Insumo', 'Empaque', 'Kit Terminado']);
-const unitsOfMeasure = ref(['Pieza', 'Mililitro', 'Gramo', 'Kit']);
+const unitsOfMeasure = ref(['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo','Metro','Rollo','Litro']);
 const movementTypes = ref(['Ajuste', 'Compra', 'Venta', 'Entrada_Produccion', 'Consumo_Produccion']);
 
 const getFreshProduct = () => ({
@@ -193,13 +193,10 @@ const saveStockMovement = async () => {
 
     movementLoading.value = true;
     try {
-        // Llamada al TpspInventoryMovementController@store
-        // Este controlador ya maneja la actualización del stock del producto
         await axios.post('/tpsp/inventory-movements', movementData.value);
         
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Movimiento de inventario registrado', life: 3000 });
         
-        // Recargar los productos para ver el stock actualizado
         await fetchProducts(); 
         
         hideStockModal();
@@ -228,47 +225,102 @@ const saveStockMovement = async () => {
                     </div>
                 </template>
                 <template #content>
-                    <!-- USAR filteredProducts en lugar de products -->
-                    <DataTable :value="filteredProducts" :loading="loading" responsiveLayout="scroll" :rows="10" :paginator="true">
-                        
-                        <Column field="image_url" header="Imagen">
-                            <template #body="slotProps">
-                                <Image 
-                                    :src="slotProps.data.image_url || 'https://placehold.co/60x60/EEE/31343C?text=Sin+Foto'" 
-                                    alt="Imagen del producto" 
-                                    width="60" 
-                                    height="60" 
-                                    preview 
-                                    imageClass="border-round"
-                                />
-                            </template>
-                        </Column>
+                    <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
+                    <div class="hidden md:block">
+                        <DataTable :value="filteredProducts" :loading="loading" responsiveLayout="scroll" :rows="10" :paginator="true">
+                            
+                            <Column field="image_url" header="Imagen">
+                                <template #body="slotProps">
+                                    <Image 
+                                        :src="slotProps.data.image_url || 'https://placehold.co/60x60/EEE/31343C?text=Sin+Foto'" 
+                                        alt="Imagen del producto" 
+                                        width="100" 
+                                        height="100" 
+                                        preview 
+                                        imageClass="border-round"
+                                    />
+                                </template>
+                            </Column>
 
-                        <Column field="name" header="Nombre" :sortable="true"></Column>
-                        <Column field="sku" header="SKU"></Column>
-                        <Column field="category" header="Categoría"></Column>
-                        <Column field="stock" header="Stock Actual">
-                            <template #body="slotProps">
-                                {{ slotProps.data.stock }} {{ slotProps.data.unit_of_measure }}
-                            </template>
-                        </Column>
-                        
-                        <!-- Columna "Es Kit" eliminada como se solicitó (implícitamente) -->
+                            <Column field="name" header="Nombre" :sortable="true"></Column>
+                            <Column field="sku" header="SKU"></Column>
+                            <Column field="category" header="Categoría"></Column>
+                            <Column field="stock" header="Stock Actual">
+                                <template #body="slotProps">
+                                    {{ slotProps.data.stock }} {{ slotProps.data.unit_of_measure }}
+                                </template>
+                            </Column>
+                            
+                            <Column header="Acciones" :exportable="false" style="min-width:16rem">
+                                <template #body="slotProps">
+                                    <Button 
+                                        icon="pi pi-arrows-h" 
+                                        class="p-button-rounded p-button-info mr-2" 
+                                        v-tooltip.top="'Ajustar Stock'"
+                                        @click="openStockModal(slotProps.data)" 
+                                    />
+                                    <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEditModal(slotProps.data)" />
+                                    <Button icon="pi pi-trash" class="p-button-rounded p-button-danger" @click="confirmDeleteProduct(slotProps.data)" />
+                                </template>
+                            </Column>
+                        </DataTable>
+                    </div>
 
-                        <Column header="Acciones" :exportable="false" style="min-width:16rem">
-                            <template #body="slotProps">
-                                <!-- Nuevo Botón de Stock -->
-                                <Button 
-                                    icon="pi pi-arrows-h" 
-                                    class="p-button-rounded p-button-info mr-2" 
-                                    v-tooltip.top="'Ajustar Stock'"
-                                    @click="openStockModal(slotProps.data)" 
-                                />
-                                <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEditModal(slotProps.data)" />
-                                <Button icon="pi pi-trash" class="p-button-rounded p-button-danger" @click="confirmDeleteProduct(slotProps.data)" />
-                            </template>
-                        </Column>
-                    </DataTable>
+                    <!-- Vista de Tarjetas (Móvil) - Oculta en pantallas medianas y grandes -->
+                    <div class="md:hidden">
+                        <!-- Estado de carga -->
+                        <div v-if="loading" class="text-center p-4">
+                            <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+                            <p>Cargando productos...</p>
+                        </div>
+                        <!-- Estado vacío -->
+                        <div v-else-if="filteredProducts.length === 0" class="text-center p-4">
+                            <p>No se encontraron productos.</p>
+                        </div>
+                        <!-- Lista de tarjetas -->
+                        <div v-else>
+                            <div v-for="product in filteredProducts" :key="product.id" class="product-card bg-gray-100 dark:bg-gray-800">
+                                
+                                <!-- Imagen -->
+                                <div class="product-image-wrapper">
+                                    <Image 
+                                        :src="product.image_url || 'https://placehold.co/80x80/EEE/31343C?text=Sin+Foto'" 
+                                        alt="Imagen del producto" 
+                                        width="80" 
+                                        height="80" 
+                                        preview 
+                                        imageClass="border-round"
+                                    />
+                                </div>
+                                
+                                <!-- Detalles del Producto -->
+                                <div class="product-details">
+                                    <div class="product-info">
+                                        <span class="product-name text-gray-500 dark:text-gray-300">{{ product.name }}</span>
+                                        <span class="product-sku">SKU: {{ product.sku || 'N/A' }}</span>
+                                        <span class="product-category">{{ product.category }}</span>
+                                    </div>
+                                    
+                                    <div class="product-stock">
+                                        <span class="stock-label">Stock:</span>
+                                        <span class="stock-value">{{ product.stock }} {{ product.unit_of_measure }}</span>
+                                    </div>
+                                    
+                                    <div class="product-actions">
+                                        <Button 
+                                            icon="pi pi-arrows-h" 
+                                            class="p-button-rounded p-button-info" 
+                                            v-tooltip.top="'Ajustar Stock'"
+                                            @click="openStockModal(product)" 
+                                        />
+                                        <Button icon="pi pi-pencil" class="p-button-rounded p-button-success" @click="openEditModal(product)" />
+                                        <Button icon="pi pi-trash" class="p-button-rounded p-button-danger" @click="confirmDeleteProduct(product)" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </template>
             </Card>
         </div>
@@ -386,4 +438,77 @@ const saveStockMovement = async () => {
 .field {
     margin-bottom: 1rem;
 }
+
+/* --- ESTILOS PARA TARJETAS DE PRODUCTO (MÓVIL) --- */
+
+.product-card {
+    display: flex;
+    gap: 0.7rem; /* Espacio entre imagen y detalles */
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.product-image-wrapper {
+    flex-shrink: 0; /* Evita que la imagen se encoja */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-details {
+    flex: 1; /* Ocupa el espacio restante */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Distribuye el contenido verticalmente */
+}
+
+.product-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.product-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.product-sku,
+.product-category {
+    font-size: 0.875rem;
+    color: #64748b; /* slate-500 */
+}
+
+.product-stock {
+    margin-top: 0.75rem;
+}
+
+.stock-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569; /* slate-600 */
+}
+
+.stock-value {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-left: 0.5rem;
+}
+
+.product-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    border-top: 1px solid #f1f5f9; /* slate-100 */
+    padding-top: 0.75rem;
+}
+
+/* Ajuste para que los botones de acciones en móvil no sean tan grandes */
+.product-actions :deep(.p-button) {
+    height: 2.5rem;
+    width: 2.5rem;
+}
+
 </style>
