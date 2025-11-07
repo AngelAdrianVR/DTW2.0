@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue'; // Import 'computed'
 import { Head } from '@inertiajs/vue3';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -14,6 +14,17 @@ const props = defineProps({
         type: Array,
         default: () => []
     }
+});
+
+// --- Computed Properties for Product Filtering ---
+// Filtra los productos que NO son 'Kit Terminado'
+const otherProducts = computed(() => {
+    return props.products.filter(p => p.category !== 'Kit Terminado');
+});
+
+// Filtra los productos que SÍ son 'Kit Terminado'
+const finishedKits = computed(() => {
+    return props.products.filter(p => p.category === 'Kit Terminado');
 });
 
 // --- Estado ---
@@ -95,72 +106,91 @@ onMounted(() => {
 <template>
     <Head title="Inventario y entregas" />
     
-    <!-- 
-      CONTENEDOR PRINCIPAL MEJORADO:
-      - Añadido 'bg-gray-50' para un fondo sutil.
-      - 'min-h-screen' para que el fondo cubra toda la altura.
-      - 'p-6' para más espaciado.
-    -->
     <div class="container mx-auto p-6 max-w-7xl bg-gray-50 min-h-screen">
 
         <!-- TÍTULO PRINCIPAL MEJORADO: -->
-        <h1 class="text-3xl font-semibold text-gray-900 mb-8">Inventario y Ventas</h1>
+        <h1 class="text-3xl font-semibold text-gray-900 mb-8">Inventario y Entregas</h1>
 
-        <!-- SECCIÓN DE PRODUCTOS -->
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b">Productos en Existencia</h2>
-        
-        <!-- 
-          SCROLL HORIZONTAL IMPLEMENTADO:
-          - Se usa 'flex' y 'overflow-x-auto' para crear el contenedor de scroll.
-          - 'space-x-4' añade espaciado entre las tarjetas.
-          - Cada tarjeta tiene un ancho fijo ('w-60') y 'flex-shrink-0' para evitar que se encoja.
-        -->
-        <div class="flex overflow-x-auto space-x-4 py-4 mb-8">
-            <Card v-for="product in products" :key="product.id" class="overflow-hidden rounded-lg shadow-sm flex-shrink-0 w-52">
-                <template #header>
-                    <!-- 
-                      CONTENEDOR DE IMAGEN MEJORADO:
-                      - 'h-48' fija la altura para evitar saltos de contenido (CLS).
-                      - 'v-if' muestra la imagen solo si existe la URL y no hay error.
-                      - 'v-else' muestra el placeholder con ícono y texto.
-                    -->
-                    <div class="w-full h-48">
-                        <img 
-                            v-if="product.media[0]?.original_url && !imageErrorState[product.id]"
-                            draggable="false"
-                            :src="product.media[0]?.original_url" 
-                            @error="onImageError(product.id)"
-                            :alt="product.name" 
-                            class="w-full h-full object-cover"
-                        />
-                        <!-- Placeholder Mejorado -->
-                        <div v-else class="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-500">
-                            <i class="pi pi-image" style="font-size: 2.5rem;"></i>
-                            <span class="mt-2 text-sm font-medium">Imagen no disponible</span>
+        <!-- SECCIÓN DE PRODUCTOS (GENERALES) -->
+        <!-- Solo se muestra si hay productos en esta categoría -->
+        <div v-if="otherProducts.length > 0">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b">Productos en Existencia</h2>
+            
+            <div class="flex overflow-x-auto space-x-4 py-4 mb-8">
+                <!-- MODIFICADO: Itera sobre 'otherProducts' -->
+                <Card v-for="product in otherProducts" :key="product.id" class="overflow-hidden rounded-lg shadow-sm flex-shrink-0 w-52">
+                    <template #header>
+                        <div class="w-full h-48">
+                            <img 
+                                v-if="product.media[0]?.original_url && !imageErrorState[product.id]"
+                                draggable="false"
+                                :src="product.media[0]?.original_url" 
+                                @error="onImageError(product.id)"
+                                :alt="product.name" 
+                                class="w-full h-full object-cover"
+                            />
+                            <div v-else class="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-500">
+                                <i class="pi pi-image" style="font-size: 2.5rem;"></i>
+                                <span class="mt-2 text-sm font-medium">Imagen no disponible</span>
+                            </div>
                         </div>
-                    </div>
-                </template>
-                <template #title>
-                    <span class="text-lg font-semibold">{{ product.name }}</span>
-                </template>
-                <template #content>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Existencia:</span>
-                        <!-- Estilo de stock más sutil -->
-                        <span class="text-lg font-semibold text-gray-800">{{ product.stock.toLocaleString() }}</span>
-                    </div>
-                </template>
-            </Card>
+                    </template>
+                    <template #title>
+                        <span class="text-lg font-semibold">{{ product.name }}</span>
+                    </template>
+                    <template #content>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Existencia:</span>
+                            <span class="text-lg font-semibold text-gray-800">{{ product.stock.toLocaleString() }}</span>
+                        </div>
+                    </template>
+                </Card>
+            </div>
         </div>
+
+        <!-- ***** NUEVA SECCIÓN DE KITS TERMINADOS ***** -->
+        <!-- Solo se muestra si hay kits terminados -->
+        <div v-if="finishedKits.length > 0">
+            <!-- Título modificado -->
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b">Existencias de kits terminados</h2>
+            
+            <div class="flex overflow-x-auto space-x-4 py-4 mb-8">
+                <!-- NUEVO: Itera sobre 'finishedKits' -->
+                <Card v-for="product in finishedKits" :key="product.id" class="overflow-hidden rounded-lg shadow-sm flex-shrink-0 w-52">
+                    <template #header>
+                        <div class="w-full h-48">
+                            <img 
+                                v-if="product.media[0]?.original_url && !imageErrorState[product.id]"
+                                draggable="false"
+                                :src="product.media[0]?.original_url" 
+                                @error="onImageError(product.id)"
+                                :alt="product.name" 
+                                class="w-full h-full object-cover"
+                            />
+                            <div v-else class="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-500">
+                                <i class="pi pi-image" style="font-size: 2.5rem;"></i>
+                                <span class="mt-2 text-sm font-medium">Imagen no disponible</span>
+                            </div>
+                        </div>
+                    </template>
+                    <template #title>
+                        <span class="text-lg font-semibold">{{ product.name }}</span>
+                    </template>
+                    <template #content>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Existencia:</span>
+                            <span class="text-lg font-semibold text-gray-800">{{ product.stock.toLocaleString() }}</span>
+                        </div>
+                    </template>
+                </Card>
+            </div>
+        </div>
+        <!-- ***** FIN DE LA NUEVA SECCIÓN ***** -->
+
 
         <!-- SECCIÓN DE MOVIMIENTOS -->
         <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b">Historial de Entregas</h2>
 
-        <!-- 
-          BARRA DE FILTROS MEJORADA:
-          - Diseño más limpio sin fondo ni bordes, solo espaciado.
-          - 'items-end' alinea los botones correctamente.
-        -->
         <div class="flex flex-wrap gap-4 mb-6 items-end">
             <div class="flex flex-col gap-2">
                 <label for="filterStart" class="font-bold text-sm text-gray-700">Fecha Inicio</label>
@@ -176,25 +206,15 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- 
-          CONTENEDOR DE TABLA:
-          - Se envuelve la tabla en un 'div' con bordes redondeados y sombra
-            para un aspecto de "tarjeta" moderno.
-        -->
         <div class="rounded-lg overflow-hidden border border-gray-200 shadow-sm">
             <DataTable :value="movements" :loading="loading" 
                 responsiveLayout="scroll" :rows="20" :paginator="true"
                 dataKey="id"
-                class="p-datatable-customers"> <!-- PrimeVue a veces necesita clases BEM para overrides -->
+                class="p-datatable-customers">
                 
                 <Column header="Producto">
                     <template #body="slotProps">
                         <div class="flex items-center gap-3">
-                            <!-- 
-                              PLACEHOLDER EN TABLA:
-                              - Misma lógica 'v-if'/'v-else' para la imagen.
-                              - Tamaño reducido ('size-10') y 'rounded-md'.
-                            -->
                             <div class="size-10 rounded-md flex-shrink-0">
                                 <img v-if="slotProps.data.product?.media[0]?.original_url && !imageErrorState[slotProps.data.product?.id]"
                                     draggable="false"
@@ -203,7 +223,6 @@ onMounted(() => {
                                     :alt="slotProps.data.product?.name"
                                     class="w-full h-full object-cover rounded-md"
                                 />
-                                <!-- Placeholder de ícono pequeño -->
                                 <div v-else class="w-full h-full rounded-md bg-slate-100 flex items-center justify-center text-slate-400">
                                     <i class="pi pi-image" style="font-size: 1.25rem;"></i>
                                 </div>
