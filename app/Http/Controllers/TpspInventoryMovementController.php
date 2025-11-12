@@ -73,7 +73,7 @@ class TpspInventoryMovementController extends Controller
                 'min:0'
             ],
             'notes' => 'nullable|string',
-            'reference_type' => 'nullable|string',
+            // 'reference_type' => 'nullable|string',
             'reference_id' => 'nullable|integer',
         ]);
 
@@ -83,7 +83,7 @@ class TpspInventoryMovementController extends Controller
             $movement = DB::transaction(function () use ($validatedData) {
                 
                 // 1. Crear el movimiento de inventario
-                $movement = TpspInventoryMovement::create($validatedData);
+                $movement = TpspInventoryMovement::create($validatedData + [ 'reference_type' => 'App\Models\tpspProductionOrder']);
 
                 // 2. Actualizar el stock del producto
                 $product = tpspProduct::find($validatedData['product_id']);

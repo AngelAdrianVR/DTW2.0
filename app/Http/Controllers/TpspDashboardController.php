@@ -26,13 +26,20 @@ class TpspDashboardController extends Controller
 
     public function publicInventory()
     {
-        // Cargar todos los productos para la cuadrícula
-        // Asumimos que tpspProduct tiene 'image_url' o lo gestionas en el modelo.
-        $products = tpspProduct::orderBy('name')->with('media')
-            ->select('id', 'name', 'stock', 'category') // Solo los campos necesarios
+        $products = tpspProduct::orderBy('name')
+            // Cargar relación de medios
+            ->with('media') 
+            // Cargar relación de órdenes de producción, pero SOLO las activas
+            ->with(['productionOrders' => function ($query) {
+                // Filtra por los estados 'En Progreso' o 'Pendiente'
+                $query->whereIn('status', ['En Progreso', 'Pendiente'])
+                      // Selecciona solo los campos necesarios de las órdenes
+                      ->select('id', 'product_id', 'quantity_requested', 'quantity_produced', 'status');
+            }])
+            // Selecciona los campos principales del producto
+            ->select('id', 'name', 'stock', 'category')
             ->get();
         
-            // return $products;
         return Inertia::render('Tpsp/PublicInventory', [
             'products' => $products,
         ]);
