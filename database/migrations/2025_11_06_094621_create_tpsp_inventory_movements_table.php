@@ -21,7 +21,7 @@ return new class extends Migration
 
             // Campo 'type' como ENUM en español (usando _ para seguridad)
             $table->enum('type', [
-                'Compra', 
+                'Entrada de material', 
                 'Consumo_Produccion', 
                 'Entrada_Produccion', 
                 'Venta', 

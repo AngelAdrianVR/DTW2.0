@@ -17,6 +17,7 @@ import ProductionOrdersTab from './ProductionOrdersTab.vue';
 import ProductsTab from './ProductsTab.vue';
 import KitsTab from './KitsTab.vue';
 import MovementsTab from './MovementsTab.vue';
+import FinanceTab from './FinanceTab.vue';
 
 // Lógica para el modal de "Nueva Orden"
 const toast = useToast();
@@ -110,6 +111,9 @@ onMounted(fetchKitProducts);
                     </TabPanel>
                     <TabPanel header="Movimientos de Inventario">
                         <MovementsTab />
+                    </TabPanel>
+                    <TabPanel header="Finanzas">
+                        <FinanceTab />
                     </TabPanel>
                 </TabView>
             </template>

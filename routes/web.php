@@ -160,6 +160,10 @@ Route::middleware([
     Route::resource('inventory-movements', TpspInventoryMovementController::class)
          ->only(['index', 'create', 'store', 'show']);
 
+    // --- NUEVA RUTA PARA DATOS FINANCIEROS ---
+    Route::get('/financials', [TpspDashboardController::class, 'getFinancials'])
+         ->name('financials');
+
 });
 
 // --- AÑADIDO: Nuevas rutas públicas ---

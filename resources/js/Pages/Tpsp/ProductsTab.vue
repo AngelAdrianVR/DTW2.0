@@ -24,7 +24,7 @@ const loading = ref(true);
 // Opciones de tus migraciones
 const productCategories = ref(['Material', 'Insumo', 'Empaque', 'Kit Terminado']);
 const unitsOfMeasure = ref(['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo','Metro','Rollo','Litro']);
-const movementTypes = ref(['Ajuste', 'Compra', 'Venta', 'Entrada_Produccion', 'Consumo_Produccion']);
+const movementTypes = ref(['Ajuste', 'Compra', 'Venta', 'Entrada_Produccion', 'Consumo_Produccion', 'Entrada de material']);
 
 const getFreshProduct = () => ({
     id: null,

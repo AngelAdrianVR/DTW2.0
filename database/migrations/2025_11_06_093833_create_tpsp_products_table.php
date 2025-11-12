@@ -27,7 +27,7 @@ return new class extends Migration
             $table->integer('stock')->default(0); 
             
             // Campo 'unit_of_measure' como ENUM en español
-            $table->enum('unit_of_measure', ['Pieza', 'Mililitro', 'Gramo', 'Kit'])
+            $table->enum('unit_of_measure', ['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo', 'Metro', 'Rollo', 'Litro'])
                   ->default('Pieza');
             
             $table->timestamps();

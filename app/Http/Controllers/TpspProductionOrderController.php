@@ -236,6 +236,7 @@ class TpspProductionOrderController extends Controller
                 'reference_type' => tpspProductionOrder::class,
                 'reference_id' => $order->id,
                 'notes' => 'Venta por entrega. Orden: ' . $order->order_number . '. Fecha Entrega: ' . $validated['delivery_date'],
+                'created_at' => $validated['delivery_date'], // Fecha de entrega
             ]);
             
             // 2. Actualizar el stock del Kit (Producto Terminado)
