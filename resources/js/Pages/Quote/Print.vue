@@ -13,7 +13,7 @@ const props = defineProps({
 
 // --- HELPERS ---
 const formatDate = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return '---';
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
         day: 'numeric',
@@ -31,8 +31,8 @@ const formatCurrency = (value) => {
 
 // --- COMPUTED PROPERTIES ---
 const totalWithDiscount = computed(() => {
-    const amount = props.quote.amount || 0;
-    const discount = props.quote.percentage_discount || 0;
+    const amount = parseFloat(props.quote.amount) || 0;
+    const discount = parseFloat(props.quote.percentage_discount) || 0;
     if (discount <= 0 || discount > 100) {
         return amount;
     }
@@ -40,202 +40,242 @@ const totalWithDiscount = computed(() => {
     return amount - discountAmount;
 });
 
+// Helper para obtener el tipo de pago con fallback (mayúscula/minúscula)
+const paymentType = computed(() => {
+    return props.quote.payment_type || props.quote.Payment_type || 'No especificado';
+});
+
 // --- METHODS ---
 const printQuote = () => {
     window.print();
 };
-
 </script>
 
 <template>
-    <Head :title="`COT-0${quote.id}`" />
-    <div class="py-6 print:bg-white font-sans">
-        <!-- Botones de Acción (se ocultan al imprimir) -->
-        <div class="max-w-4xl mx-auto mb-4 px-4 sm:px-6 lg:px-8 print:hidden">
-            <div class="flex justify-between items-center">
-                <Link :href="route('quotes.index')">
-                    <Button label="Volver al Listado" icon="pi pi-arrow-left" severity="secondary" outlined />
-                </Link>
-                <Button @click="printQuote" label="Imprimir Cotización" icon="pi pi-print" />
-            </div>
+    <Head :title="`COT-${quote.id} - ${quote.client?.name || 'Cliente'}`" />
+    
+    <!-- Contenedor Principal (Fondo gris en pantalla, blanco al imprimir) -->
+    <!-- COMPACTADO: Reduje py-8 a py-4 -->
+    <div class="min-h-screen bg-gray-100 py-4 print:bg-white print:p-0 font-sans text-gray-800">
+        
+        <!-- Barra de Herramientas (Visible solo en pantalla) -->
+        <div class="max-w-[21cm] mx-auto mb-4 px-4 print:hidden flex justify-between items-center">
+            <Link :href="route('quotes.index')">
+                <Button label="Regresar" icon="pi pi-arrow-left" severity="secondary" text rounded />
+            </Link>
+            <Button @click="printQuote" label="Imprimir Documento" icon="pi pi-print" severity="contrast" rounded />
         </div>
 
-        <!-- Hoja de Cotización -->
-        <div id="quote-sheet" class="max-w-4xl mx-auto bg-white shadow-2xl rounded-lg relative overflow-hidden">
-            <!-- Marca de agua de fondo -->
-            <div class="absolute inset-0 flex items-center justify-center z-0 opacity-5 pointer-events-none print:hidden">
-                 <img src="/images/black_logo.png" alt="Logo Watermark" class="h-64 transform -rotate-12">
-            </div>
+        <!-- La Hoja de Papel (Tamaño A4 aprox) -->
+        <div class="max-w-[21cm] mx-auto bg-white shadow-xl rounded-none sm:rounded-xl overflow-hidden print:shadow-none print:rounded-none print:w-full print:max-w-none">
+            
+            <!-- 1. HEADER: Logotipo y Folio -->
+            <!-- COMPACTADO: Reduje paddings (p-5 md:p-7 -> p-4 md:p-5) -->
+            <header class="p-4 md:p-5 pb-3 flex justify-between items-start border-b border-gray-100">
+                <div class="flex flex-col">
+                    <!-- Placeholder Logo: Reemplaza src con tu logo real -->
+                    <!-- COMPACTADO: Reduje tamaño logo y margen (mb-4 -> mb-2) -->
+                    <img src="/images/black_logo.png" alt="Logo Empresa" class="h-12 w-auto object-contain mb-2">
+                    <div class="text-xs text-gray-500 space-y-0.5">
+                        <p>Zapopan, Jalisco, México</p>
+                        <p>contacto@dtw.com.mx</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight uppercase">Cotización</h1>
+                    <p class="text-lg font-mono text-gray-500 mt-0">COT-{{ String(quote.id).padStart(4, '0') }}</p>
+                </div>
+            </header>
 
-            <div class="relative z-10">
-                <!-- Encabezado con decoración -->
-                <header class="relative p-4 md:p-6">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <img src="/images/black_logo.png" alt="Logo de la Empresa" class="h-16">
-                             <div class="mt-3 text-xs text-gray-500">
-                                <p>Zapopan, Jalisco, México</p>
-                                <p>contacto@dtw.com.mx</p>
+            <!-- 2. RESUMEN FINANCIERO Y CLIENTE (Total al inicio) -->
+            <!-- COMPACTADO: Márgenes y paddings reducidos drásticamente para ocupar menos altura -->
+            <section class="bg-gray-50 m-4 mt-2 rounded-xl p-3 print:bg-gray-50 print:break-inside-avoid">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    
+                    <!-- Columna Izquierda: Para quién es -->
+                    <div class="flex flex-col justify-center">
+                        <div class="flex items-baseline gap-2">
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Cliente:</h3>
+                            <p class="text-lg font-bold text-gray-900 leading-none">{{ quote.client?.name || 'Cliente Mostrador' }}</p>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">{{ quote.client?.address || 'Dirección no registrada' }}</p>
+                        <p v-if="quote.client?.tax_id" class="text-xs text-gray-500">RFC: {{ quote.client.tax_id }}</p>
+
+                        <div class="mt-3 grid grid-cols-2 gap-4">
+                            <div class="flex items-center gap-2">
+                                <p class="text-xs text-gray-400 font-bold uppercase">Emisión:</p>
+                                <p class="text-sm font-medium">{{ formatDate(quote.created_at) }}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <p class="text-xs text-gray-400 font-bold uppercase">Vencimiento:</p>
+                                <p class="text-sm font-medium text-gray-900">{{ formatDate(quote.valid_until) }}</p>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <h2 class="text-3xl font-bold uppercase text-gray-800 tracking-wider">Cotización</h2>
-                            <p class="font-mono mt-1 text-gray-500">COT-0{{ quote.id }}</p>
-                            <p class="mt-3 text-sm">Fecha de Emisión: <span class="font-semibold text-gray-700">{{ formatDate(quote.created_at) }}</span></p>
-                            <p class="text-sm">Válido hasta: <span class="font-semibold text-gray-700">{{ formatDate(quote.valid_until) }}</span></p>
+                    </div>
+
+                    <!-- Columna Derecha: EL TOTAL (Compacto) -->
+                    <div class="flex flex-col justify-center">
+                        <!-- COMPACTADO: p-5 -> p-3 -->
+                        <div class="bg-white rounded-lg p-3 border border-gray-100 shadow-sm print:border-gray-200">
+                            <!-- COMPACTADO: mb-4 pb-4 -> mb-2 pb-2 -->
+                            <div class="space-y-1 mb-2 pb-2 border-b border-gray-100">
+                                <div class="flex justify-between text-sm text-gray-600">
+                                    <span>Subtotal</span>
+                                    <span class="font-medium">{{ formatCurrency(quote.amount) }}</span>
+                                </div>
+                                <div v-if="quote.percentage_discount > 0" class="flex justify-between text-sm text-green-500">
+                                    <span>Descuento ({{ quote.percentage_discount }}%)</span>
+                                    <span>- {{ formatCurrency((quote.amount * quote.percentage_discount) / 100) }}</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <span class="text-sm font-bold text-gray-500 uppercase pb-1">Total</span>
+                                <span class="text-2xl font-extrabold text-blue-600 print:text-black leading-none">{{ formatCurrency(totalWithDiscount) }}</span>
+                            </div>
+                             <p class="text-[10px] text-gray-400 text-right mt-0.5">IVA no incluido</p>
                         </div>
                     </div>
-                </header>
+                </div>
+            </section>
+
+            <!-- 3. DETALLES DEL PROYECTO -->
+            <!-- COMPACTADO: Padding vertical y espaciado entre secciones reducido (space-y-8 -> space-y-4) -->
+            <main class="px-6 md:px-8 pb-4 space-y-4">
                 
-                <main class="p-4 md:p-5">
-                    <!-- Información del Cliente -->
-                    <section class="pb-4 border-b-2 border-dashed">
-                        <h3 class="text-sm uppercase font-semibold text-gray-500">Cotización para:</h3>
-                        <div v-if="quote.client">
-                            <p class="text-xl font-bold text-gray-800">{{ quote.client.name }}</p>
-                        </div>
-                        <div v-else>
-                           <p class="text-gray-500">Cliente no especificado.</p>
-                        </div>
-                    </section>
+                <!-- Título y Descripción -->
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-1">{{ quote.title }}</h2>
+                    <!-- Separador más pequeño -->
+                    <div class="h-1 w-12 bg-blue-500 rounded-full mb-3 print:bg-black"></div>
                     
-                    <!-- Descripción del Servicio -->
-                    <section class="mt-5">
-                        <div class="border-2 border-gray-100 rounded-lg">
-                            <h3 class="text-base font-bold text-gray-800 bg-gray-50 p-3 rounded-t-md">{{ quote.title }}</h3>
-                            <!-- Contenedor con overflow-x-auto para el contenido que pueda desbordarse -->
-                            <div class="prose max-w-none p-3 text-gray-700 overflow-x-auto" v-html="quote.description"></div>
-                        </div>
-                    </section>
+                    <!-- Contenido HTML -->
+                    <!-- COMPACTADO: leading-relaxed -> leading-snug para líneas de texto más juntas -->
+                    <div class="prose prose-sm max-w-none text-gray-700 leading-snug" v-html="quote.description"></div>
+                </div>
 
-                    <!-- Detalles del Proyecto -->
-                     <section class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                        <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-300">
-                            <h4 class="font-bold text-gray-800 mb-2">Duración del Proyecto</h4>
-                            <p class="text-gray-600">La entrega estimada para la implementación final del proyecto es <strong>{{ quote.work_days }} días hábiles</strong>, iniciando a partir del primer pago al inicio del proyecto.</p>
-                        </div>
-                        <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-300">
-                            <h4 class="font-bold text-gray-800 mb-2">Condiciones de Pago</h4>
-                            <p class="text-gray-600">{{ quote.Payment_type }}</p>
-                            <p class="text-gray-500 text-xs mt-1">Esta cotización no incluye costos adicionales por cambios significativos en el alcance del proyecto.</p>
-                        </div>
-                    </section>
-
-                    <!-- Secciones Adicionales -->
-                    <section v-if="quote.show_process" class="mt-6 text-sm">
-                        <h4 class="font-bold text-gray-800 border-b pb-1 mb-2">Nuestro Proceso</h4>
-                        <p class="text-gray-600">
-                            El proyecto inicia con el diseño de todas las vistas de la aplicación para aprobación del cliente. Una vez aprobado, se procede con la programación y desarrollo. Finalmente, la aplicación se despliega en la nube y se entrega, corrigiendo cualquier error funcional. Se incluye capacitación online para hasta 5 usuarios y un año de soporte técnico integral para asegurar el funcionamiento óptimo del sistema.
+                <!-- Tabla de Datos Clave (Forma de pago, Tiempos) -->
+                <!-- COMPACTADO: pt-6 -> pt-4, gap-6 -> gap-4 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100 break-inside-avoid">
+                    <div>
+                        <h4 class="flex items-center text-sm font-bold text-gray-900 uppercase mb-1">
+                            <span class="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center mr-2 text-[10px]"><i class="pi pi-calendar"></i></span>
+                            Tiempo de Ejecución
+                        </h4>
+                        <p class="text-sm text-gray-600 ml-7 leading-tight">
+                            Estimado en <span class="font-bold text-gray-900">{{ quote.work_days }} días hábiles</span> a partir de la confirmación.
                         </p>
-                    </section>
+                    </div>
+                    <div>
+                        <h4 class="flex items-center text-sm font-bold text-gray-900 uppercase mb-1">
+                            <span class="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center mr-2 text-[10px]"><i class="pi pi-wallet"></i></span>
+                            Condiciones de Pago
+                        </h4>
+                        <p class="text-sm text-gray-600 ml-7 font-medium leading-tight">
+                            {{ paymentType }}
+                        </p>
+                    </div>
+                </div>
 
-                    <section v-if="quote.show_benefits" class="mt-6 text-sm">
-                        <h4 class="font-bold text-gray-800 border-b pb-1 mb-2">Beneficios de Adquirir el Software</h4>
-                        <ul class="list-disc list-inside space-y-1 text-gray-600">
-                            <li><b>Compatibilidad Total:</b> Funciona en computadoras, laptops, tablets y móviles.</li>
-                            <li><b>Seguridad en la Nube:</b> Datos protegidos con respaldos automáticos.</li>
-                            <li><b>Acceso Remoto:</b> Accede a tu información desde cualquier lugar.</li>
-                            <li><b>Escalabilidad:</b> El sistema crece junto a tu empresa.</li>
-                            <li><b>Soporte Técnico:</b> Asistencia eficiente para resolver cualquier duda.</li>
-                            <li><b>Personalización:</b> Adaptamos el sistema a los colores y logo de tu marca.</li>
-                            <li>Un solo pago, usuarios ilimitados.</li>
+                <!-- Secciones Opcionales (Proceso y Beneficios) -->
+                <div v-if="quote.show_process || quote.show_benefits" class="grid grid-cols-1 gap-4 pt-4 border-t border-gray-100 break-inside-avoid">
+                    <div v-if="quote.show_process">
+                        <h4 class="text-sm font-bold text-gray-900 uppercase mb-1">Metodología</h4>
+                        <p class="text-sm text-gray-600 text-justify leading-snug">
+                            El proyecto inicia con el diseño de vistas para aprobación. Una vez validado, procedemos al desarrollo y programación. Finalmente, realizamos el despliegue en producción y pruebas de calidad, incluyendo capacitación y garantía de soporte.
+                        </p>
+                    </div>
+                    <div v-if="quote.show_benefits">
+                        <h4 class="text-sm font-bold text-gray-900 uppercase mb-1">Beneficios</h4>
+                        <ul class="text-sm text-gray-600 grid grid-cols-2 gap-x-2 gap-y-1 list-inside list-disc leading-snug">
+                            <li>Compatibilidad Multi-dispositivo</li>
+                            <li>Respaldos Automáticos</li>
+                            <li>Acceso Remoto Seguro</li>
+                            <li>Escalabilidad Garantizada</li>
+                            <li>Soporte Técnico Prioritario</li>
+                            <li>Personalización de Marca</li>
                         </ul>
-                    </section>
-                </main>
-                
-                <!-- Footer con Totales -->
-                <footer class="p-6 bg-gray-50 rounded-b-lg">
-                    <div class="border-t-2 border-gray-200 border-dashed pt-4">
-                         <!-- Totales -->
-                        <div class="w-full sm:w-2/3 md:w-1/2 ml-auto text-right space-y-2 text-gray-700">
-                            <div class="flex justify-between">
-                                <span class="font-semibold">Subtotal:</span>
-                                <span>{{ formatCurrency(quote.amount) }}</span>
-                            </div>
-                            <div v-if="quote.percentage_discount > 0" class="flex justify-between text-red-600">
-                                <span class="font-semibold">Descuento ({{ quote.percentage_discount }}%):</span>
-                                <span>- {{ formatCurrency((quote.amount * quote.percentage_discount) / 100) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center bg-white p-2 rounded-md shadow-inner">
-                                <span class="text-lg font-bold text-gray-800">Total:</span>
-                                <span class="text-2xl font-bold text-blue-600">{{ formatCurrency(totalWithDiscount) }} <span class="text-sm font-normal">MXN</span></span>
-                            </div>
-                            <p class="text-xs text-gray-500 text-right">Los precios no incluyen IVA.</p>
-                        </div>
                     </div>
+                </div>
+            </main>
 
+            <!-- 4. FOOTER: Datos Bancarios y Legal -->
+            <!-- COMPACTADO: Padding reducido (py-8 -> py-4) y margin top reducido -->
+            <footer class="bg-gray-50 px-6 md:px-8 py-4 border-t border-gray-200 break-inside-avoid print:bg-white print:border-t-2 print:border-black">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
                     <!-- Datos Bancarios -->
-                    <div v-if="quote.show_bank_info" class="mt-6 border border-gray-200 bg-white p-3 rounded-lg text-xs">
-                        <h4 class="font-bold text-gray-800 mb-2">Datos para la realización de pagos</h4>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600">
-                            <p><b>Beneficiario:</b></p><p>Miguel Osvaldo Vázquez Rodríguez</p>
-                            <p><b>Banco:</b></p><p>NU México</p>
-                            <p><b>No. de cuenta:</b></p><p>00017049244</p>
-                            <p><b>Clabe:</b></p><p>638180000170492445</p>
+                    <div v-if="quote.show_bank_info">
+                        <h4 class="text-xs font-bold text-gray-900 uppercase mb-2">Instrucciones de Pago</h4>
+                        <div class="bg-white border border-gray-200 rounded-md p-3 text-xs text-gray-600 print:border-gray-300">
+                            <div class="grid grid-cols-[80px_1fr] gap-y-0.5">
+                                <span class="text-gray-400">Banco:</span>
+                                <span class="font-bold text-gray-900">NU México</span>
+                                
+                                <span class="text-gray-400">Beneficiario:</span>
+                                <span class="font-bold text-gray-900">Miguel Osvaldo Vázquez Rodríguez</span>
+                                
+                                <span class="text-gray-400">Cuenta:</span>
+                                <span class="font-mono">00017049244</span>
+                                
+                                <span class="text-gray-400">CLABE:</span>
+                                <span class="font-mono font-bold text-gray-900">638180000170492445</span>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="text-center text-gray-500 text-xs mt-8">
-                        <p>Gracias por su confianza.</p>
-                    </div>
-                </footer>
-            </div>
+                </div>
+
+                <div class="text-center mt-4 text-[12px] text-gray-500">
+                    <p>Esta cotización no incluye costos adicionales que puedan surgir debido a cambios significativos en el alcance del proyecto.</p>
+                </div>
+            </footer>
         </div>
     </div>
 </template>
 
-<style>
-/* Estilos para la vista previa de la cotización */
-.prose {
-    font-size: 0.875rem; /* Reducido de 1rem */
-    line-height: 1.6;    /* Reducido de 1.75 */
-    /* Estas propiedades ayudan a manejar el desbordamiento de texto */
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    word-break: break-word;
-}
-.prose p, .prose ul {
-    margin-top: 0.5em;
-    margin-bottom: 0.5em;
-}
-.prose ul {
-    list-style-type: disc;
-    padding-left: 1.25rem;
-}
-.prose li p {
-    margin: 0;
-}
-/* Agregamos una clase para tablas si las hubiera en la descripción */
-.prose table {
-    width: 100%;
-    table-layout: fixed;
-}
-
-
+<style scoped>
 /* Estilos específicos para impresión */
 @media print {
+    @page {
+        margin: 0.5cm; /* Márgenes pequeños para aprovechar la hoja */
+        size: auto;
+    }
+    
     body {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    .print\:hidden {
-        display: none;
-    }
-    .print\:bg-white {
         background-color: white;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
-    #quote-sheet {
-        box-shadow: none;
-        border-radius: 0;
-        margin: 0;
-        max-width: 100%;
+
+    /* Asegurar que los colores de fondo (como el gris del resumen) se impriman */
+    .bg-gray-50 {
+        background-color: #f9fafb !important;
     }
-    .prose {
-        color: #000 !important;
+    
+    /* Evitar que elementos clave se corten entre páginas */
+    .break-inside-avoid {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
-    /* Oculta fondos que no sean blancos para ahorrar tinta */
-    .bg-gray-50, .bg-gray-100 {
-        background-color: white !important;
-    }
+}
+
+/* Tipografía Prose Limpia y Compacta */
+.prose {
+    font-size: 0.9rem;
+    line-height: 1.4; /* COMPACTADO: Reduce la altura de línea general */
+}
+
+/* COMPACTADO: Reduce drásticamente el espacio entre párrafos */
+.prose :deep(p) {
+    margin-bottom: 0.4em !important; 
+}
+
+.prose :deep(ul) {
+    list-style-type: disc;
+    padding-left: 1.25em;
+    margin-bottom: 0.4em;
+}
+
+.prose :deep(li) {
+    margin-bottom: 0.2em;
 }
 </style>

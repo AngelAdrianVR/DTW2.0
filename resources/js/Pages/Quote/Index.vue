@@ -103,7 +103,7 @@ const menuItems = computed(() => {
             label: 'Editar Cotización',
             icon: 'pi pi-pencil',
             command: () => router.get(route('quotes.edit', quote.id)),
-            visible: !['Aceptado', 'Pagado'].includes(quote.status)
+            visible: !['Pagado'].includes(quote.status)
         },
         {
             label: 'Crear Proyecto',

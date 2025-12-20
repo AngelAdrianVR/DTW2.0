@@ -30,7 +30,7 @@ const form = useForm({
     description: props.quote.description,
     amount: props.quote.amount,
     valid_until: new Date(props.quote.valid_until), // Convertimos la fecha a un objeto Date
-    payment_type: props.quote.Payment_type, // Ojo: El nombre de la propiedad viene con 'P' mayúscula
+    payment_type: props.quote.payment_type || props.quote.Payment_type || '', 
     work_days: props.quote.work_days,
     percentage_discount: props.quote.percentage_discount,
     show_process: Boolean(props.quote.show_process),
