@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,5 +30,15 @@ return Application::configure(basePath: dirname(__DIR__))
             return Inertia::render('404NotFound', [ // Nombre del componente a renderizar
                 'status' => $e->getStatusCode(),
             ])->toResponse($request)->setStatusCode($e->getStatusCode());
+        });
+
+        // lógica para el error 419 (Sesión Expirada) y otros errores HTTP
+        $exceptions->respond(function (Response $response, \Throwable $exception, Request $request) {
+            if (! app()->environment(['local', 'testing']) && $response->getStatusCode() === 419) {
+                return Inertia::render('Errors/419', [
+                    'status' => 419
+                ])->toResponse($request)->setStatusCode(419);
+            }
+            return $response;
         });
     })->create();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\TimeLog;
 use Carbon\Carbon;
@@ -12,14 +13,31 @@ use Illuminate\Support\Facades\Log;
 
 class TaskController extends Controller
 {
-    public function index()
+    /**
+     * Helper para automatizar el estado del proyecto basado en sus tareas.
+     */
+    private function updateProjectAutomatedStatus(Project $project)
     {
-        //
-    }
+        $totalTasks = $project->tasks()->count();
+        
+        if ($totalTasks === 0) {
+            return; 
+        }
 
-    public function create()
-    {
-        //
+        $completedTasks = $project->tasks()->where('status', 'Completada')->count();
+        $inProgressTasks = $project->tasks()->where('status', 'En proceso')->count();
+
+        if ($completedTasks === $totalTasks) {
+            $newStatus = 'Completado';
+        } elseif ($inProgressTasks > 0) {
+            $newStatus = 'En proceso';
+        } else {
+            $newStatus = 'Pendiente';
+        }
+
+        if ($project->status !== $newStatus) {
+            $project->update(['status' => $newStatus]);
+        }
     }
 
     public function store(Request $request)
@@ -27,25 +45,19 @@ class TaskController extends Controller
         $validated = $request->validate([
             'project_id' => 'required|exists:projects,id',
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string', // Validar la descripción
-            'assigned_to' => 'nullable|exists:users,id',
-            'due_date' => 'nullable|date',
+            'description' => 'nullable|string',
+            'assigned_to' => 'required|exists:users,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'is_high_priority' => 'boolean',
         ]);
 
         $task = Task::create($validated + ['status' => 'Pendiente']);
 
-        // Devolvemos la tarea creada como JSON para poder agregarla dinámicamente
-        // return response()->json($task->load('assignee'));
-    }
+        $task->project->members()->syncWithoutDetaching([$validated['assigned_to']]);
+        $this->updateProjectAutomatedStatus($task->project);
 
-    public function show(Task $task)
-    {
-        //
-    }
-
-    public function edit(Task $task)
-    {
-        //
+        return redirect()->back()->with('success', 'Tarea creada correctamente.');
     }
 
     public function update(Request $request, Task $task)
@@ -53,20 +65,57 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'assigned_to' => 'nullable|exists:users,id',
-            'due_date' => 'nullable|date',
+            'assigned_to' => 'required|exists:users,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'is_high_priority' => 'boolean',
+            'time_logs' => 'nullable|array',
+            'time_logs.*.id' => 'required|exists:time_logs,id',
+            'time_logs.*.duration_minutes' => 'required|integer|min:0',
         ]);
 
-        $task->update($validated);
+        $task->update([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'assigned_to' => $validated['assigned_to'],
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'is_high_priority' => $validated['is_high_priority'] ?? false,
+        ]);
         
-        // Devolvemos la tarea actualizada para refrescar la UI
-        // return response()->json($task->load('assignee'));
+        $task->project->members()->syncWithoutDetaching([$validated['assigned_to']]);
+
+        if (isset($validated['time_logs'])) {
+            foreach ($validated['time_logs'] as $logData) {
+                $timeLog = TimeLog::find($logData['id']);
+                if ($timeLog && $timeLog->duration_minutes !== $logData['duration_minutes']) {
+                    $difference = $logData['duration_minutes'] - $timeLog->duration_minutes;
+                    $timeLog->update(['duration_minutes' => $logData['duration_minutes']]);
+                    
+                    $task->increment('total_invested_minutes', $difference);
+                    $task->project->increment('total_invested_minutes', $difference);
+                }
+            }
+        }
+        
+        return redirect()->back()->with('success', 'Tarea y tiempos actualizados.');
     }
 
     public function destroy(Task $task)
     {
+        $project = $task->project;
+        $investedMinutes = $task->total_invested_minutes;
+
+        $task->timeLogs()->delete();
         $task->delete();
-        return response()->json(['success' => true, 'message' => 'Tarea eliminada.']);
+
+        if ($investedMinutes > 0) {
+            $project->decrement('total_invested_minutes', $investedMinutes);
+        }
+
+        $this->updateProjectAutomatedStatus($project);
+
+        return redirect()->back()->with('success', 'Tarea eliminada exitosamente.');
     }
 
     public function updateStatus(Request $request, Task $task)
@@ -87,6 +136,10 @@ class TaskController extends Controller
         DB::beginTransaction();
         try {
             if ($newStatus === 'En proceso' && $oldStatus !== 'En proceso') {
+                if (!$task->start_date) {
+                    $task->update(['start_date' => Carbon::today()]);
+                }
+                
                 TimeLog::create([
                     'task_id' => $task->id,
                     'user_id' => Auth::id(),
@@ -104,9 +157,6 @@ class TaskController extends Controller
                     $startTime = Carbon::parse($timeLog->start_time);
                     $endTime = Carbon::now();
                     
-                    // --- CORRECCIÓN 1: CÁLCULO DE DURACIÓN ROBUSTO ---
-                    // Se agrega `true` para forzar a que la diferencia sea siempre un valor absoluto (positivo).
-                    // Esto resuelve el problema de los segundos negativos causado por desfases de reloj.
                     $durationInSeconds = $endTime->diffInSeconds($startTime, true);
                     $durationInMinutes = max(0, (int) round($durationInSeconds / 60));
 
@@ -117,22 +167,23 @@ class TaskController extends Controller
                     ]);
                     
                     if ($durationInMinutes > 0) {
-                        // --- LÓGICA DE ACUMULACIÓN DE TIEMPO ---
-                        // El método ->increment() es la clave. Automáticamente lee el valor actual
-                        // de 'total_invested_minutes' en la base de datos, le suma $durationInMinutes
-                        // y guarda el resultado. Esto asegura que el tiempo se acumule correctamente.
                         $task->update([
                             'total_invested_minutes' => DB::raw("total_invested_minutes + $durationInMinutes")
                         ]);
                         $task->project->increment('total_invested_minutes', $durationInMinutes);
-
-                        // Actualizamos el modelo en memoria para que el accessor use el nuevo total.
                         $task->refresh();
                     }
                 }
             }
 
+            if ($newStatus === 'Completada' && $oldStatus !== 'Completada') {
+                if (!$task->end_date) {
+                    $task->update(['end_date' => Carbon::today()]);
+                }
+            }
+
             $task->update(['status' => $newStatus]);
+            $this->updateProjectAutomatedStatus($task->project);
 
             DB::commit();
 

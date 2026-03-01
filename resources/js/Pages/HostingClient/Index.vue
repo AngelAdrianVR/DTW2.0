@@ -10,6 +10,11 @@ import Dialog from 'primevue/dialog';
 import InputNumber from 'primevue/inputnumber';
 import Calendar from 'primevue/calendar';
 import Textarea from 'primevue/textarea';
+import Card from 'primevue/card';
+import Tag from 'primevue/tag';
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
 
 
 // --- PROPS ---
@@ -190,7 +195,7 @@ const onRowClick = (event) => {
     router.get(route('hosting-clients.show', event.data.id));
 };
 
-const rowClass = () => 'cursor-pointer';
+const rowClass = () => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors';
 
 const formatCurrency = (value) => {
     if (value === null || isNaN(value)) value = 0;
@@ -219,37 +224,45 @@ const getStatusSeverity = (status) => {
 
                 <header class="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-gray-200 text-gray-800">Módulo de Hosting</h1>
-                        <p class="text-gray-400 mt-1">Gestiona los servicios de hosting de tus clientes.</p>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Hosting</h1>
+                        <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona los servicios de hosting de tus clientes.</p>
                     </div>
                     <Link :href="route('hosting-clients.create')">
-                        <Button label="Añadir Servicio" icon="pi pi-plus" />
+                        <Button label="Añadir Servicio" icon="pi pi-plus" class="!text-[var(--primary-text-color)]" />
                     </Link>
                 </header>
 
                 <!-- Desktop Table View -->
-                <div class="hidden md:block">
+                <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                     <DataTable :value="hostingClients" stripedRows paginator :rows="15" tableStyle="min-width: 50rem;"
-                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass">
-                        <template #empty> No se encontraron servicios de hosting. </template>
+                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                        <template #empty> <div class="p-4 text-center text-gray-500 dark:text-zinc-500">No se encontraron servicios de hosting.</div> </template>
 
                         <Column field="client.name" header="Cliente" sortable>
                             <template #body="{ data }">
-                                <div class="font-semibold">{{ data.client.name }}</div>
+                                <div class="font-semibold text-gray-800 dark:text-zinc-200">{{ data.client.name }}</div>
                             </template>
                         </Column>
-                         <Column field="service_provider" header="Proveedor" sortable></Column>
+                         <Column field="service_provider" header="Proveedor" sortable>
+                             <template #body="{ data }">
+                                <span class="text-gray-600 dark:text-zinc-400">{{ data.service_provider }}</span>
+                            </template>
+                         </Column>
                         <Column field="next_payment_date" header="Próximo Pago" sortable>
                             <template #body="{ data }">
-                                {{ formatDate(data.next_payment_date) }}
+                                <span class="text-gray-600 dark:text-zinc-400">{{ formatDate(data.next_payment_date) }}</span>
                             </template>
                         </Column>
                         <Column field="payment_amount" header="Monto" sortable class="text-right">
                             <template #body="{ data }">
-                                <span class="text-green-600">{{ formatCurrency(data.payment_amount) }}</span>
+                                <span class="text-emerald-600 dark:text-emerald-400">{{ formatCurrency(data.payment_amount) }}</span>
                             </template>
                         </Column>
-                         <Column field="billing_cycle" header="Ciclo" sortable></Column>
+                         <Column field="billing_cycle" header="Ciclo" sortable>
+                             <template #body="{ data }">
+                                <span class="text-gray-600 dark:text-zinc-400">{{ data.billing_cycle }}</span>
+                            </template>
+                         </Column>
                         <Column field="status" header="Estado" sortable>
                             <template #body="{ data }">
                                 <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
@@ -258,7 +271,7 @@ const getStatusSeverity = (status) => {
                         <Column header="Acciones" style="width: 10%" bodyClass="text-center">
                             <template #body="{ data }">
                                 <Button icon="pi pi-ellipsis-v" text rounded aria-haspopup="true"
-                                    aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" />
+                                    aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" class="!text-gray-500 dark:!text-zinc-400 hover:!bg-gray-100 dark:hover:!bg-zinc-800" />
                             </template>
                         </Column>
                     </DataTable>
@@ -268,20 +281,20 @@ const getStatusSeverity = (status) => {
 
                  <!-- Mobile Card View -->
                 <div class="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Card v-for="hosting in hostingClients" :key="hosting.id" @click="onRowClick({data: hosting})">
+                    <Card v-for="hosting in hostingClients" :key="hosting.id" @click="onRowClick({data: hosting})" class="cursor-pointer dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm !rounded-xl">
                          <template #title>
-                            <div class="flex justify-between items-start">
-                                <span class="text-lg font-bold">{{ hosting.client.name }}</span>
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-lg font-bold text-gray-800 dark:text-zinc-100">{{ hosting.client.name }}</span>
                                 <Tag :value="hosting.status" :severity="getStatusSeverity(hosting.status)" />
                             </div>
                         </template>
-                        <template #subtitle>{{ hosting.service_provider }}</template>
+                        <template #subtitle><span class="text-gray-500 dark:text-zinc-500">{{ hosting.service_provider }}</span></template>
                         <template #content>
-                            <ul class="space-y-2 text-gray-700">
-                                <li class="flex justify-between"><span>Próximo Pago:</span> <span>{{ formatDate(hosting.next_payment_date) }}</span></li>
-                                 <li class="flex justify-between border-t pt-2 mt-2">
+                            <ul class="space-y-2 text-gray-600 dark:text-zinc-300 text-sm">
+                                <li class="flex justify-between"><span>Próximo Pago:</span> <span class="font-medium text-gray-800 dark:text-zinc-200">{{ formatDate(hosting.next_payment_date) }}</span></li>
+                                 <li class="flex justify-between border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2">
                                     <span class="font-bold">Monto:</span>
-                                    <span class="font-bold text-green-600">
+                                    <span class="font-bold text-emerald-600 dark:text-emerald-400">
                                         {{ formatCurrency(hosting.payment_amount) }} ({{ hosting.billing_cycle }})
                                     </span>
                                 </li>
@@ -290,45 +303,46 @@ const getStatusSeverity = (status) => {
                         <template #footer>
                              <div class="flex justify-end">
                                 <Button label="Acciones" icon="pi pi-bars" @click.stop="toggleMenu($event, hosting)"
-                                    aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" />
+                                    aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" size="small" outlined />
                             </div>
                         </template>
                     </Card>
-                    <div v-if="hostingClients.length === 0" class="text-center text-gray-500 col-span-full mt-8">
+                    <div v-if="hostingClients.length === 0" class="text-center text-gray-500 dark:text-zinc-500 col-span-full mt-8">
                         No se encontraron servicios de hosting.
                     </div>
                 </div>
 
 
                 <!-- Payment Dialog -->
-                 <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }">
+                 <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }"
+                    :pt="{ root: { class: 'dark:bg-zinc-900 dark:border-zinc-700' }, header: { class: 'dark:bg-zinc-900 dark:text-zinc-200' }, content: { class: 'dark:bg-zinc-900' }, footer: { class: 'dark:bg-zinc-900' } }">
                     <template #header>
                         <div class="flex flex-col">
-                            <h3 class="text-lg font-semibold">Registrar Pago de Hosting</h3>
-                            <p class="text-sm text-gray-500">Para: {{ selectedHostingClientForPayment?.client?.name }}</p>
+                            <h3 class="text-lg font-semibold dark:text-zinc-100">Registrar Pago de Hosting</h3>
+                            <p class="text-sm text-gray-500 dark:text-zinc-500">Para: {{ selectedHostingClientForPayment?.client?.name }}</p>
                         </div>
                     </template>
                     <form @submit.prevent="submitPayment">
                         <div class="flex flex-col gap-4 p-4">
                             <div class="flex flex-col gap-2">
-                                <label for="amount">Monto del Pago</label>
+                                <label for="amount" class="dark:text-zinc-300">Monto del Pago</label>
                                 <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN" locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
                                 <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="payment_date">Fecha del Pago</label>
+                                <label for="payment_date" class="dark:text-zinc-300">Fecha del Pago</label>
                                 <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
                                 <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="notes">Notas (Opcional)</label>
+                                <label for="notes" class="dark:text-zinc-300">Notas (Opcional)</label>
                                 <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
                             </div>
                         </div>
                     </form>
                     <template #footer>
                         <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" />
-                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" />
+                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!text-[var(--primary-text-color)]" />
                     </template>
                 </Dialog>
             </div>
@@ -336,3 +350,36 @@ const getStatusSeverity = (status) => {
     </AppLayout>
 </template>
 
+<style scoped>
+/* Zinc Theme Overrides for PrimeVue DataTable */
+:deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #f4f4f5 !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7;
+}
+.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #18181b !important; /* zinc-950 */
+    color: #a1a1aa !important; /* zinc-400 */
+    border-bottom: 1px solid #27272a; /* zinc-800 */
+}
+:deep(.zinc-table .p-datatable-tbody > tr) {
+    background-color: transparent !important;
+    color: inherit;
+}
+:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #f4f4f5;
+}
+.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #27272a;
+}
+
+/* Input overrides for dark mode */
+:deep(.p-inputtext), :deep(.p-inputnumber-input), :deep(.p-textarea) {
+    width: 100%;
+}
+.dark :deep(.p-inputtext), .dark :deep(.p-inputnumber-input), .dark :deep(.p-textarea) {
+    background-color: #27272a; /* zinc-800 */
+    color: #f4f4f5; /* zinc-100 */
+    border-color: #3f3f46; /* zinc-700 */
+}
+</style>

@@ -6,24 +6,21 @@ import Column from 'primevue/column';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Calendar from 'primevue/calendar';
-import Paginator from 'primevue/paginator'; // Usado por DataTable
+import Paginator from 'primevue/paginator';
 
 // --- Props ---
 const props = defineProps({
     products: {
         type: Array,
         default: () => []
-        // Cada producto ahora puede incluir un array 'production_orders'
     }
 });
 
 // --- Computed Properties for Product Filtering ---
-// Filtra los productos que NO son 'Kit Terminado'
 const otherProducts = computed(() => {
     return props.products.filter(p => p.category !== 'Kit Terminado');
 });
 
-// Filtra los productos que SÍ son 'Kit Terminado'
 const finishedKits = computed(() => {
     return props.products.filter(p => p.category === 'Kit Terminado');
 });
@@ -36,18 +33,14 @@ const filterEndDate = ref(null);
 const imageErrorState = ref({});
 
 // --- Helpers de Formato ---
-
-/**
- * CAMBIO: Formatea la fecha para mostrar solo día, mes y año.
- */
 function formatDisplayDate(dateString) {
     if (!dateString) return '---';
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', { 
         day: '2-digit', 
-        month: 'short', // 'short' para "nov."
+        month: 'short', 
         year: 'numeric' 
-    }).replace('.', ''); // Quita el punto de "nov." si lo hubiera
+    }).replace('.', ''); 
 }
 
 function formatDateForAPI(date) {
@@ -64,7 +57,6 @@ const onImageError = (productId) => {
 };
 
 // --- Lógica de Datos ---
-
 const fetchMovements = async () => {
     loading.value = true;
     const params = {};
@@ -88,35 +80,27 @@ const fetchMovements = async () => {
     }
 };
 
-/**
- * NUEVO: Computed property para agrupar los movimientos por fecha.
- * Esto transforma la lista plana de movimientos en una lista agrupada.
- */
 const groupedMovements = computed(() => {
     const groups = new Map();
     
-    // 1. Agrupar movimientos en un Map
     for (const movement of movements.value) {
-        // Usamos formatDisplayDate para obtener una clave de fecha consistente
         const dateKey = formatDisplayDate(movement.created_at);
         
         if (!groups.has(dateKey)) {
             groups.set(dateKey, {
                 date: dateKey,
-                originalDate: new Date(movement.created_at), // Guardamos la fecha original para ordenar
-                items: [] // Array para los items de esta fecha
+                originalDate: new Date(movement.created_at), 
+                items: [] 
             });
         }
         
-        // Añadir el item al grupo correspondiente
         groups.get(dateKey).items.push({
             product: movement.product,
             quantity: movement.quantity,
-            id: movement.id // ID único para el :key del v-for
+            id: movement.id 
         });
     }
     
-    // 2. Convertir el Map a un Array y ordenarlo por fecha (más nuevas primero)
     return Array.from(groups.values())
         .sort((a, b) => b.originalDate.getTime() - a.originalDate.getTime());
 });
@@ -135,21 +119,19 @@ onMounted(() => {
 <template>
     <Head title="Inventario y entregas" />
     
-    <!-- CAMBIO: Quitado 'dark:bg-gray-900', asegurando fondo claro -->
-    <div class="container mx-auto p-6 max-w-7xl bg-gray-50 min-h-screen">
+    <div class="container mx-auto p-6 max-w-7xl min-h-screen bg-gray-50 dark:bg-black">
 
-        <!-- TÍTULO PRINCIPAL (sin cambios de dark mode) -->
-        <h1 class="text-3xl font-semibold text-gray-900 mb-8">Inventario y Entregas</h1>
+        <!-- TÍTULO PRINCIPAL -->
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-8">Inventario y Entregas</h1>
 
         <!-- SECCIÓN DE PRODUCTOS (GENERALES) -->
         <div v-if="otherProducts.length > 0">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Productos en Existencia</h2>
+            <h2 class="text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">Productos en Existencia</h2>
             
             <div class="flex overflow-x-auto space-x-4 py-4 mb-8">
-                <!-- CAMBIO: Quitado 'dark:bg-gray-800' de Card -->
-                <Card v-for="product in otherProducts" :key="product.id" class="overflow-hidden rounded-lg shadow-sm flex-shrink-0 w-52 bg-white">
+                <Card v-for="product in otherProducts" :key="product.id" class="overflow-hidden rounded-xl shadow-sm flex-shrink-0 w-52 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
                     <template #header>
-                        <div class="w-full h-48">
+                        <div class="w-full h-48 bg-gray-100 dark:bg-zinc-950">
                             <img 
                                 v-if="product.media[0]?.original_url && !imageErrorState[product.id]"
                                 draggable="false"
@@ -158,35 +140,33 @@ onMounted(() => {
                                 :alt="product.name" 
                                 class="w-full h-full object-cover"
                             />
-                            <!-- CAMBIO: Placeholder claro -->
-                            <div v-else class="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-500">
+                            <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600">
                                 <i class="pi pi-image" style="font-size: 2.5rem;"></i>
-                                <span class="mt-2 text-sm font-medium">Imagen no disponible</span>
+                                <span class="mt-2 text-sm font-medium">Sin imagen</span>
                             </div>
                         </div>
                     </template>
                     <template #title>
-                        <span class="text-lg font-semibold text-gray-900">{{ product.name }}</span>
+                        <span class="text-lg font-bold text-gray-900 dark:text-zinc-100 block truncate" :title="product.name">{{ product.name }}</span>
                     </template>
                     <template #content>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Existencia:</span>
-                            <span class="text-lg font-semibold text-gray-800">{{ product.stock.toLocaleString() }}</span>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-gray-600 dark:text-zinc-400 text-sm">Existencia:</span>
+                            <span class="text-lg font-bold text-gray-800 dark:text-zinc-200">{{ product.stock.toLocaleString() }}</span>
                         </div>
                     </template>
                 </Card>
             </div>
         </div>
 
-        <!-- ***** SECCIÓN DE KITS TERMINADOS (MODIFICADA) ***** -->
+        <!-- ***** SECCIÓN DE KITS TERMINADOS ***** -->
         <div v-if="finishedKits.length > 0">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Existencias de kits terminados</h2>
+            <h2 class="text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">Existencias de kits terminados</h2>
             
             <div class="flex overflow-x-auto space-x-4 py-4 mb-8">
-                <!-- CAMBIO: Quitado 'dark:bg-gray-800' de Card -->
-                <Card v-for="product in finishedKits" :key="product.id" class="overflow-hidden rounded-lg shadow-sm flex-shrink-0 w-52 bg-white">
+                <Card v-for="product in finishedKits" :key="product.id" class="overflow-hidden rounded-xl shadow-sm flex-shrink-0 w-52 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
                     <template #header>
-                        <div class="w-full h-48">
+                        <div class="w-full h-48 bg-gray-100 dark:bg-zinc-950">
                             <img 
                                 v-if="product.media[0]?.original_url && !imageErrorState[product.id]"
                                 draggable="false"
@@ -195,49 +175,40 @@ onMounted(() => {
                                 :alt="product.name" 
                                 class="w-full h-full object-cover"
                             />
-                            <!-- CAMBIO: Placeholder claro -->
-                            <div v-else class="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-500">
+                            <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600">
                                 <i class="pi pi-image" style="font-size: 2.5rem;"></i>
-                                <span class="mt-2 text-sm font-medium">Imagen no disponible</span>
+                                <span class="mt-2 text-sm font-medium">Sin imagen</span>
                             </div>
                         </div>
                     </template>
                     <template #title>
-                        <span class="text-lg font-semibold text-gray-900">{{ product.name }}</span>
+                        <span class="text-lg font-bold text-gray-900 dark:text-zinc-100 block truncate" :title="product.name">{{ product.name }}</span>
                     </template>
                     <template #content>
-                        <!-- Existencia (actual) -->
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Existencia:</span>
-                            <span class="text-lg font-semibold text-gray-800">{{ product.stock.toLocaleString() }}</span>
+                        <!-- Existencia -->
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-gray-600 dark:text-zinc-400 text-sm">Existencia:</span>
+                            <span class="text-lg font-bold text-gray-800 dark:text-zinc-200">{{ product.stock.toLocaleString() }}</span>
                         </div>
 
-                        <!-- 
-                          NUEVO: Sección de Pedidos en Curso.
-                          Se muestra si el array 'production_orders' existe y tiene elementos.
-                        -->
+                        <!-- Pedidos en Curso -->
                         <div v-if="product.production_orders && product.production_orders.length > 0" 
-                             class="border-t border-gray-200 pt-3 mt-3 space-y-3">
+                             class="border-t border-gray-100 dark:border-zinc-800 pt-3 mt-3 space-y-3">
                             
-                            <!-- Itera sobre cada orden activa para este producto -->
                             <div v-for="order in product.production_orders" :key="order.id">
-                                <!-- Indicador de Pedido en curso -->
                                 <div class="flex items-center gap-2">
-                                    <span class="text-sm font-semibold text-blue-600">
-                                        <!-- Icono de engrane girando -->
-                                        <i class="pi pi-spin pi-cog mr-2" style="font-size: 0.9rem; vertical-align: middle;"></i>
-                                        <span style="vertical-align: middle;">Pedido en curso</span>
+                                    <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                        <i class="pi pi-spin pi-cog mr-1" style="font-size: 0.8rem; vertical-align: middle;"></i>
+                                        En curso
                                     </span>
                                 </div>
                                 
-                                <!-- Texto de progreso -->
-                                <div class="text-xs text-gray-500 my-1">
-                                    Hecho: {{ order.quantity_produced.toLocaleString() }} / {{ order.quantity_requested.toLocaleString() }}
+                                <div class="text-xs text-gray-500 dark:text-zinc-500 my-1">
+                                    {{ order.quantity_produced.toLocaleString() }} / {{ order.quantity_requested.toLocaleString() }}
                                 </div>
                                 
-                                <!-- Barra de Progreso (visual) -->
-                                <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                                    <div class="bg-blue-500 h-2 rounded-full" 
+                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
+                                    <div class="bg-blue-500 h-1.5 rounded-full" 
                                          :style="{ width: (order.quantity_requested > 0 ? (order.quantity_produced / order.quantity_requested * 100) : 0) + '%' }">
                                     </div>
                                 </div>
@@ -247,21 +218,20 @@ onMounted(() => {
                 </Card>
             </div>
         </div>
-        <!-- ***** FIN DE LA SECCIÓN MODIFICADA ***** -->
 
 
         <!-- SECCIÓN DE MOVIMIENTOS -->
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Historial de Entregas</h2>
+        <h2 class="text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">Historial de Entregas</h2>
 
-        <!-- Filtros (sin cambios de dark mode) -->
+        <!-- Filtros -->
         <div class="flex flex-wrap gap-4 mb-6 items-end">
             <div class="flex flex-col gap-2">
-                <label for="filterStart" class="font-bold text-sm text-gray-700">Fecha Inicio</label>
-                <Calendar id="filterStart" v-model="filterStartDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Desde" />
+                <label for="filterStart" class="font-bold text-sm text-gray-700 dark:text-zinc-300">Fecha Inicio</label>
+                <Calendar id="filterStart" v-model="filterStartDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Desde" inputClass="dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100" />
             </div>
             <div class="flex flex-col gap-2">
-                <label for="filterEnd" class="font-bold text-sm text-gray-700">Fecha Fin</label>
-                <Calendar id="filterEnd" v-model="filterEndDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Hasta" />
+                <label for="filterEnd" class="font-bold text-sm text-gray-700 dark:text-zinc-300">Fecha Fin</label>
+                <Calendar id="filterEnd" v-model="filterEndDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Hasta" inputClass="dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100" />
             </div>
             <div class="flex items-end gap-2">
                 <Button label="Filtrar" icon="pi pi-filter" @click="fetchMovements" />
@@ -269,127 +239,76 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- 
-          CAMBIO: DataTable ahora usa 'groupedMovements'
-          y tiene una estructura de columnas diferente.
-        -->
-        <div class="rounded-lg overflow-hidden border border-gray-200 shadow-sm bg-white">
+        <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-zinc-900">
             <DataTable :value="groupedMovements" :loading="loading" 
                 responsiveLayout="scroll" :rows="10" :paginator="true"
                 dataKey="date"
-                class="p-datatable-customers">
+                class="zinc-table">
                 
                 <!-- Columna de Fecha (Agrupada) -->
                 <Column header="Fecha de entrega" :sortable="true" sortField="originalDate" style="width: 12rem">
                     <template #body="slotProps">
-                        <!-- Muestra la fecha formateada que actúa como cabecera del grupo -->
-                        <span class="font-semibold text-base text-gray-800">{{ slotProps.data.date }}</span>
+                        <span class="font-bold text-base text-gray-800 dark:text-zinc-200">{{ slotProps.data.date }}</span>
                     </template>
                 </Column>
 
                 <!-- Columna de Productos (Agrupados) -->
                 <Column header="Productos Entregados">
                     <template #body="slotProps">
-                        <!-- 
-                          Itera sobre el array 'items' de cada grupo de fecha.
-                          Cada 'item' es un producto entregado ese día.
-                        -->
                         <div class="flex flex-col gap-4 py-2">
                             <div v-for="item in slotProps.data.items" :key="item.id" 
                                  class="flex items-center gap-3 flex-wrap">
                                 
                                 <!-- Imagen del Producto -->
-                                <div class="size-10 rounded-md flex-shrink-0">
+                                <div class="size-10 rounded-lg flex-shrink-0 bg-gray-100 dark:bg-zinc-950 overflow-hidden">
                                     <img v-if="item.product?.media[0]?.original_url && !imageErrorState[item.product?.id]"
                                         draggable="false"
                                         :src="item.product?.media[0]?.original_url"
                                         @error="onImageError(item.product?.id)"
                                         :alt="item.product?.name"
-                                        class="w-full h-full object-cover rounded-md"
+                                        class="w-full h-full object-cover"
                                     />
-                                    <div v-else class="w-full h-full rounded-md bg-slate-100 flex items-center justify-center text-slate-400">
-                                        <i class="pi pi-image" style="font-size: 1.25rem;"></i>
+                                    <div v-else class="w-full h-full flex items-center justify-center text-gray-400 dark:text-zinc-600">
+                                        <i class="pi pi-image" style="font-size: 1rem;"></i>
                                     </div>
                                 </div>
                                 
                                 <!-- Nombre del Producto -->
-                                <span class="font-medium text-gray-700 flex-1 min-w-[150px]">{{ item.product?.name || 'Producto no encontrado' }}</span>
+                                <span class="font-medium text-gray-700 dark:text-zinc-300 flex-1 min-w-[150px]">{{ item.product?.name || 'Producto no encontrado' }}</span>
                                 
-                                <!-- Cantidad Entregada (movida aquí) -->
-                                <span class="font-semibold text-green-600 ml-auto pl-4">
+                                <!-- Cantidad Entregada -->
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400 ml-auto pl-4">
                                     {{ Math.abs(item.quantity).toLocaleString() }}
                                 </span>
                             </div>
                         </div>
                     </template>
                 </Column>
-                
-                <!-- La columna de Cantidad individual ya no es necesaria, se movió adentro de Productos -->
-
             </DataTable>
         </div>
     </div>
 </template>
 
 <style scoped>
-/* Estilos adicionales si son necesarios */
-.container {
-    font-family: 'Inter', sans-serif;
+/* Zinc Theme Overrides for PrimeVue DataTable */
+:deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #f4f4f5 !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7;
 }
-
-/* Estilos globales de PrimeVue (Estilos LIGEROS).
-  No se necesitan estilos 'dark:'.
-*/
-
-/* Cabeceras de la tabla limpias */
-:deep(.p-datatable .p-datatable-thead > tr > th) {
-    background-color: #f9fafb; /* bg-gray-50 */
-    color: #374151; /* text-gray-700 */
-    font-weight: 600; /* font-semibold */
-    border-color: #e5e7eb; /* border-gray-200 */
-    border-bottom-width: 2px;
+.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #18181b !important; /* zinc-950 */
+    color: #a1a1aa !important; /* zinc-400 */
+    border-bottom: 1px solid #27272a; /* zinc-800 */
 }
-
-/* Celdas de la tabla */
-:deep(.p-datatable .p-datatable-tbody > tr > td) {
-    border-color: #e5e7eb; /* border-gray-200 */
-    vertical-align: top; /* Alinea la fecha en la parte superior */
+:deep(.zinc-table .p-datatable-tbody > tr) {
+    background-color: transparent !important;
+    color: inherit;
 }
-
-/* Filas de la tabla (para hover) */
-:deep(.p-datatable .p-datatable-tbody > tr:not(.p-datatable-emptymessage):hover) {
-    background-color: #fcfcfd; /* Un hover muy sutil */
+:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #f4f4f5;
 }
-
-/* Paginador */
-:deep(.p-paginator) {
-    border-top: 1px solid #e5e7eb; /* border-t border-gray-200 */
-    background-color: #ffffff; /* bg-white */
-}
-
-/* Estilos de la tarjeta (Card) de PrimeVue */
-:deep(.p-card) {
-    background: #ffffff; /* Fondo blanco explícito */
-    color: #374151; /* Texto oscuro */
-}
-:deep(.p-card .p-card-title) {
-    font-size: 1.125rem; /* text-lg */
-    font-weight: 600; /* font-semibold */
-    color: #111827; /* text-gray-900 */
-}
-:deep(.p-card .p-card-content) {
-    padding-top: 0.5rem; /* pt-2 */
-    padding-bottom: 0.5rem; /* pb-2 */
-}
-
-/* Estilos para el Calendario (asegura modo claro) */
-:deep(.p-datepicker) {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-}
-:deep(.p-datepicker .p-datepicker-header) {
-    background: #f9fafb;
-    color: #374151;
-    border-bottom: 1px solid #e5e7eb;
+.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #27272a;
 }
 </style>

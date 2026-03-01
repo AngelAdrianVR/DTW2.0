@@ -1,16 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import TabView from 'primevue/tabview';
-import TabPanel from 'primevue/tabpanel';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
 import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Toast from 'primevue/toast';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import axios from 'axios';
 
 // Importa los componentes de las pestañas
 import ProductionOrdersTab from './ProductionOrdersTab.vue';
@@ -19,7 +17,6 @@ import KitsTab from './KitsTab.vue';
 import MovementsTab from './MovementsTab.vue';
 import FinanceTab from './FinanceTab.vue';
 
-// Lógica para el modal de "Nueva Orden"
 const toast = useToast();
 const displayNewOrderModal = ref(false);
 const kitProducts = ref([]);
@@ -29,15 +26,31 @@ const newOrder = ref({
     due_date: null
 });
 
-// Carga los productos que son "Kits" para el dropdown
+// Estado para nuestras pestañas personalizadas
+const activeTab = ref('orders');
+
+const tabs = [
+    { id: 'orders', label: 'Órdenes de Producción' },
+    { id: 'products', label: 'Productos' },
+    { id: 'kits', label: 'Kits' },
+    { id: 'movements', label: 'Movimientos' },
+    { id: 'finance', label: 'Finanzas' }
+];
+
+// Estilos reutilizables tipo "Apple" para el Modal
+const appleModalStyles = {
+    root: { class: 'bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden border-0' }, 
+    header: { class: 'px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md text-xl font-semibold text-zinc-900 dark:text-zinc-100' },
+    content: { class: 'p-6 bg-white dark:bg-zinc-900' },
+    footer: { class: 'px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end gap-3 border-t border-zinc-100 dark:border-zinc-800' },
+    mask: { class: 'backdrop-blur-sm bg-zinc-900/30 dark:bg-zinc-900/70 transition-all duration-300' }
+};
+
 const fetchKitProducts = async () => {
     try {
-        // Asumiendo que tu API puede filtrar por `is_kit`
-        // Si no, tendrás que cargar todos y filtrar en el frontend
         const response = await axios.get('/tpsp/products', { params: { is_kit: true } });
         kitProducts.value = response.data;
     } catch (error) {
-        console.error("Error fetching kit products:", error);
         toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los kits', life: 3000 });
     }
 };
@@ -47,87 +60,174 @@ const createProductionOrder = async () => {
         await axios.post('/tpsp/production-orders', newOrder.value);
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Orden de producción creada', life: 3000 });
         displayNewOrderModal.value = false;
-        // Aquí podrías emitir un evento para que ProductionOrdersTab recargue
+        newOrder.value = { product_id: null, quantity_requested: 1, due_date: null };
     } catch (error) {
-        console.error("Error creating production order:", error);
         toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo crear la orden', life: 3000 });
     }
 };
 
-// Carga los kits cuando el componente se monta
 onMounted(fetchKitProducts);
-
 </script>
 
 <template>
-
-    <AppLayout title="TPSP - Gestión de Inventario y Producción">
+    <AppLayout title="TPSP - Gestión de Inventario">
         <Toast />
 
-        <!-- Diálogo (modal) para crear orden de producción -->
-        <Dialog header="Crear Nueva Orden de Producción" v-model:visible="displayNewOrderModal" :modal="true" :style="{width: '50vw'}" 
-            :breakpoints="{'700px': '90vw'}">
-            <div class="p-fluid form-grid">
-                <div class="field col-12 flex flex-col">
-                    <label for="orderProduct">Producto (Kit)</label>
-                    <Dropdown id="orderProduct" v-model="newOrder.product_id" :options="kitProducts" optionLabel="name" optionValue="id" placeholder="Seleccione un kit" />
+        <!-- Modal Nueva Orden -->
+        <Dialog 
+            v-model:visible="displayNewOrderModal" 
+            :modal="true" 
+            header="Nueva Orden de Producción"
+            :style="{width: '100%', maxWidth: '32rem', margin: '1rem'}" 
+            :pt="appleModalStyles"
+            :dismissableMask="true"
+        >
+            <div class="flex flex-col gap-5 mt-2">
+                <div class="flex flex-col gap-2">
+                    <label for="orderProduct" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Producto (Kit)</label>
+                    <Dropdown 
+                        id="orderProduct" 
+                        v-model="newOrder.product_id" 
+                        :options="kitProducts" 
+                        optionLabel="name" 
+                        optionValue="id" 
+                        placeholder="Selecciona un kit" 
+                        class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm"
+                        :pt="{ input: { class: 'dark:text-zinc-200' }, panel: { class: 'rounded-xl shadow-lg border-0 dark:bg-zinc-800' } }"
+                    />
                 </div>
-                <div class="field col-6">
-                    <label for="orderQuantity">Cantidad a Producir</label>
-                    <InputNumber id="orderQuantity" v-model="newOrder.quantity_requested" mode="decimal" :min="1" />
-                </div>
-                <div class="field col-6 flex flex-col">
-                    <label for="orderDueDate">Fecha de entrega</label>
-                    <InputText id="orderDueDate" v-model="newOrder.due_date" type="date" />
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div class="flex flex-col gap-2">
+                        <label for="orderQuantity" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Cantidad a Producir</label>
+                        <InputNumber 
+                            id="orderQuantity" 
+                            v-model="newOrder.quantity_requested" 
+                            mode="decimal" 
+                            :min="1" 
+                            class="w-full"
+                            inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" 
+                        />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="orderDueDate" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Fecha de entrega</label>
+                        <InputText 
+                            id="orderDueDate" 
+                            v-model="newOrder.due_date" 
+                            type="date" 
+                            class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" 
+                        />
+                    </div>
                 </div>
             </div>
             <template #footer>
-                <Button label="Cancelar" icon="pi pi-times" @click="displayNewOrderModal = false" class="p-button-text" />
-                <Button label="Crear Orden" icon="pi pi-check" @click="createProductionOrder" />
+                <Button label="Cancelar" @click="displayNewOrderModal = false" class="!px-5 !py-2.5 !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium mt-4" />
+                <Button label="Crear Orden" @click="createProductionOrder" class="!px-5 !py-2.5 !rounded-xl !text-[var(--primary-text-color)] font-medium mt-4" />
             </template>
         </Dialog>
 
-        <!-- Contenedor Principal con Pestañas -->
-        <Card>
-            <template #title>
-                <div class="flex justify-between items-center">
-                    <span>Módulo TPSP - Gestión de Inventario y Producción</span>
+        <!-- Contenedor Principal -->
+        <div class="min-h-screen bg-zinc-50/50 dark:bg-zinc-950 p-4 sm:p-6 lg:p-10">
+            <div class="max-w-7xl mx-auto">
+                
+                <!-- Cabecera de Página -->
+                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 class="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                            Gestión de Inventario y Producción
+                        </h1>
+                        <p class="text-zinc-500 dark:text-zinc-400 mt-1">
+                            Módulo TPSP
+                        </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <Button 
+                            label="Página pública" 
+                            icon="pi pi-external-link" 
+                            @click="$inertia.visit(route('tpsp.public.inventory'))" 
+                            class="!rounded-xl !bg-white dark:!bg-zinc-800 !text-zinc-700 dark:!text-zinc-200 !border-zinc-200 dark:!border-zinc-700 hover:!bg-zinc-50 dark:hover:!bg-zinc-700 shadow-sm w-full sm:w-auto"
+                        />
+                        <Button 
+                            label="Nueva Orden" 
+                            icon="pi pi-plus" 
+                            @click="displayNewOrderModal = true" 
+                            class="!rounded-xl !text-[var(--primary-text-color)] w-full sm:w-auto"
+                        />
+                    </div>
                 </div>
-                <div class="flex justify-end space-x-3 mt-3">
-                    <Button label="Página publica" icon="pi pi-plus" @click="$inertia.visit(route('tpsp.public.inventory'))" />
-                    <Button label="Nueva Orden de Producción" icon="pi pi-plus" @click="displayNewOrderModal = true" />
+
+                <!-- Pestañas Personalizadas (Flotantes) -->
+                <div class="mb-6">
+                    <!-- Contenedor scrollable para móvil -->
+                    <div class="flex overflow-x-auto gap-2 pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                        <button
+                            v-for="tab in tabs"
+                            :key="tab.id"
+                            @click="activeTab = tab.id"
+                            :class="[
+                                'relative px-5 py-2.5 mt-3 rounded-lg text-md font-medium transition-all duration-300 whitespace-nowrap outline-none',
+                                activeTab === tab.id 
+                                    ? 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-100 shadow-md ring-1 ring-zinc-200/50 dark:ring-zinc-700/50 transform -translate-y-0.5' 
+                                    : 'text-zinc-500 dark:text-zinc-400 bg-transparent hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200'
+                            ]"
+                        >
+                            {{ tab.label }}
+                        </button>
+                    </div>
                 </div>
-            </template>
-            <template #content>
-                <TabView>
-                    <TabPanel header="Órdenes de Producción">
-                        <ProductionOrdersTab />
-                    </TabPanel>
-                    <TabPanel header="Productos">
-                        <ProductsTab />
-                    </TabPanel>
-                    <TabPanel header="Kits">
-                        <KitsTab />
-                    </TabPanel>
-                    <TabPanel header="Movimientos de Inventario">
-                        <MovementsTab />
-                    </TabPanel>
-                    <TabPanel header="Finanzas">
-                        <FinanceTab />
-                    </TabPanel>
-                </TabView>
-            </template>
-        </Card>
+
+                <!-- Contenido de las Pestañas -->
+                <div class="relative min-h-[400px]">
+                    <Transition name="fade" mode="out-in">
+                        <div :key="activeTab">
+                            <ProductionOrdersTab v-if="activeTab === 'orders'" />
+                            <ProductsTab v-if="activeTab === 'products'" />
+                            <KitsTab v-if="activeTab === 'kits'" />
+                            <MovementsTab v-if="activeTab === 'movements'" />
+                            <FinanceTab v-if="activeTab === 'finance'" />
+                        </div>
+                    </Transition>
+                </div>
+
+            </div>
+        </div>
     </AppLayout>
 </template>
 
 <style scoped>
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+/* Ocultar barra de desplazamiento en el contenedor de pestañas para mantenerlo limpio */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
 }
-.field.col-12 {
-    grid-column: 1 / 3;
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Transición suave al cambiar de pestaña */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+/* Estilos de inputs (se mantienen igual) */
+:deep(.p-dropdown), :deep(.p-inputnumber-input), :deep(.p-inputtext) {
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+:deep(.p-dropdown:hover), :deep(.p-inputnumber-input:hover), :deep(.p-inputtext:hover) {
+    border-color: #a1a1aa !important; 
+}
+.dark :deep(.p-dropdown:hover), .dark :deep(.p-inputnumber-input:hover), .dark :deep(.p-inputtext:hover) {
+    border-color: #52525b !important; 
+}
+:deep(.p-dropdown:focus-within), :deep(.p-inputnumber-input:focus), :deep(.p-inputtext:focus) {
+    border-color: #3b82f6 !important; 
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    outline: none;
 }
 </style>

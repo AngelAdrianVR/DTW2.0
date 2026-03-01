@@ -28,7 +28,7 @@ const handleChange = (event) => {
     />
     <!-- La parte visual del interruptor -->
     <div
-      class="relative w-[110px] h-[50px] bg-white peer-checked:bg-zinc-500 rounded-full after:absolute after:content-[''] after:w-[40px] after:h-[40px] after:bg-gradient-to-r from-orange-500 to-yellow-400 peer-checked:after:from-zinc-900 peer-checked:after:to-zinc-900 after:rounded-full after:top-[5px] after:left-[5px] active:after:w-[50px] peer-checked:after:left-[105px] peer-checked:after:translate-x-[-100%] shadow-sm duration-300 after:duration-300 after:shadow-md"
+      class="relative w-[80px] h-[40px] bg-white peer-checked:bg-zinc-500 rounded-full after:absolute after:content-[''] after:w-[30px] after:h-[30px] after:bg-gradient-to-r from-orange-500 to-yellow-400 peer-checked:after:from-zinc-900 peer-checked:after:to-zinc-900 after:rounded-full after:top-[5px] after:left-[5px] active:after:w-[40px] peer-checked:after:left-[75px] peer-checked:after:translate-x-[-100%] shadow-sm duration-300 after:duration-300 after:shadow-md"
     ></div>
     <!-- Ícono del Sol -->
     <svg
@@ -38,7 +38,7 @@ const handleChange = (event) => {
       data-name="Layer 1"
       id="Layer_1"
       xmlns="http://www.w3.org/2000/svg"
-      class="fill-white absolute w-6 h-6 left-[13px] transition-opacity duration-300"
+      class="fill-white absolute w-4 h-4 left-[12px] transition-opacity duration-300"
       :class="{ 'opacity-100': !modelValue, 'opacity-0': modelValue }"
     >
       <path
@@ -53,7 +53,7 @@ const handleChange = (event) => {
       data-name="Layer 1"
       id="Layer_1"
       xmlns="http://www.w3.org/2000/svg"
-      class="fill-black absolute w-6 h-6 right-[13px] transition-opacity duration-300 peer-checked:fill-white"
+      class="fill-black absolute w-4 h-4 right-[12px] transition-opacity duration-300 peer-checked:fill-white"
       :class="{ 'opacity-0': !modelValue, 'opacity-70': modelValue }"
     >
       <path

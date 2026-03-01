@@ -100,8 +100,8 @@ class QuoteController extends Controller
 
     public function show(Quote $quote)
     {
-        // Carga la relación con el cliente y los archivos multimedia para la vista de detalles
-        $quote->load('client', 'media');
+        // Carga la relación con el cliente, los archivos multimedia y los pagos con sus comprobantes
+        $quote->load('client', 'media', 'payments.media');
 
         return Inertia::render('Quote/Show', [
             'quote' => $quote,

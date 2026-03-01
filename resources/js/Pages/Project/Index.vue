@@ -20,12 +20,17 @@ import InputText from 'primevue/inputtext';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Card from 'primevue/card';
+import Dropdown from 'primevue/dropdown';
 
 // --- PROPS ---
 const props = defineProps({
     projects: {
         type: Object,
         required: true,
+    },
+    clients: {
+        type: Array,
+        default: () => [],
     },
     filters: {
         type: Object,
@@ -37,8 +42,18 @@ const props = defineProps({
 const toast = useToast();
 const confirm = useConfirm();
 const search = ref(props.filters.search || '');
+const selectedStatus = ref(props.filters.status || null);
+const selectedClient = ref(props.filters.client_id || null);
 const menu = ref();
 const selectedProjectForMenu = ref(null);
+
+const statusOptions = ['Pendiente', 'En proceso', 'Completado', 'Pausado', 'Cancelado'];
+const clientOptions = computed(() => {
+    return [
+        { id: 'interno', name: 'Proyecto Interno' },
+        ...props.clients
+    ];
+});
 
 // --- HELPERS ---
 const debounce = (func, delay = 300) => {
@@ -52,8 +67,12 @@ const debounce = (func, delay = 300) => {
 };
 
 // --- WATCHERS ---
-watch(search, debounce((value) => {
-    router.get(route('projects.index'), { search: value }, {
+watch([search, selectedStatus, selectedClient], debounce(([newSearch, newStatus, newClient]) => {
+    router.get(route('projects.index'), { 
+        search: newSearch, 
+        status: newStatus, 
+        client_id: newClient 
+    }, {
         preserveState: true,
         replace: true,
     });
@@ -142,7 +161,7 @@ const getProjectProgress = (project) => {
 
 const getStatusSeverity = (status) => {
     const statuses = {
-        'Pendiente': 'warn',
+        'Pendiente': 'warning',
         'En proceso': 'info',
         'Completado': 'success',
         'Pausado': 'secondary',
@@ -155,6 +174,8 @@ const onRowClick = (event) => {
      router.get(route('projects.show', event.data.id));
 };
 
+const rowClass = () => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors';
+
 </script>
 
 <template>
@@ -166,40 +187,53 @@ const onRowClick = (event) => {
 
                 <header class="mb-8">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-gray-200 text-gray-800">Módulo de Proyectos</h1>
-                        <p class="text-gray-400 mt-1">Gestiona todos tus proyectos, tareas y el tiempo invertido.</p>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Proyectos</h1>
+                        <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona todos tus proyectos, tareas y el tiempo invertido.</p>
                     </div>
                 </header>
 
-                <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 md:p-6">
-                    <div class="flex justify-between items-center flex-wrap gap-4 mb-4">
-                        <span class="p-input-icon-left w-full md:w-1/3 flex items-center space-x-2">
-                            <i class="pi pi-search" />
-                            <InputText v-model="search" placeholder="Buscar por Nombre, Cliente o Estado..." class="w-full" />
-                        </span>
-                        <Link :href="route('projects.create')">
-                            <Button label="Crear Proyecto" icon="pi pi-plus" />
+                <div class="bg-white dark:bg-zinc-900 shadow-sm border border-gray-100 dark:border-zinc-800 rounded-2xl p-4 md:p-6 overflow-hidden">
+                    
+                    <!-- Barra de Búsqueda y Filtros mejorada -->
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-6">
+                        <div class="flex flex-col md:flex-row flex-1 gap-4 w-full">
+                            <IconField class="flex-1 w-full">
+                                <InputIcon class="pi pi-search" />
+                                <InputText 
+                                    v-model="search" 
+                                    placeholder="Buscar por Nombre..." 
+                                    class="w-full" 
+                                />
+                            </IconField>
+                            <Dropdown v-model="selectedStatus" :options="statusOptions" placeholder="Estado" class="w-full md:w-56" showClear />
+                            <Dropdown v-model="selectedClient" :options="clientOptions" optionLabel="name" optionValue="id" placeholder="Cliente" class="w-full md:w-64" showClear filter />
+                        </div>
+                        <Link :href="route('projects.create')" class="w-full lg:w-auto shrink-0">
+                        <Button label="Crear Proyecto" icon="pi pi-plus" class="w-full !text-[var(--primary-text-color)]" />
                         </Link>
                     </div>
 
                     <!-- Desktop Table View -->
                     <div class="hidden md:block">
                         <DataTable :value="projects.data" stripedRows dataKey="id"
-                            @row-click="onRowClick" class="p-datatable-customers"
-                            :row-class="() => 'cursor-pointer'">
-                            <template #empty> No se encontraron proyectos. </template>
+                            @row-click="onRowClick" class="zinc-table"
+                            :row-class="rowClass">
+                            <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron proyectos.</div> </template>
 
                             <Column header="ID" style="width: 4%">
                                 <template #body="{ data }">
-                                        <span class="font-bold">{{ data.id }}</span>
+                                        <span class="font-bold text-gray-700 dark:text-zinc-300">{{ data.id }}</span>
                                 </template>
                             </Column>
 
                             <Column header="Proyecto" style="width: 30%">
                                 <template #body="{ data }">
-                                   <div class="flex flex-col">
-                                        <span class="font-bold">{{ data.name }}</span>
-                                        <span class="text-sm text-gray-500">{{ data.client?.name || 'Proyecto Interno' }}</span>
+                                   <div class="flex flex-col gap-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-gray-800 dark:text-zinc-100">{{ data.name }}</span>
+                                            <Tag :value="data.status" :severity="getStatusSeverity(data.status)" class="!text-[10px] !px-2 uppercase" />
+                                        </div>
+                                        <span class="text-sm text-gray-500 dark:text-zinc-500">{{ data.client?.name || 'Proyecto Interno' }}</span>
                                    </div>
                                 </template>
                             </Column>
@@ -212,6 +246,7 @@ const onRowClick = (event) => {
                                             shape="circle"
                                             :aria-label="member.name"
                                             v-tooltip="member.name"
+                                            class="border-2 border-white dark:border-zinc-800"
                                         />
                                     </AvatarGroup>
                                      <span v-else class="text-xs text-gray-400">Sin asignar</span>
@@ -221,12 +256,12 @@ const onRowClick = (event) => {
                             <Column header="Progreso" style="width: 20%">
                                 <template #body="{ data }">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                        <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2.5">
                                             <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: getProjectProgress(data) + '%' }"></div>
                                         </div>
-                                        <span class="text-sm font-medium text-gray-500">{{ getProjectProgress(data) }}%</span>
+                                        <span class="text-sm font-medium text-gray-500 dark:text-zinc-400">{{ getProjectProgress(data) }}%</span>
                                     </div>
-                                    <div class="text-xs text-gray-400 mt-1">
+                                    <div class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
                                         {{ data.completed_tasks_count }} / {{ data.tasks_count }} tareas
                                     </div>
                                 </template>
@@ -234,19 +269,13 @@ const onRowClick = (event) => {
 
                             <Column header="Horas Invertidas" style="width: 15%">
                                 <template #body="{ data }">
-                                    <span class="font-mono text-lg">{{ formatMinutes(data.total_invested_minutes) }}</span>
+                                    <span class="font-mono text-lg text-gray-700 dark:text-zinc-300">{{ formatMinutes(data.total_invested_minutes) }}</span>
                                 </template>
                             </Column>
 
-                            <!-- <Column field="status" header="Estado" style="width: 10%">
-                                <template #body="{ data }">
-                                    <Tag :value="data.status" :severity="getStatusSeverity(data.status)" rounded />
-                                </template>
-                            </Column> -->
-
                             <Column header="Acciones" style="width: 10%" bodyClass="text-center">
                                 <template #body="{ data }">
-                                    <Button icon="pi pi-ellipsis-v" text rounded @click.stop="toggleMenu($event, data)" />
+                                    <Button icon="pi pi-ellipsis-v" text rounded @click.stop="toggleMenu($event, data)" class="!text-gray-500 dark:!text-zinc-400 hover:!bg-gray-100 dark:hover:!bg-zinc-800"/>
                                 </template>
                             </Column>
                         </DataTable>
@@ -255,36 +284,38 @@ const onRowClick = (event) => {
 
                     <!-- Mobile Card View -->
                     <div class="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                        <Card v-for="project in projects.data" :key="project.id" @click="onRowClick({data: project})">
+                        <Card v-for="project in projects.data" :key="project.id" @click="onRowClick({data: project})" class="cursor-pointer dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm !rounded-xl">
                             <template #title>
-                                <div class="flex justify-between items-start">
-                                    <span class="text-lg font-bold">{{ project.name }}</span>
-                                    <Tag :value="project.status" :severity="getStatusSeverity(project.status)" rounded />
+                                <div class="flex justify-between items-start gap-2">
+                                    <span class="text-lg font-bold text-gray-800 dark:text-zinc-100">{{ project.name }}</span>
+                                    <Tag :value="project.status" :severity="getStatusSeverity(project.status)" rounded class="!text-[10px]" />
                                 </div>
                             </template>
-                             <template #subtitle>{{ project.client?.name || 'Proyecto Interno' }}</template>
+                             <template #subtitle>
+                                 <span class="text-gray-500 dark:text-zinc-500">{{ project.client?.name || 'Proyecto Interno' }}</span>
+                             </template>
                             <template #content>
                                 <div class="mb-4">
-                                     <p class="font-semibold text-gray-700 dark:text-gray-300 mb-1">Progreso ({{ getProjectProgress(project) }}%)</p>
-                                     <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                     <p class="font-semibold text-gray-700 dark:text-zinc-300 mb-1">Progreso ({{ getProjectProgress(project) }}%)</p>
+                                     <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2.5">
                                         <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: getProjectProgress(project) + '%' }"></div>
                                     </div>
                                 </div>
-                                <ul class="space-y-2 text-gray-700 dark:text-gray-300">
-                                    <li class="flex justify-between border-t pt-2 mt-2">
+                                <ul class="space-y-2 text-gray-700 dark:text-zinc-300">
+                                    <li class="flex justify-between border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2">
                                         <span class="font-bold">Horas:</span>
-                                        <span class="font-bold font-mono text-blue-600">{{ formatMinutes(project.total_invested_minutes) }}</span>
+                                        <span class="font-bold font-mono text-blue-600 dark:text-blue-400">{{ formatMinutes(project.total_invested_minutes) }}</span>
                                     </li>
                                 </ul>
                             </template>
                              <template #footer>
                                 <div class="flex justify-end">
-                                    <Button label="Acciones" icon="pi pi-bars" @click.stop="toggleMenu($event, project)" severity="secondary" />
+                                    <Button label="Acciones" icon="pi pi-bars" @click.stop="toggleMenu($event, project)" severity="secondary" outlined />
                                 </div>
                             </template>
                         </Card>
-                         <div v-if="projects.data.length === 0" class="text-center text-gray-500 col-span-full mt-8">
-                            No se encontraron proyectos.
+                         <div v-if="projects.data.length === 0" class="text-center text-gray-500 dark:text-zinc-500 col-span-full mt-8">
+                            No se encontraron proyectos con esos filtros.
                         </div>
                     </div>
 
@@ -297,9 +328,39 @@ const onRowClick = (event) => {
 
 <style>
 .p-avatar-group .p-avatar {
-    border: 2px solid #fff; /* O el color de fondo de tu app */
+    border: 2px solid #fff;
 }
-.p-datatable .p-datatable-tbody > tr {
-    cursor: pointer;
+.dark .p-avatar-group .p-avatar {
+    border-color: #18181b; /* zinc-950 */
+}
+
+/* Zinc Theme Overrides for PrimeVue DataTable */
+.zinc-table .p-datatable-thead > tr > th {
+    background-color: #f4f4f5 !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7;
+}
+.dark .zinc-table .p-datatable-thead > tr > th {
+    background-color: #18181b !important; /* zinc-950 */
+    color: #a1a1aa !important; /* zinc-400 */
+    border-bottom: 1px solid #27272a; /* zinc-800 */
+}
+.zinc-table .p-datatable-tbody > tr {
+    background-color: transparent !important;
+    color: inherit;
+}
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td {
+    border-bottom: 1px solid #f4f4f5;
+}
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td {
+    border-bottom: 1px solid #27272a;
+}
+
+/* Input overrides for dark mode */
+.p-inputtext, .p-dropdown { width: 100%; }
+.dark .p-inputtext, .dark .p-dropdown {
+    background-color: #27272a; /* zinc-800 */
+    color: #f4f4f5; /* zinc-100 */
+    border-color: #3f3f46; /* zinc-700 */
 }
 </style>

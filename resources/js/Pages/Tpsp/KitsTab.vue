@@ -277,44 +277,47 @@ onMounted(async () => {
     <ConfirmDialog></ConfirmDialog>
 
     <!-- Formulario de Edición de Kits (Existente) -->
-    <Card>
-        <template #title>Configuración de Componentes de Kit</template>
-        <template #content>
-            <div class="p-fluid form-grid">
-                <div class="field col-12 flex flex-col">
-                    <label for="kitProduct">1. Seleccionar Kit para Editar Componentes</label>
-                    <Dropdown id="kitProduct" v-model="selectedKitId" :options="allKits" optionLabel="name" optionValue="id" placeholder="Seleccione un kit para definir" />
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6 mb-6">
+        <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-zinc-100">Configuración de Componentes de Kit</h3>
+        
+        <div class="p-fluid form-grid">
+            <div class="field col-12 flex flex-col">
+                <label for="kitProduct" class="dark:text-zinc-300 font-semibold mb-2">1. Seleccionar Kit para Editar Componentes</label>
+                <Dropdown id="kitProduct" v-model="selectedKitId" :options="allKits" optionLabel="name" optionValue="id" placeholder="Seleccione un kit para definir" class="dark:bg-zinc-950 dark:border-zinc-700" />
+            </div>
+        </div>
+        
+        <div v-if="selectedKitId" class="mt-6 border-t border-gray-100 dark:border-zinc-800 pt-6">
+            <h4 class="mb-4 text-lg font-semibold text-gray-800 dark:text-zinc-200">2. Agregar Componentes</h4>
+            <div class="flex flex-wrap gap-4 items-end mb-6">
+                <div class="flex-1 min-w-[200px] flex flex-col">
+                    <label for="kitComponent" class="dark:text-zinc-300 mb-2">Componente</label>
+                    <Dropdown id="kitComponent" v-model="newKitComponent.component_product_id" :options="allComponents" optionLabel="name" optionValue="id" placeholder="Seleccione componente" class="dark:bg-zinc-950 dark:border-zinc-700 w-full" />
+                </div>
+                <div class="w-40 flex flex-col">
+                    <label for="kitComponentQty" class="dark:text-zinc-300 mb-2">Cantidad</label>
+                    <InputNumber id="kitComponentQty" v-model="newKitComponent.quantity_required" mode="decimal" :min="0.01" :minFractionDigits="2" inputClass="dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100" />
+                </div>
+                <div class="pb-1">
+                    <Button label="Agregar" icon="pi pi-plus" @click="addKitComponent" class="!text-[var(--primary-text-color)]"/>
                 </div>
             </div>
-            
-            <div v-if="selectedKitId">
-                <hr class="my-4">
-                <h4 class="mb-3">2. Agregar Componentes</h4>
-                <div class="p-fluid form-grid">
-                    <div class="field col-6 flex flex-col">
-                        <label for="kitComponent">Componente</label>
-                        <Dropdown id="kitComponent" v-model="newKitComponent.component_product_id" :options="allComponents" optionLabel="name" optionValue="id" placeholder="Seleccione componente" />
-                    </div>
-                    <div class="field col-4">
-                        <label for="kitComponentQty" class="mr-5">Cantidad Requerida</label>
-                        <InputNumber id="kitComponentQty" v-model="newKitComponent.quantity_required" mode="decimal" :min="0.01" :minFractionDigits="2" />
-                    </div>
-                    <div class="field col-2" style="align-self: flex-end;">
-                        <Button label="Agregar" icon="pi pi-plus" @click="addKitComponent" />
-                    </div>
-                </div>
 
-                <h4 class="mt-5">Componentes Actuales del Kit</h4>
-                
-                <!-- Tabla de Componentes Actuales (MODIFICADA) -->
+            <h4 class="mt-8 mb-4 text-lg font-semibold text-gray-800 dark:text-zinc-200">Componentes Actuales del Kit</h4>
+            
+            <!-- Tabla de Componentes Actuales (MODIFICADA) -->
+            <div class="rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800">
                 <DataTable 
                     v-if="currentComponents.length > 0"
                     :value="currentComponents" 
                     :loading="loadingForm" 
                     dataKey="id"
                     responsiveLayout="scroll"
+                    class="zinc-table"
                 >
-                    <Column field="component_product.name" header="Nombre Componente"></Column>
+                    <Column field="component_product.name" header="Nombre Componente">
+                         <template #body="{ data }"><span class="dark:text-zinc-200">{{ data.component_product.name }}</span></template>
+                    </Column>
                     
                     <Column field="quantity_required" header="Cantidad Requerida">
                         <template #body="slotProps">
@@ -323,8 +326,8 @@ onMounted(async () => {
                                 mode="decimal" 
                                 :min="0.01" 
                                 :minFractionDigits="2"
-                                class="p-inputtext-sm"
-                                style="width: 100px;"
+                                class="p-inputtext-sm w-32"
+                                inputClass="dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100 text-center"
                             />
                         </template>
                     </Column>
@@ -333,13 +336,13 @@ onMounted(async () => {
                         <template #body="slotProps">
                             <Button 
                                 icon="pi pi-check" 
-                                class="p-button-rounded p-button-success mr-2" 
+                                class="p-button-rounded p-button-success mr-2 p-button-text" 
                                 v-tooltip.top="'Actualizar Cantidad'"
                                 @click="updateKitComponent(slotProps.data)" 
                             />
                             <Button 
                                 icon="pi pi-trash" 
-                                class="p-button-rounded p-button-danger" 
+                                class="p-button-rounded p-button-danger p-button-text" 
                                 v-tooltip.top="'Eliminar Componente'"
                                 @click="deleteKitComponent(slotProps.data)" 
                             />
@@ -348,270 +351,207 @@ onMounted(async () => {
                 </DataTable>
                 
                 <!-- Mensaje si no hay componentes -->
-                <div v-else-if="!loadingForm && selectedKitId" class="text-center p-4 border-round bg-gray-100 text-gray-600">
-                    Este kit aún no tiene componentes definidos.
+                <div v-else-if="!loadingForm && selectedKitId" class="text-center p-8 bg-gray-50 dark:bg-zinc-950 text-gray-500 dark:text-zinc-500">
+                    <i class="pi pi-info-circle text-2xl mb-2"></i>
+                    <p>Este kit aún no tiene componentes definidos.</p>
                 </div>
-
             </div>
-        </template>
-    </Card>
+
+        </div>
+    </div>
 
     <!-- Nueva: Tabla de Resumen de Kits -->
     <!-- Se agregó la clase 'kit-summary-card' para poder apuntar a ella con CSS -->
-    <Card class="mt-4 kit-summary-card">
-        <template #title>Resumen de Kits y Stock Fabricable</template>
-        <template #content>
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6 kit-summary-card">
+        <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-zinc-100">Resumen de Kits y Stock Fabricable</h3>
 
-            <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
-            <div class="hidden md:block">
-                <DataTable 
-                    :value="allKitsWithStock" 
-                    :loading="loadingTable" 
-                    responsiveLayout="scroll" 
-                    :rows="10" 
-                    :paginator="true"
-                >
-                    <Column field="image_url" header="Imagen">
-                        <template #body="slotProps">
-                            <Image 
-                                :src="slotProps.data.image_url || 'https://placehold.co/60x60/EEE/31343C?text=Sin+Foto'" 
-                                alt="Imagen del kit" 
-                                width="60" 
-                                height="60" 
-                                preview 
-                                imageClass="border-round"
-                            />
-                        </template>
-                    </Column>
-                    <Column field="name" header="Nombre Kit" :sortable="true"></Column>
-                    <Column field="calculable_stock" header="Stock Fabricable" :sortable="true">
-                        <template #body="slotProps">
-                            <Tag 
-                                :severity="slotProps.data.calculable_stock > 0 ? 'success' : 'danger'" 
-                                :value="slotProps.data.calculable_stock"
-                            ></Tag>
-                            <span class="ml-2">Kits</span>
-                        </template>
-                    </Column>
+        <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
+        <div class="hidden md:block rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800">
+            <DataTable 
+                :value="allKitsWithStock" 
+                :loading="loadingTable" 
+                responsiveLayout="scroll" 
+                :rows="10" 
+                :paginator="true"
+                class="zinc-table"
+            >
+                <Column field="image_url" header="Imagen">
+                    <template #body="slotProps">
+                        <Image 
+                            :src="slotProps.data.image_url || 'https://placehold.co/60x60/EEE/31343C?text=Sin+Foto'" 
+                            alt="Imagen del kit" 
+                            width="50" 
+                            height="50" 
+                            preview 
+                            imageClass="rounded-lg object-cover w-12 h-12 border dark:border-zinc-700"
+                        />
+                    </template>
+                </Column>
+                <Column field="name" header="Nombre Kit" :sortable="true">
+                     <template #body="{ data }"><span class="font-semibold text-gray-800 dark:text-zinc-200">{{ data.name }}</span></template>
+                </Column>
+                <Column field="calculable_stock" header="Stock Fabricable" :sortable="true">
+                    <template #body="slotProps">
+                        <Tag 
+                            :severity="slotProps.data.calculable_stock > 0 ? 'success' : 'danger'" 
+                            :value="slotProps.data.calculable_stock"
+                        ></Tag>
+                        <span class="ml-2 text-gray-500 dark:text-zinc-400 text-sm">Kits</span>
+                    </template>
+                </Column>
+                
+                <Column header="Acciones" :exportable="false" style="min-width:10rem">
+                    <template #body="slotProps">
+                        <Button 
+                            icon="pi pi-eye" 
+                            class="p-button-rounded p-button-info mr-2 p-button-text" 
+                            v-tooltip.top="'Ver Detalles y Componentes'"
+                            @click="openKitDetails(slotProps.data)" 
+                            :disabled="!slotProps.data.components || slotProps.data.components.length === 0"
+                        />
+                        <Button 
+                            icon="pi pi-trash" 
+                            class="p-button-rounded p-button-danger p-button-text" 
+                            v-tooltip.top="'Eliminar Kit Permanentemente'"
+                            @click="deleteKit(slotProps.data)" 
+                        />
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
+
+        <!-- Vista de Tarjetas (Móvil) - Oculta en pantallas medianas y grandes -->
+        <div class="md:hidden">
+            <!-- Estado de carga -->
+            <div v-if="loadingTable" class="text-center p-4 dark:text-zinc-400">
+                <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+                <p>Cargando kits...</p>
+            </div>
+            <!-- Estado vacío -->
+            <div v-else-if="allKitsWithStock.length === 0" class="text-center p-4 dark:text-zinc-400">
+                <p>No se encontraron kits definidos.</p>
+            </div>
+            <!-- Lista de tarjetas -->
+            <!-- Se agregó un contenedor con padding ligero 'px-2 pt-2' para que las tarjetas no peguen a los bordes -->
+            <div v-else class="flex flex-col gap-4">
+                <div v-for="kit in allKitsWithStock" :key="kit.id" 
+                        class="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-xl p-4 shadow-sm flex gap-4">
                     
-                    <Column header="Acciones" :exportable="false" style="min-width:10rem">
-                        <template #body="slotProps">
+                    <!-- Imagen -->
+                    <div class="flex-shrink-0">
+                        <Image 
+                            :src="kit.image_url || 'https://placehold.co/80x80/EEE/31343C?text=Sin+Foto'" 
+                            alt="Imagen del kit" 
+                            width="80" 
+                            height="80" 
+                            preview 
+                            imageClass="rounded-lg object-cover w-20 h-20 border dark:border-zinc-700"
+                        />
+                    </div>
+                    
+                    <!-- Detalles del Kit -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="font-bold text-gray-800 dark:text-zinc-100 text-lg leading-tight block">{{ kit.name }}</span>
+                            <span class="text-xs text-gray-500 dark:text-zinc-500">SKU: {{ kit.sku || 'N/A' }}</span>
+                        </div>
+                        
+                        <div class="mt-2 flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-zinc-400 font-medium">Fabricable:</span>
+                            <Tag 
+                                :severity="kit.calculable_stock > 0 ? 'success' : 'danger'" 
+                                :value="kit.calculable_stock"
+                            ></Tag>
+                        </div>
+                        
+                        <div class="mt-3 flex gap-2 justify-end">
                             <Button 
                                 icon="pi pi-eye" 
-                                class="p-button-rounded p-button-info mr-2" 
-                                v-tooltip.top="'Ver Detalles y Componentes'"
-                                @click="openKitDetails(slotProps.data)" 
-                                :disabled="!slotProps.data.components || slotProps.data.components.length === 0"
+                                class="p-button-rounded p-button-info p-button-sm" 
+                                outlined
+                                @click="openKitDetails(kit)" 
+                                :disabled="!kit.components || kit.components.length === 0"
                             />
                             <Button 
                                 icon="pi pi-trash" 
-                                class="p-button-rounded p-button-danger" 
-                                v-tooltip.top="'Eliminar Kit Permanentemente'"
-                                @click="deleteKit(slotProps.data)" 
+                                class="p-button-rounded p-button-danger p-button-sm" 
+                                outlined
+                                @click="deleteKit(kit)" 
                             />
-                        </template>
-                    </Column>
-                </DataTable>
-            </div>
-
-            <!-- Vista de Tarjetas (Móvil) - Oculta en pantallas medianas y grandes -->
-            <div class="md:hidden">
-                <!-- Estado de carga -->
-                <div v-if="loadingTable" class="text-center p-4">
-                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-                    <p>Cargando kits...</p>
-                </div>
-                <!-- Estado vacío -->
-                <div v-else-if="allKitsWithStock.length === 0" class="text-center p-4">
-                    <p>No se encontraron kits definidos.</p>
-                </div>
-                <!-- Lista de tarjetas -->
-                <!-- Se agregó un contenedor con padding ligero 'px-2 pt-2' para que las tarjetas no peguen a los bordes -->
-                <div v-else class="px-2 pt-2">
-                    <div v-for="kit in allKitsWithStock" :key="kit.id" 
-                         class="kit-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md">
-                        
-                        <!-- Imagen -->
-                        <div class="kit-image-wrapper">
-                            <Image 
-                                :src="kit.image_url || 'https://placehold.co/80x80/EEE/31343C?text=Sin+Foto'" 
-                                alt="Imagen del kit" 
-                                width="80" 
-                                height="80" 
-                                preview 
-                                imageClass="border-round"
-                            />
-                        </div>
-                        
-                        <!-- Detalles del Kit -->
-                        <div class="kit-details">
-                            <div class="kit-info">
-                                <span class="kit-name text-slate-700 dark:text-slate-200">{{ kit.name }}</span>
-                                <span class="kit-sku text-slate-500 dark:text-slate-400">SKU: {{ kit.sku || 'N/A' }}</span>
-                            </div>
-                            
-                            <div class="kit-stock">
-                                <span class="stock-label text-slate-600 dark:text-slate-300">Stock Fabricable:</span>
-                                <Tag 
-                                    :severity="kit.calculable_stock > 0 ? 'success' : 'danger'" 
-                                    :value="kit.calculable_stock"
-                                ></Tag>
-                            </div>
-                            
-                            <div class="kit-actions border-t border-slate-100 dark:border-slate-700">
-                                <Button 
-                                    icon="pi pi-eye" 
-                                    class="p-button-rounded p-button-info" 
-                                    v-tooltip.top="'Ver Detalles'"
-                                    @click="openKitDetails(kit)" 
-                                    :disabled="!kit.components || kit.components.length === 0"
-                                />
-                                <Button 
-                                    icon="pi pi-trash" 
-                                    class="p-button-rounded p-button-danger" 
-                                    v-tooltip.top="'Eliminar Kit'"
-                                    @click="deleteKit(kit)" 
-                                />
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-        </template>
-    </Card>
+        </div>
+    </div>
 
 
     <!-- Nuevo: Modal (Dialog) para Detalles del Kit -->
-    <Dialog v-model:visible="kitDetailsDialog" :style="{width: '650px'}" header="Detalles del Kit" :modal="true">
+    <Dialog v-model:visible="kitDetailsDialog" :style="{width: '650px'}" header="Detalles del Kit" :modal="true"
+        :pt="{ root: { class: 'dark:bg-zinc-900 dark:border-zinc-700' }, header: { class: 'dark:bg-zinc-900 dark:text-zinc-200' }, content: { class: 'dark:bg-zinc-900' }, footer: { class: 'dark:bg-zinc-900' } }">
         
-        <div v-if="selectedKitDetails.kit" class="mb-4 flex align-items-center">
+        <div v-if="selectedKitDetails.kit" class="mb-6 flex align-items-center gap-4 bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border dark:border-zinc-800">
             <Image 
                 :src="selectedKitDetails.kit.image_url || 'https://placehold.co/80x80/EEE/31343C?text=Sin+Foto'" 
                 alt="Imagen del kit" 
-                width="120" 
-                height="120" 
-                imageClass="border-round mr-3"
+                width="80" 
+                height="80" 
+                imageClass="rounded-lg object-cover w-20 h-20 border dark:border-zinc-700"
             />
             <div>
-                <h3 class="mt-0 mb-1">{{ selectedKitDetails.kit.name }}</h3>
+                <h3 class="mt-0 mb-1 font-bold text-xl text-gray-800 dark:text-zinc-100">{{ selectedKitDetails.kit.name }}</h3>
                 <Tag 
                     :severity="selectedKitDetails.kit.calculable_stock > 0 ? 'success' : 'danger'" 
                 >
-                    <strong>Stock Fabricable: {{ selectedKitDetails.kit.calculable_stock }}</strong>
+                    <span class="font-bold">Stock Fabricable: {{ selectedKitDetails.kit.calculable_stock }}</span>
                 </Tag>
             </div>
         </div>
 
-        <h4>Componentes del Kit</h4>
-        <DataTable :value="selectedKitDetails.components">
-            <Column field="component_name" header="Componente"></Column>
-            <Column field="component_stock" header="Stock Actual">
-                 <template #body="slotProps">
-                    {{ slotProps.data.component_stock }} {{ slotProps.data.unit_of_measure }}
-                </template>
-            </Column>
-            <Column field="quantity_required" header="Requerido por Kit"></Column>
-        </DataTable>
+        <h4 class="mb-3 font-semibold text-gray-800 dark:text-zinc-200">Componentes del Kit</h4>
+        <div class="rounded-lg overflow-hidden border dark:border-zinc-800">
+            <DataTable :value="selectedKitDetails.components" class="zinc-table">
+                <Column field="component_name" header="Componente">
+                     <template #body="{ data }"><span class="dark:text-zinc-200">{{ data.component_name }}</span></template>
+                </Column>
+                <Column field="component_stock" header="Stock Actual">
+                     <template #body="slotProps">
+                        <span class="dark:text-zinc-300">{{ slotProps.data.component_stock }} {{ slotProps.data.unit_of_measure }}</span>
+                    </template>
+                </Column>
+                <Column field="quantity_required" header="Requerido por Kit">
+                     <template #body="{ data }"><span class="font-bold dark:text-zinc-200">{{ data.quantity_required }}</span></template>
+                </Column>
+            </DataTable>
+        </div>
 
         <template #footer>
-            <Button label="Cerrar" icon="pi pi-times" class="p-button-text" @click="kitDetailsDialog = false"/>
+            <Button label="Cerrar" icon="pi pi-times" class="p-button-text !text-gray-500 dark:!text-zinc-400" @click="kitDetailsDialog = false"/>
         </template>
     </Dialog>
 
 </template>
 
 <style scoped>
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
+/* Zinc Theme Overrides for PrimeVue DataTable */
+:deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #f4f4f5 !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7;
 }
-.field.col-12 { grid-column: 1 / -1; }
-.field.col-6 { grid-column: span 3; }
-.field.col-4 { grid-column: span 2; }
-.field.col-2 { grid-column: span 1; }
-
-/* Asegurar que los headers de los modales se vean bien */
-h3.mt-0.mb-1 {
-    margin: 0 0 0.5rem 0 !important;
+.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #18181b !important; /* zinc-950 */
+    color: #a1a1aa !important; /* zinc-400 */
+    border-bottom: 1px solid #27272a; /* zinc-800 */
 }
-
-/* Forzar que los botones en la tabla no se separen */
-.p-datatable .p-button {
-    margin-right: 0.5rem;
+:deep(.zinc-table .p-datatable-tbody > tr) {
+    background-color: transparent !important;
+    color: inherit;
 }
-
-/* --- ESTILOS PARA TARJETAS DE KIT (MÓVIL) --- */
-.kit-card {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    /* Se eliminan: background-color, border, border-radius, box-shadow (manejados por Tailwind) */
+:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #f4f4f5;
 }
-
-.kit-image-wrapper {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.kit-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.kit-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.kit-name {
-    font-size: 1.1rem;
-    font-weight: 700;
-    /* Se elimina: color (manejado por Tailwind) */
-}
-
-.kit-sku {
-    font-size: 0.875rem;
-    /* Se elimina: color (manejado por Tailwind) */
-}
-
-.kit-stock {
-    margin-top: 0.75rem;
-}
-
-.stock-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    /* Se elimina: color (manejado por Tailwind) */
-    display: block;
-    margin-bottom: 0.25rem;
-}
-
-.kit-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    /* Se elimina: border-top (manejado por Tailwind) */
-    padding-top: 0.75rem;
-}
-
-.kit-actions :deep(.p-button) {
-    height: 2.5rem;
-    width: 2.5rem;
-}
-
-/* --- Nuevo: Ajuste de padding para tarjetas móviles --- */
-@media (max-width: 767px) { /* 768px es el breakpoint 'md' */
-    .kit-summary-card :deep(.p-card-content) {
-        /* Se elimina el padding del contenedor de la tarjeta para que 
-           nuestro padding custom 'px-2 pt-2' controle el espacio */
-        padding: 0;
-    }
+.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #27272a;
 }
 </style>

@@ -50,6 +50,8 @@ Route::middleware([
 
 Route::get('/dashboard/performance/{user}', [DashboardController::class, 'getWeeklyPerformance'])->middleware('auth')->name('dashboard.performance');
 Route::get('/dashboard/financials', [DashboardController::class, 'getFinancialsByYear'])->name('dashboard.financials.by-year');
+// Nueva ruta para obtener cotizaciones por estado en el KPI
+Route::get('/dashboard/quotes-data', [DashboardController::class, 'getQuotesByStatus'])->middleware('auth')->name('dashboard.quotes.data');
 
 
 // Rutas de Clientes --------------------------------------------------------------------------------------
@@ -174,6 +176,10 @@ Route::get('/public/inventario', [TpspDashboardController::class, 'publicInvento
 // Ruta para que el componente Vue filtre y cargue los movimientos de venta
 Route::get('/public-sales-movements', [TpspInventoryMovementController::class, 'publicSalesHistory'])
      ->name('tpsp.public.sales-history');
+
+// En tu archivo routes/web.php 
+Route::post('/tpsp/products/{product}/adjust-stock', [TpspProductController::class, 'adjustStock']);
+Route::get('/tpsp/products/{product}/movements', [TpspProductController::class, 'movements']);
 // --- FIN: Nuevas rutas públicas ---
 
 // // Historial público de órdenes de producción terminadas
@@ -181,4 +187,7 @@ Route::get('/public-sales-movements', [TpspInventoryMovementController::class, '
 //      ->name('produccion.public-history');
 // // --- FIN: Rutas del Módulo de Producción (TPSP) ---
 
-
+// Ruta temporal para previsualizar la página de error 419
+Route::get('/test-419', function () {
+    return \Inertia\Inertia::render('Errors/419');
+})->middleware('web'); // Asegúrate de que use el middleware web para cargar Inertia correctamente

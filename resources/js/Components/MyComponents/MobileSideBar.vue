@@ -155,17 +155,19 @@ onMounted(() => {
     </transition>
     
     <!-- Mobile Sidebar Container -->
+    <!-- CAMBIO: dark:bg-zinc-900, dark:text-zinc-300 -->
     <aside
         :style="sidebarStyle"
-        class="lg:hidden fixed top-0 left-0 flex flex-col h-full bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 transition-transform duration-300 ease-in-out z-50 shadow-[0_0_var(--shadow-blur)_-3px_var(--shadow-color)] w-64"
+        class="lg:hidden fixed top-0 left-0 flex flex-col h-full bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 transition-transform duration-300 ease-in-out z-50 shadow-[0_0_var(--shadow-blur)_-3px_var(--shadow-color)] w-64"
         :class="isOpen ? 'translate-x-0' : '-translate-x-full'"
     >
         <!-- Header: Logo and Close Button -->
-        <div class="flex items-center justify-between h-20 px-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <div class="flex items-center justify-between h-20 px-4 border-b border-gray-200 dark:border-zinc-800 shrink-0">
             <Link :href="route('dashboard')">
                 <ApplicationMark class="block h-9 w-auto" />
             </Link>
-             <button @click="closeSidebar" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
+             <!-- CAMBIO: dark:hover:bg-zinc-800 -->
+             <button @click="closeSidebar" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 focus:outline-none">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
@@ -176,8 +178,9 @@ onMounted(() => {
                 <div v-if="item.show" class="px-4">
                     <!-- Grouped Navigation Item -->
                     <div v-if="item.children" class="relative">
+                        <!-- CAMBIO: dark:text-zinc-100, dark:hover:bg-zinc-800 -->
                         <button @click="toggleGroup(item.name)" class="flex items-center justify-between w-full p-2 rounded-lg transition-colors duration-200"
-                            :class="{ 'bg-blue-500/10 border-blue-400 text-blue-600 dark:text-white shadow-lg': isGroupActive(item), 'hover:bg-gray-100 dark:hover:bg-gray-800': !isGroupActive(item) }">
+                            :class="{ 'bg-blue-500/10 border-blue-400 text-blue-600 dark:text-zinc-100 shadow-lg': isGroupActive(item), 'hover:bg-gray-100 dark:hover:bg-zinc-800': !isGroupActive(item) }">
                             <div class="flex items-center">
                                 <div v-html="item.icon" class="size-6"></div>
                                 <span class="ml-4 font-medium">{{ item.name }}</span>
@@ -187,8 +190,9 @@ onMounted(() => {
 
                          <!-- Expanded Dropdown with Transition -->
                         <transition name="slide-down">
-                            <div v-show="openGroups[item.name]" class="overflow-hidden pl-6 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 ml-3">
-                                <Link v-for="child in item.children" :key="child.name" :href="child.route ? route(child.route) : '#'" @click="closeSidebar" class="flex items-center p-2 rounded-lg transition-colors duration-200" :class="{'text-blue-600 dark:text-blue-400': child.active, 'hover:bg-gray-100 dark:hover:bg-gray-800': !child.active }">
+                            <!-- CAMBIO: dark:border-zinc-800 -->
+                            <div v-show="openGroups[item.name]" class="overflow-hidden pl-6 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-zinc-800 ml-3">
+                                <Link v-for="child in item.children" :key="child.name" :href="child.route ? route(child.route) : '#'" @click="closeSidebar" class="flex items-center p-2 rounded-lg transition-colors duration-200" :class="{'text-blue-600 dark:text-blue-400': child.active, 'hover:bg-gray-100 dark:hover:bg-zinc-800': !child.active }">
                                     <span class="font-medium text-sm">{{ child.name }}</span>
                                 </Link>
                             </div>
@@ -196,7 +200,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Single Navigation Item -->
-                    <Link v-else :href="item.route ? route(item.route) : '#'" @click="closeSidebar" class="flex items-center p-2 rounded-lg transition-colors duration-200" :class="{ 'bg-blue-500/10 border-blue-400 text-blue-600 dark:text-white shadow-lg': item.active, 'hover:bg-gray-100 dark:hover:bg-gray-800': !item.active }">
+                    <Link v-else :href="item.route ? route(item.route) : '#'" @click="closeSidebar" class="flex items-center p-2 rounded-lg transition-colors duration-200" :class="{ 'bg-blue-500/10 border-blue-400 text-blue-600 dark:text-zinc-100 shadow-lg': item.active, 'hover:bg-gray-100 dark:hover:bg-zinc-800': !item.active }">
                         <div v-html="item.icon" class="size-6"></div>
                         <span class="ml-4 font-medium">{{ item.name }}</span>
                     </Link>
@@ -205,8 +209,8 @@ onMounted(() => {
             
             <!-- Pomodoro Button -->
              <div class="px-4 mt-4">
-                <button @click="toggleModal(true)" class="flex items-center p-2 rounded-lg transition-colors duration-200 w-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                    <div class="size-6 text-gray-500 dark:text-gray-400">
+                <button @click="toggleModal(true)" class="flex items-center p-2 rounded-lg transition-colors duration-200 w-full hover:bg-gray-100 dark:hover:bg-zinc-800">
+                    <div class="size-6 text-gray-500 dark:text-zinc-400">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                     <span class="ml-4 font-medium">Pomodoro</span>
@@ -215,12 +219,12 @@ onMounted(() => {
         </nav>
 
         <!-- Footer Actions -->
-        <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
+        <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-zinc-800 shrink-0">
              <div class="flex items-center gap-x-2">
-                <button @click="toggleSettingsCard" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
+                <button @click="toggleSettingsCard" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 focus:outline-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 </button>
-                <button @click="toggleProfileCard" class="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900">
+                <button @click="toggleProfileCard" class="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-900">
                     <img class="size-10 rounded-full object-cover" :src="$page.props.auth.user.profile_photo_url" :alt="$page.props.auth.user.name">
                 </button>
             </div>
@@ -228,33 +232,35 @@ onMounted(() => {
     </aside>
 
     <!-- Profile Card -->
-    <div v-if="isProfileCardVisible" class="fixed bottom-4 left-[100px] border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-white rounded-2xl w-80 p-6 shadow-2xl transition-all duration-300 ease-in-out z-50">
+    <!-- CAMBIO: dark:bg-zinc-900, dark:border-zinc-700, dark:text-zinc-100 -->
+    <div v-if="isProfileCardVisible" class="fixed bottom-4 left-[100px] border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 dark:text-zinc-100 rounded-2xl w-80 p-6 shadow-2xl transition-all duration-300 ease-in-out z-50">
         <div class="flex justify-between items-center mb-4">
-            <button @click="$inertia.visit(route('profile.show'))" class="text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg></button>
-            <button @click="toggleProfileCard" class="text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button @click="$inertia.visit(route('profile.show'))" class="text-gray-400 hover:text-gray-600 dark:hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg></button>
+            <button @click="toggleProfileCard" class="text-gray-400 hover:text-gray-600 dark:hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
 
         <div class="flex flex-col items-center">
-            <img class="size-24 rounded-full object-cover border-4 border-gray-700" :src="$page.props.auth.user.profile_photo_url" :alt="$page.props.auth.user.name">
+            <img class="size-24 rounded-full object-cover border-4 border-gray-700 dark:border-zinc-700" :src="$page.props.auth.user.profile_photo_url" :alt="$page.props.auth.user.name">
             <h3 class="mt-4 text-xl font-semibold">{{ $page.props.auth.user.name }}</h3>
-            <p class="text-gray-400">Puesto no asignado</p>
-            <p class="text-gray-400 text-sm">Rol: Super Administrador</p>
-            <div class="w-full flex justify-center items-center mt-4 text-sm text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg><span>{{ $page.props.auth.user.email }}</span></div>
+            <p class="text-gray-400 dark:text-zinc-400">Puesto no asignado</p>
+            <p class="text-gray-400 dark:text-zinc-400 text-sm">Rol: Super Administrador</p>
+            <div class="w-full flex justify-center items-center mt-4 text-sm text-gray-400 dark:text-zinc-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg><span>{{ $page.props.auth.user.email }}</span></div>
             <form @submit.prevent="logout" class="w-full mt-6"><button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Cerrar sesión</button></form>
         </div>
     </div>
     
     <!-- Settings Card -->
-    <div v-if="isSettingsCardVisible" class="fixed bottom-4 left-[7rem] z-50 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-white rounded-2xl w-64 p-4 shadow-2xl transition-all duration-300 ease-in-out">
+    <!-- CAMBIO: dark:bg-zinc-900, dark:border-zinc-700, dark:text-zinc-100 -->
+    <div v-if="isSettingsCardVisible" class="fixed bottom-4 left-[7rem] z-50 bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 dark:text-zinc-100 rounded-2xl w-64 p-4 shadow-2xl transition-all duration-300 ease-in-out">
         <div class="flex justify-between items-center mb-2">
             <h4 class="font-semibold">Ajustes de Interfaz</h4>
-            <button @click="toggleSettingsCard" class="text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button @click="toggleSettingsCard" class="text-gray-400 hover:text-gray-600 dark:hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
         
         <!-- Primary Color Section -->
         <div class="mt-4">
             <h5 class="font-semibold text-sm">Color Primario</h5>
-            <p class="text-xs text-gray-400 mb-3">Cambia el color de acento de la aplicación.</p>
+            <p class="text-xs text-gray-400 dark:text-zinc-400 mb-3">Cambia el color de acento de la aplicación.</p>
             <div class="flex space-x-2">
                 <button @click="setPrimaryColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2" :class="primaryColor === '#3b82f6' ? 'border-white' : 'border-transparent'"></button>
                 <button @click="setPrimaryColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2" :class="primaryColor === '#ef4444' ? 'border-white' : 'border-transparent'"></button>
@@ -267,9 +273,9 @@ onMounted(() => {
         </div>
 
         <!-- Shadow Section -->
-        <div class="mt-4 pt-4 border-t border-gray-700">
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
             <h5 class="font-semibold text-sm">Sombra de la Barra</h5>
-            <p class="text-xs text-gray-400 mb-3">Personaliza el resplandor exterior.</p>
+            <p class="text-xs text-gray-400 dark:text-zinc-400 mb-3">Personaliza el resplandor exterior.</p>
             <div class="flex space-x-2">
                 <button @click="updateShadowBaseColor('0, 0, 0')" class="w-8 h-8 rounded-full bg-gray-500/50 border-2" :class="shadowBaseColor === '0, 0, 0' ? 'border-blue-400' : 'border-transparent'"></button>
                 <button @click="updateShadowBaseColor('59, 130, 246')" class="w-8 h-8 rounded-full bg-blue-500/50 border-2" :class="shadowBaseColor === '59, 130, 246' ? 'border-blue-400' : 'border-transparent'"></button>
@@ -283,18 +289,18 @@ onMounted(() => {
             <!-- Sliders for shadow -->
             <div class="mt-4 space-y-3">
                 <div>
-                    <label for="shadow-intensity" class="flex justify-between items-center text-xs text-gray-400 mb-1">
+                    <label for="shadow-intensity" class="flex justify-between items-center text-xs text-gray-400 dark:text-zinc-400 mb-1">
                         <span>Intensidad</span>
                         <span>{{ shadowIntensity }}%</span>
                     </label>
-                    <input id="shadow-intensity" type="range" min="0" max="100" v-model.number="shadowIntensity" class="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer range-thumb">
+                    <input id="shadow-intensity" type="range" min="0" max="100" v-model.number="shadowIntensity" class="w-full h-1.5 bg-gray-300 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer range-thumb">
                 </div>
                 <div>
-                    <label for="shadow-blur" class="flex justify-between items-center text-xs text-gray-400 mb-1">
+                    <label for="shadow-blur" class="flex justify-between items-center text-xs text-gray-400 dark:text-zinc-400 mb-1">
                         <span>Tamaño</span>
                         <span>{{ shadowBlur }}px</span>
                     </label>
-                    <input id="shadow-blur" type="range" min="10" max="60" v-model.number="shadowBlur" class="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer range-thumb">
+                    <input id="shadow-blur" type="range" min="10" max="60" v-model.number="shadowBlur" class="w-full h-1.5 bg-gray-300 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer range-thumb">
                 </div>
             </div>
         </div>

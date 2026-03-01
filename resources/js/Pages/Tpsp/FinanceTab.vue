@@ -56,14 +56,7 @@ const fetchFinancialData = async () => {
             return userTimezoneDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
         });
         
-        // const data = response.data.map(item => item.total); // <-- LÍNEA ANTIGUA
-        
-        // --- INICIO DE LA CORRECCIÓN ---
-        // El API retorna `total` como string. Debemos convertirlo a número.
-        // Usamos parseFloat() y `|| 0` para asegurar que siempre sea un número
-        // y evitar NaN si `item.total` es null o undefined.
         const data = response.data.map(item => parseFloat(item.total) || 0);
-        // --- FIN DE LA CORRECCIÓN ---
 
         // Actualizar chartData
         chartData.value = {
@@ -72,8 +65,8 @@ const fetchFinancialData = async () => {
                 {
                     label: 'Ventas Totales',
                     data: data,
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: isDarkMode.value ? 'rgba(45, 212, 191, 0.2)' : 'rgba(75, 192, 192, 0.2)', // Zinc/Teal tint
+                    borderColor: isDarkMode.value ? 'rgb(45, 212, 191)' : 'rgb(75, 192, 192)',
                     borderWidth: 2,
                     tension: 0.1, // Línea ligeramente curva
                     fill: true
@@ -99,20 +92,19 @@ const fetchHistoricalData = () => {
 const totalSales = computed(() => {
     const data = chartData.value.datasets[0]?.data;
     if (!data || data.length === 0) {
-        // --- CORRECCIÓN 2 ---
-        // Devolver '0' formateado para consistencia
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(0);
     }
-    // Ahora `data` es un array de números puros, por lo que `reduce` funciona correctamente.
     const total = data.reduce((acc, value) => acc + value, 0);
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(total);
 });
 
-// --- Opciones del Gráfico (Reactivo a Dark Mode) ---
+// --- Opciones del Gráfico (Reactivo a Dark Mode Zinc) ---
 
 const chartOptions = computed(() => {
-    const textColor = isDarkMode.value ? 'rgba(255, 255, 255, 0.87)' : '#495057';
-    const gridColor = isDarkMode.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    // Zinc-100 para texto oscuro, Zinc-600 para texto claro
+    const textColor = isDarkMode.value ? '#f4f4f5' : '#52525b';
+    // Zinc-800 para grid oscuro, Zinc-200 para grid claro
+    const gridColor = isDarkMode.value ? '#27272a' : '#e4e4e7';
 
     return {
         responsive: true,
@@ -199,11 +191,11 @@ onUnmounted(() => {
 
 <template>
     <!-- Contenedor principal sensible al modo oscuro -->
-    <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+    <div class="h-full">
         
         <!-- BARRA DE FILTROS -->
         <!-- Tarjeta sensible al modo oscuro -->
-        <div class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="mb-6 p-6 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800">
             <!-- Contenedor flex para filtros y total -->
             <div class="flex flex-wrap gap-6 items-end justify-between">
                 
@@ -211,25 +203,24 @@ onUnmounted(() => {
                 <div class="flex flex-wrap gap-4 items-end">
                     <div class="flex flex-col gap-2">
                         <!-- Etiqueta sensible al modo oscuro -->
-                        <label for="filterStart" class="font-bold text-sm text-gray-700 dark:text-gray-300">Fecha Inicio</label>
-                        <!-- CORRECCIÓN: v_model a v-model -->
-                        <Calendar id="filterStart" v-model="filterStartDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Desde" />
+                        <label for="filterStart" class="font-bold text-sm text-gray-700 dark:text-zinc-300">Fecha Inicio</label>
+                        <Calendar id="filterStart" v-model="filterStartDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Desde" inputClass="dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100" />
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label for="filterEnd" class="font-bold text-sm text-gray-700 dark:text-gray-300">Fecha Fin</label>
-                        <Calendar id="filterEnd" v-model="filterEndDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Hasta" />
+                        <label for="filterEnd" class="font-bold text-sm text-gray-700 dark:text-zinc-300">Fecha Fin</label>
+                        <Calendar id="filterEnd" v-model="filterEndDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Hasta" inputClass="dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100" />
                     </div>
                     <div class="flex items-end gap-2">
-                        <Button label="Filtrar" icon="pi pi-filter" @click="fetchFinancialData" :loading="loading" />
+                        <Button label="Filtrar" icon="pi pi-filter" @click="fetchFinancialData" :loading="loading" class="!text-[var(--primary-text-color)]"/>
                         <!-- NUEVO BOTÓN: Histórico -->
                         <Button label="Ver Histórico" icon="pi pi-calendar-times" @click="fetchHistoricalData" :loading="loading" class="p-button-outlined" />
                     </div>
                 </div>
 
                 <!-- NUEVO: Total de Ventas -->
-                <div class="p-4 bg-green-50 dark:bg-green-900 border-l-4 border-green-500 dark:border-green-400 rounded-r-lg">
-                    <label class="block text-sm font-medium text-green-700 dark:text-green-300">Total en Rango</label>
-                    <span class="text-2xl font-bold text-green-800 dark:text-green-200">{{ totalSales }}</span>
+                <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-500 dark:border-emerald-500 rounded-r-lg">
+                    <label class="block text-sm font-medium text-emerald-700 dark:text-emerald-300">Total en Rango</label>
+                    <span class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">{{ totalSales }}</span>
                 </div>
 
             </div>
@@ -237,18 +228,18 @@ onUnmounted(() => {
 
         <!-- CONTENEDOR DE GRÁFICA -->
         <!-- Tarjeta sensible al modo oscuro -->
-        <div class="relative h-[50vh] p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="relative h-[50vh] p-6 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800">
             <!-- La clave :key es importante para forzar a Chart.js a redibujar cuando las opciones cambian -->
             <Chart type="line" :data="chartData" :options="chartOptions" :key="isDarkMode" class="w-full h-full" />
             
             <!-- Indicador de Carga (sensible al modo oscuro) -->
-            <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75">
-                <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: #4b5563;"></i>
+            <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-zinc-900 bg-opacity-75 dark:bg-opacity-75 z-10 rounded-2xl">
+                <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: #71717a;"></i>
             </div>
 
              <!-- Mensaje de no datos (sensible al modo oscuro) -->
-            <div v-if="!loading && chartData.datasets[0]?.data.length === 0" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-50 dark:bg-opacity-50">
-                <span class="text-gray-500 dark:text-gray-400 font-semibold">No se encontraron datos de ventas en este rango.</span>
+            <div v-if="!loading && chartData.datasets[0]?.data.length === 0" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-zinc-900 bg-opacity-50 dark:bg-opacity-50 rounded-2xl">
+                <span class="text-gray-500 dark:text-zinc-500 font-semibold">No se encontraron datos de ventas en este rango.</span>
             </div>
         </div>
     </div>

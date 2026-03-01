@@ -6,7 +6,16 @@ import { useConfirm } from "primevue/useconfirm";
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Menu from 'primevue/menu';
 import ConfirmDialog from 'primevue/confirmdialog';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import Calendar from 'primevue/calendar';
+import Textarea from 'primevue/textarea';
 import Dropdown from 'primevue/dropdown';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Tag from 'primevue/tag';
+import Button from 'primevue/button';
+import Card from 'primevue/card';
 
 // --- PROPS ---
 const props = defineProps({
@@ -37,22 +46,18 @@ const paymentForm = useForm({
 const clientsWithBalance = computed(() => {
     return props.clients.map(client => ({
         ...client,
-        // El 'total_billed' ya viene calculado con descuento desde el controlador.
         balance: (client.total_billed || 0) - (client.total_paid || 0)
     }));
 });
 
-// MODIFICACIÓN: El cálculo del saldo de cada cotización en el dropdown ahora usa 'final_amount'.
 const quoteOptions = computed(() => {
     if (!selectedClient.value?.quotes) return [];
     
     return selectedClient.value.quotes
         .map(q => ({
             ...q,
-            // Se usa el 'final_amount' que viene del backend para calcular el saldo real.
             balance: q.final_amount - (q.total_paid || 0)
         }))
-        // Se añade una tolerancia para evitar problemas con decimales flotantes.
         .filter(q => q.balance > 0.01) 
         .map(q => ({
             id: q.id,
@@ -60,38 +65,18 @@ const quoteOptions = computed(() => {
         }));
 });
 
-
 // --- MENU ACTIONS ---
 const menuItems = computed(() => {
     if (!selectedClientForMenu.value) return [];
     const client = selectedClientForMenu.value;
     return [
-        {
-            label: 'Agregar Pago',
-            icon: 'pi pi-dollar',
-            command: () => openPaymentDialog(client)
-        },
-        {
-            label: 'Ver Detalles',
-            icon: 'pi pi-eye',
-            command: () => router.get(`/clients/${client.id}`)
-        },
-        {
-            label: 'Editar Cliente',
-            icon: 'pi pi-pencil',
-            command: () => router.get(`/clients/${client.id}/edit`)
-        },
-        {
-            separator: true
-        },
-        {
-            label: 'Eliminar Cliente',
-            icon: 'pi pi-trash',
-            command: () => confirmDeleteClient(client)
-        }
+        { label: 'Agregar Pago', icon: 'pi pi-dollar', command: () => openPaymentDialog(client) },
+        { label: 'Ver Detalles', icon: 'pi pi-eye', command: () => router.get(`/clients/${client.id}`) },
+        { label: 'Editar Cliente', icon: 'pi pi-pencil', command: () => router.get(`/clients/${client.id}/edit`) },
+        { separator: true },
+        { label: 'Eliminar Cliente', icon: 'pi pi-trash', command: () => confirmDeleteClient(client) }
     ];
 });
-
 
 const toggleMenu = (event, client) => {
     selectedClientForMenu.value = client;
@@ -108,31 +93,15 @@ const confirmDeleteClient = (client) => {
         acceptClass: 'p-button-danger p-button-text',
         acceptLabel: 'Eliminar',
         rejectLabel: 'Cancelar',
-        accept: () => {
-            deleteClient(client);
-        }
+        accept: () => { deleteClient(client); }
     });
 };
 
 const deleteClient = (client) => {
     router.delete(`/clients/${client.id}`, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Cliente eliminado correctamente',
-                life: 3000
-            });
-        },
-        onError: () => {
-             toast.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo eliminar al cliente.',
-                life: 3000
-            });
-        }
+        onSuccess: () => { toast.add({ severity: 'success', summary: 'Éxito', detail: 'Cliente eliminado correctamente', life: 3000 }); },
+        onError: () => { toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar al cliente.', life: 3000 }); }
     });
 };
 
@@ -153,35 +122,20 @@ const submitPayment = () => {
         preserveScroll: true,
         onSuccess: () => {
             closePaymentDialog();
-            toast.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Pago registrado correctamente',
-                life: 3000
-            });
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago registrado correctamente', life: 3000 });
         },
         onError: (errors) => {
             const errorMessages = Object.values(errors).join(' ');
-            toast.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: errorMessages || 'No se pudo registrar el pago. Revisa los datos.',
-                life: 3000
-            });
+            toast.add({ severity: 'error', summary: 'Error', detail: errorMessages || 'No se pudo registrar el pago. Revisa los datos.', life: 3000 });
         }
     });
 };
 
-const onRowClick = (event) => {
-    router.get(`/clients/${event.data.id}`);
-};
-
-const rowClass = () => 'cursor-pointer';
+const onRowClick = (event) => { router.get(`/clients/${event.data.id}`); };
+const rowClass = () => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors';
 
 const formatCurrency = (value) => {
-    if (value === null || isNaN(value)) {
-        value = 0;
-    }
+    if (value === null || isNaN(value)) value = 0;
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
 };
 
@@ -197,25 +151,27 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 
                 <header class="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-gray-200 text-gray-800">Módulo de Clientes</h1>
-                        <p class="text-gray-400 mt-1">Gestiona la información y finanzas de tus clientes.</p>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Clientes</h1>
+                        <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona la información y finanzas de tus clientes.</p>
                     </div>
                     <Link href="/clients/create">
-                        <Button label="Crear Cliente" icon="pi pi-plus" />
+                        <Button label="Crear Cliente" icon="pi pi-plus" class="!text-[var(--primary-text-color)]" />
                     </Link>
                 </header>
 
                 <!-- Vista de Tabla para Escritorio -->
-                <div class="hidden md:block">
-                    <DataTable :value="clientsWithBalance" stripedRows paginator :rows="15" tableStyle="min-width: 50rem;"
-                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass">
-                        <template #empty> No se encontraron clientes. </template>
+                <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
+                    <DataTable :value="clientsWithBalance" paginator :rows="15" tableStyle="min-width: 50rem;"
+                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                        <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron clientes.</div> </template>
 
-                        <Column field="id" header="ID" sortable style="width: 5%"></Column>
+                        <Column field="id" header="ID" sortable style="width: 5%">
+                            <template #body="{ data }"><span class="text-gray-500 dark:text-zinc-500">#{{ data.id }}</span></template>
+                        </Column>
                         <Column field="name" header="Cliente" sortable>
                             <template #body="{ data }">
-                                <div class="font-semibold">{{ data.name }}</div>
-                                <div class="text-sm text-gray-500">{{ data.tax_id }}</div>
+                                <div class="font-semibold text-gray-800 dark:text-zinc-200">{{ data.name }}</div>
+                                <div class="text-sm text-gray-500 dark:text-zinc-500">{{ data.tax_id }}</div>
                             </template>
                         </Column>
                         <Column field="status" header="Estado" sortable>
@@ -225,17 +181,17 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                         </Column>
                         <Column field="total_billed" header="Total Facturado" sortable class="text-right">
                             <template #body="{ data }">
-                                <span class="text-blue-600">{{ formatCurrency(data.total_billed) }}</span>
+                                <span class="text-blue-600 dark:text-blue-400">{{ formatCurrency(data.total_billed) }}</span>
                             </template>
                         </Column>
                         <Column field="total_paid" header="Total Pagado" sortable class="text-right">
                             <template #body="{ data }">
-                                <span class="text-green-600">{{ formatCurrency(data.total_paid) }}</span>
+                                <span class="text-emerald-600 dark:text-emerald-400">{{ formatCurrency(data.total_paid) }}</span>
                             </template>
                         </Column>
                         <Column field="balance" header="Balance" sortable class="text-right">
                             <template #body="{ data }">
-                                <span class="font-bold" :class="[data.balance > 0.01 ? 'text-red-600' : 'text-gray-700']">
+                                <span class="font-bold" :class="[data.balance > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-zinc-400']">
                                     {{ formatCurrency(data.balance) }}
                                 </span>
                             </template>
@@ -243,7 +199,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                         <Column header="Acciones" style="width: 10%" bodyClass="text-center">
                             <template #body="{ data }">
                                 <Button icon="pi pi-ellipsis-v" text rounded aria-haspopup="true"
-                                    aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" />
+                                    aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" class="!text-gray-500 dark:!text-zinc-400 hover:!bg-gray-100 dark:hover:!bg-zinc-800"/>
                             </template>
                         </Column>
                     </DataTable>
@@ -254,23 +210,21 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                 <!-- Vista de Tarjetas para Móvil -->
                 <div class="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Card v-for="client in clientsWithBalance" :key="client.id"
-                        class="cursor-pointer" @click="router.get(`/clients/${client.id}`)">
+                        class="cursor-pointer dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm !rounded-xl" @click="router.get(`/clients/${client.id}`)">
                         <template #title>
-                            <div class="flex justify-between items-start">
-                                <span class="text-lg font-bold">{{ client.name }}</span>
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-lg font-bold text-gray-800 dark:text-zinc-100">{{ client.name }}</span>
                                 <Tag :value="client.status" :severity="getStatusSeverity(client.status)" />
                             </div>
                         </template>
-                        <template #subtitle>ID: {{ client.id }} - {{ client.tax_id }}</template>
+                        <template #subtitle><span class="text-gray-500 dark:text-zinc-500 text-sm">ID: {{ client.id }} - {{ client.tax_id }}</span></template>
                         <template #content>
-                            <ul class="space-y-2 text-gray-700">
-                                <li class="flex justify-between"><span>Facturado:</span> <span class="text-blue-600">{{
-                                    formatCurrency(client.total_billed) }}</span></li>
-                                <li class="flex justify-between"><span>Pagado:</span> <span class="text-green-600">{{
-                                    formatCurrency(client.total_paid) }}</span></li>
-                                <li class="flex justify-between border-t pt-2 mt-2">
-                                    <span class="font-bold">Balance:</span>
-                                    <span class="font-bold" :class="[client.balance > 0.01 ? 'text-red-600' : 'text-gray-800']">
+                            <ul class="space-y-2 text-sm text-gray-600 dark:text-zinc-400 mt-2">
+                                <li class="flex justify-between"><span>Facturado:</span> <span class="text-blue-600 dark:text-blue-400">{{ formatCurrency(client.total_billed) }}</span></li>
+                                <li class="flex justify-between"><span>Pagado:</span> <span class="text-emerald-600 dark:text-emerald-400">{{ formatCurrency(client.total_paid) }}</span></li>
+                                <li class="flex justify-between border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2">
+                                    <span class="font-bold dark:text-zinc-300">Balance:</span>
+                                    <span class="font-bold" :class="[client.balance > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-zinc-300']">
                                         {{ formatCurrency(client.balance) }}
                                     </span>
                                 </li>
@@ -279,46 +233,47 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                         <template #footer>
                              <div class="flex justify-end">
                                 <Button label="Acciones" icon="pi pi-bars" @click.stop="toggleMenu($event, client)"
-                                    aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" />
+                                    aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" size="small" outlined />
                             </div>
                         </template>
                     </Card>
-                    <div v-if="clients.length === 0" class="text-center text-gray-500 col-span-full mt-8">
+                    <div v-if="clients.length === 0" class="text-center text-gray-500 dark:text-zinc-500 col-span-full mt-8">
                         No se encontraron clientes.
                     </div>
                 </div>
 
                 <!-- Diálogo Modal para Agregar Pago -->
-                <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }">
+                <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }" 
+                    :pt="{ root: { class: 'dark:bg-zinc-900 dark:border-zinc-700' }, header: { class: 'dark:bg-zinc-900 dark:text-zinc-200' }, content: { class: 'dark:bg-zinc-900' }, footer: { class: 'dark:bg-zinc-900' } }">
                     <template #header>
                         <div class="flex flex-col">
-                            <h3 class="text-lg font-semibold">Registrar Pago</h3>
-                            <p class="text-sm text-gray-500">Para: {{ selectedClient?.name }}</p>
+                            <h3 class="text-lg font-semibold dark:text-zinc-100">Registrar Pago</h3>
+                            <p class="text-sm text-gray-500 dark:text-zinc-500">Para: {{ selectedClient?.name }}</p>
                         </div>
                     </template>
                     <form @submit.prevent="submitPayment">
                         <div class="flex flex-col gap-4 p-4">
                              <div class="flex flex-col gap-2">
-                                <label for="quote">Asociar a Cotización (Opcional)</label>
+                                <label for="quote" class="dark:text-zinc-300">Asociar a Cotización (Opcional)</label>
                                 <Dropdown id="quote" v-model="paymentForm.quote_id" :options="quoteOptions"
                                     optionLabel="label" optionValue="id" placeholder="Selecciona una cotización" class="w-full"
                                     :class="{ 'p-invalid': paymentForm.errors.quote_id }" showClear />
                                 <small v-if="paymentForm.errors.quote_id" class="p-error">{{ paymentForm.errors.quote_id }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="amount">Monto del Pago</label>
+                                <label for="amount" class="dark:text-zinc-300">Monto del Pago</label>
                                 <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN"
                                     locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
                                 <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="payment_date">Fecha del Pago</label>
+                                <label for="payment_date" class="dark:text-zinc-300">Fecha del Pago</label>
                                 <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd"
                                     :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
                                 <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="notes">Notas (Opcional)</label>
+                                <label for="notes" class="dark:text-zinc-300">Notas (Opcional)</label>
                                 <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
                             </div>
                         </div>
@@ -333,9 +288,31 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
     </AppLayout>
 </template>
 
-<style>
+<style scoped>
 /* Estilos para asegurar que el autocompletado del navegador no altere el diseño */
 .p-inputtext, .p-inputnumber-input {
     width: 100% !important;
+}
+
+/* Zinc Theme Overrides for PrimeVue DataTable */
+:deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #f4f4f5 !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7;
+}
+.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: #18181b !important; /* zinc-950 */
+    color: #a1a1aa !important; /* zinc-400 */
+    border-bottom: 1px solid #27272a; /* zinc-800 */
+}
+:deep(.zinc-table .p-datatable-tbody > tr) {
+    background-color: transparent !important;
+    color: inherit;
+}
+:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #f4f4f5;
+}
+.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #27272a;
 }
 </style>

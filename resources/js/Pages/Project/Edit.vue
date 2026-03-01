@@ -22,23 +22,19 @@ const props = defineProps({
 });
 
 // --- FORM ---
-// Inicializa el formulario con los datos del proyecto que se está editando.
 const form = useForm({
     name: props.project.name,
     quote_id: props.project.quote_id,
     client_id: props.project.client_id,
     description: props.project.description,
-    // Convierte las fechas a objetos Date para que el componente Calendar las reconozca
     start_date: props.project.start_date ? new Date(props.project.start_date) : null,
     end_date: props.project.end_date ? new Date(props.project.end_date) : null,
     budget: props.project.budget,
-    // Mapea el array de miembros a un array de sus IDs para el MultiSelect
     member_ids: props.project.members.map(member => member.id),
 });
 
 // --- METHODS ---
 const submit = () => {
-    // Usa el método PUT para actualizar el recurso
     form.put(route('projects.update', props.project.id));
 };
 </script>
@@ -46,23 +42,28 @@ const submit = () => {
 <template>
     <AppLayout title="Editar Proyecto">
         <div class="p-4 sm:p-6 lg:p-8">
-            <Back :route="'projects.index'" />
+            
+            <div class="max-w-4xl mx-auto mb-6">
+                 <Link :href="route('projects.index')" class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-300">
+                    <i class="pi pi-arrow-left text-gray-500 dark:text-gray-300"></i>
+                </Link>
+            </div>
+
             <div class="max-w-4xl mx-auto mt-4">
                 <form @submit.prevent="submit">
-                    <Card class="dark:bg-gray-800 dark:border-gray-700">
+                    <Card class="dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm rounded-2xl">
                         <template #title>
-                            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Editar Proyecto</h2>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-zinc-100">Editar Proyecto</h2>
                         </template>
                         <template #subtitle>
-                            <p class="text-gray-600 dark:text-gray-400">Actualiza la información del proyecto.</p>
+                            <p class="text-gray-600 dark:text-zinc-500">Actualiza la información del proyecto.</p>
                         </template>
 
                         <template #content>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
 
                                 <div class="flex flex-col gap-2 md:col-span-2">
-                                    <label for="quote_id" class="font-semibold dark:text-gray-300">Cotización Vinculada (Opcional)</label>
-                                     <!-- El dropdown está deshabilitado si el proyecto ya tiene una cotización para evitar cambios accidentales -->
+                                    <label for="quote_id" class="font-semibold text-sm dark:text-zinc-300">Cotización Vinculada (Opcional)</label>
                                     <Dropdown id="quote_id" v-model="form.quote_id" :options="props.quotes" filter
                                         optionValue="id" placeholder="Selecciona una cotización aceptada"
                                         :class="{ 'p-invalid': form.errors.quote_id }" showClear
@@ -75,48 +76,48 @@ const submit = () => {
                                             <span v-else>{{ placeholder }}</span>
                                         </template>
                                     </Dropdown>
-                                    <small class="text-yellow-500 text-xs mt-1" v-if="props.project.quote_id">Para cambiar la cotización, primero debes desvincularla.</small>
+                                    <small class="text-amber-500 text-xs mt-1" v-if="props.project.quote_id">Para cambiar la cotización, primero debes desvincularla.</small>
                                     <small v-if="form.errors.quote_id" class="p-error">{{ form.errors.quote_id }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2 md:col-span-2">
-                                    <label for="name" class="font-semibold dark:text-gray-300">Nombre del Proyecto <span class="text-red-500">*</span></label>
+                                    <label for="name" class="font-semibold text-sm dark:text-zinc-300">Nombre del Proyecto <span class="text-red-500">*</span></label>
                                     <InputText id="name" v-model="form.name" :class="{ 'p-invalid': form.errors.name }" :disabled="!!form.quote_id" />
                                     <small v-if="form.errors.name" class="p-error">{{ form.errors.name }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
-                                    <label for="client_id" class="font-semibold dark:text-gray-300">Cliente</label>
+                                    <label for="client_id" class="font-semibold text-sm dark:text-zinc-300">Cliente</label>
                                     <Dropdown id="client_id" v-model="form.client_id" :options="props.clients" filter optionLabel="name" optionValue="id" placeholder="Selecciona un cliente" :class="{ 'p-invalid': form.errors.client_id }" showClear :disabled="!!form.quote_id" />
                                     <small v-if="form.errors.client_id" class="p-error">{{ form.errors.client_id }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
-                                     <label for="budget" class="font-semibold dark:text-gray-300">Presupuesto</label>
+                                     <label for="budget" class="font-semibold text-sm dark:text-zinc-300">Presupuesto</label>
                                      <InputNumber id="budget" v-model="form.budget" mode="currency" currency="MXN" locale="es-MX" :class="{ 'p-invalid': form.errors.budget }" :disabled="!!form.quote_id" />
                                      <small v-if="form.errors.budget" class="p-error">{{ form.errors.budget }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2 md:col-span-2">
-                                    <label for="description" class="font-semibold dark:text-gray-300">Descripción</label>
+                                    <label for="description" class="font-semibold text-sm dark:text-zinc-300">Descripción</label>
                                     <Textarea id="description" v-model="form.description" rows="4" :class="{ 'p-invalid': form.errors.description }" />
                                     <small v-if="form.errors.description" class="p-error">{{ form.errors.description }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
-                                    <label for="start_date" class="font-semibold dark:text-gray-300">Fecha de Inicio</label>
+                                    <label for="start_date" class="font-semibold text-sm dark:text-zinc-300">Fecha de Inicio</label>
                                     <Calendar id="start_date" v-model="form.start_date" dateFormat="dd/mm/yy" :class="{ 'p-invalid': form.errors.start_date }" />
                                     <small v-if="form.errors.start_date" class="p-error">{{ form.errors.start_date }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
-                                    <label for="end_date" class="font-semibold dark:text-gray-300">Fecha de Fin</label>
+                                    <label for="end_date" class="font-semibold text-sm dark:text-zinc-300">Fecha de Fin</label>
                                     <Calendar id="end_date" v-model="form.end_date" dateFormat="dd/mm/yy" :class="{ 'p-invalid': form.errors.end_date }" />
                                     <small v-if="form.errors.end_date" class="p-error">{{ form.errors.end_date }}</small>
                                 </div>
 
                                  <div class="flex flex-col gap-2 md:col-span-2">
-                                    <label for="member_ids" class="font-semibold dark:text-gray-300">Miembros del Equipo</label>
+                                    <label for="member_ids" class="font-semibold text-sm dark:text-zinc-300">Miembros del Equipo</label>
                                     <MultiSelect id="member_ids" v-model="form.member_ids" :options="props.users" filter optionLabel="name" optionValue="id" placeholder="Asigna miembros al proyecto" :class="{ 'p-invalid': form.errors.member_ids }" class="w-full" />
                                      <small v-if="form.errors.member_ids" class="p-error">{{ form.errors.member_ids }}</small>
                                 </div>
@@ -125,11 +126,11 @@ const submit = () => {
                         </template>
 
                         <template #footer>
-                            <div class="flex justify-end gap-2 mt-6">
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-zinc-800">
                                 <Link :href="route('projects.index')">
-                                    <Button label="Cancelar" severity="secondary" outlined />
+                                    <Button label="Cancelar" severity="secondary" text />
                                 </Link>
-                                <Button label="Actualizar Proyecto" icon="pi pi-check" @click="submit" :loading="form.processing" />
+                                <Button label="Actualizar Proyecto" icon="pi pi-check" @click="submit" :loading="form.processing" class="!text-[var(--primary-text-color)]" />
                             </div>
                         </template>
                     </Card>
@@ -140,7 +141,10 @@ const submit = () => {
 </template>
 
 <style>
-.p-inputtext, .p-dropdown, .p-textarea, .p-calendar, .p-inputnumber, .p-multiselect {
-    width: 100%;
+.p-inputtext, .p-dropdown, .p-textarea, .p-calendar, .p-inputnumber, .p-multiselect { width: 100%; }
+.dark .p-inputtext, .dark .p-dropdown, .dark .p-textarea, .dark .p-multiselect {
+    background-color: #27272a; /* zinc-800 */
+    color: #f4f4f5; /* zinc-100 */
+    border-color: #3f3f46; /* zinc-700 */
 }
 </style>

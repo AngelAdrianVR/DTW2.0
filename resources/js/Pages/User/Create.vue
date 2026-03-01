@@ -29,54 +29,56 @@ const submit = () => {
 <template>
     <AppLayout title="Crear Usuario">
         <div class="p-4 sm:p-6 lg:p-8">
-            <!-- Este componente Back asume que tienes una ruta 'users.index' -->
-            <Back :route="'dashboard'" />
+            <div class="max-w-4xl mx-auto mb-6">
+                 <Link :href="route('users.index')" class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-300">
+                    <i class="pi pi-arrow-left text-gray-500 dark:text-gray-300"></i>
+                </Link>
+            </div>
             <div class="max-w-2xl mx-auto mt-4">
                 <form @submit.prevent="submit">
-                    <Card class="dark:bg-gray-800 dark:border-gray-700">
+                    <Card class="dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm rounded-2xl">
                         <template #title>
-                            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Crear Nuevo Usuario</h2>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-zinc-100">Crear Nuevo Usuario</h2>
                         </template>
                         <template #subtitle>
-                            <p class="text-gray-600 dark:text-gray-400">Completa los datos para registrar un nuevo miembro del equipo.</p>
+                            <p class="text-gray-500 dark:text-zinc-500">Completa los datos para registrar un nuevo miembro del equipo.</p>
                         </template>
 
                         <template #content>
                             <div class="space-y-6 mt-6">
 
                                 <div class="flex flex-col gap-2">
-                                    <label for="name" class="font-semibold dark:text-gray-300">Nombre Completo <span class="text-red-500">*</span></label>
+                                    <label for="name" class="font-semibold text-sm dark:text-zinc-300">Nombre Completo <span class="text-red-500">*</span></label>
                                     <InputText id="name" v-model="form.name" :class="{ 'p-invalid': form.errors.name }" />
                                     <small v-if="form.errors.name" class="p-error">{{ form.errors.name }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
-                                    <label for="email" class="font-semibold dark:text-gray-300">Correo Electrónico <span class="text-red-500">*</span></label>
+                                    <label for="email" class="font-semibold text-sm dark:text-zinc-300">Correo Electrónico <span class="text-red-500">*</span></label>
                                     <InputText id="email" v-model="form.email" :class="{ 'p-invalid': form.errors.email }" />
                                     <small v-if="form.errors.email" class="p-error">{{ form.errors.email }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
-                                    <label for="password" class="font-semibold dark:text-gray-300">Contraseña <span class="text-red-500">*</span></label>
-                                    <Password id="password" v-model="form.password" :feedback="true" toggleMask :class="{ 'p-invalid': form.errors.password }" />
+                                    <label for="password" class="font-semibold text-sm dark:text-zinc-300">Contraseña <span class="text-red-500">*</span></label>
+                                    <Password id="password" v-model="form.password" :feedback="true" toggleMask :class="{ 'p-invalid': form.errors.password }" inputClass="w-full" />
                                     <small v-if="form.errors.password" class="p-error">{{ form.errors.password }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
-                                    <label for="password_confirmation" class="font-semibold dark:text-gray-300">Confirmar Contraseña <span class="text-red-500">*</span></label>
-                                    <Password id="password_confirmation" v-model="form.password_confirmation" :feedback="false" toggleMask :class="{ 'p-invalid': form.errors.password_confirmation }" />
+                                    <label for="password_confirmation" class="font-semibold text-sm dark:text-zinc-300">Confirmar Contraseña <span class="text-red-500">*</span></label>
+                                    <Password id="password_confirmation" v-model="form.password_confirmation" :feedback="false" toggleMask :class="{ 'p-invalid': form.errors.password_confirmation }" inputClass="w-full" />
                                 </div>
 
                             </div>
                         </template>
 
                         <template #footer>
-                            <div class="flex justify-end gap-2 mt-6">
-                                <!-- Cambia la ruta si no tienes 'users.index' -->
-                                <Link :href="route('dashboard')">
-                                    <Button label="Cancelar" severity="secondary" outlined />
+                            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                <Link :href="route('users.index')">
+                                    <Button label="Cancelar" severity="secondary" text />
                                 </Link>
-                                <Button label="Guardar Usuario" icon="pi pi-check" @click="submit" :loading="form.processing" />
+                                <Button label="Guardar Usuario" icon="pi pi-check" @click="submit" :loading="form.processing" class="!text-[var(--primary-text-color)]"/>
                             </div>
                         </template>
                     </Card>
@@ -90,5 +92,10 @@ const submit = () => {
 /* Asegura que los componentes de PrimeVue ocupen todo el ancho */
 .p-inputtext, .p-password {
     width: 100%;
+}
+.dark .p-inputtext {
+    background-color: #27272a; /* zinc-800 */
+    color: #f4f4f5; /* zinc-100 */
+    border-color: #3f3f46; /* zinc-700 */
 }
 </style>

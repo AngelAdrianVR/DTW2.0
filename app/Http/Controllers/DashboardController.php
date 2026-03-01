@@ -27,7 +27,6 @@ class DashboardController extends Controller
             ->all();
 
         // --- KPI de Clientes ---
-        // Nota: La deuda se sigue calculando solo sobre cotizaciones 'Aceptado' que aún no se han pagado.
         $totalOwedPerClient = DB::table('quotes')
             ->select('client_id', DB::raw('SUM(amount * (1 - COALESCE(percentage_discount, 0) / 100)) as total_owed'))
             ->where('status', 'Aceptado')
@@ -48,14 +47,19 @@ class DashboardController extends Controller
             
         // --- KPI de Proyectos y Hostings ---
         $projectsCount = Project::count();
+        
+        // Desglose de estados de proyectos para el KPI mejorado
+        $projectsStats = Project::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->all();
+
         $hostingsCount = HostingClient::count();
         $clientsCount = Client::count();
 
         // --- KPI de Desempeño ---
-        // Se optimiza la consulta para no cargar 'timeLogs', que ya no son necesarios aquí.
         $users = User::with('assignedTasks')->get();
         $performanceData = $users->map(function ($user) {
-            // Se calcula el total de minutos sumando directamente desde las tareas asignadas.
             $totalMinutes = $user->assignedTasks->sum('total_invested_minutes');
 
             $hours = floor($totalMinutes / 60);
@@ -71,38 +75,47 @@ class DashboardController extends Controller
                 'stats' => [
                     'completed' => $tasks->where('status', 'Completada')->count(),
                     'in_progress' => $tasks->where('status', 'En proceso')->count(),
+                    // Tareas actualmente en curso para mostrarlas en el hover
+                    'in_progress_details' => $tasks->where('status', 'En proceso')->map(function($t) {
+                        return [
+                            'id' => $t->id,
+                            'title' => $t->title,
+                            'project_id' => $t->project_id
+                        ];
+                    })->values(),
                     'pending' => $tasks->whereIn('status', ['Pendiente', 'Por hacer'])->count(),
+                    'pending_details' => $tasks->whereIn('status', ['Pendiente', 'Por hacer'])
+                        ->map(function($t) {
+                            return [
+                                'id' => $t->id,
+                                'title' => $t->title,
+                                'project_id' => $t->project_id
+                            ];
+                        })->values(),
                 ],
             ];
         });
 
         // --- KPI Financieros y Gráfica de Ingresos ---
-        // Se incluyen cotizaciones con estado 'Aceptado' y 'Pagado' para los cálculos de facturación.
         $acceptedAndPaidQuotesQuery = Quote::whereIn('quotes.status', ['Aceptado', 'Pagado']);
-    
-        // Total facturado (Gran Total)
         $totalInvoiced = (clone $acceptedAndPaidQuotesQuery)->get()->sum('final_amount');
     
-        // Desglose de facturación por cliente.
         $invoicedPerClient = Quote::query()
             ->join('clients', 'quotes.client_id', '=', 'clients.id')
-            ->whereIn('quotes.status', ['Aceptado', 'Pagado']) // Se incluyen ambos estados.
+            ->whereIn('quotes.status', ['Aceptado', 'Pagado'])
             ->select('clients.name', DB::raw('SUM(quotes.amount * (1 - COALESCE(quotes.percentage_discount, 0) / 100)) as total'))
             ->groupBy('clients.name')
             ->orderBy('total', 'desc')
             ->get();
 
-
         $currentYear = Carbon::now()->year;
 
-        // Suma mensual de pagos de clientes
         $clientPaymentsByMonth = ClientPayment::query()
             ->select(DB::raw('MONTH(payment_date) as month'), DB::raw('SUM(amount) as total'))
             ->whereYear('payment_date', $currentYear)
             ->groupBy('month')
             ->pluck('total', 'month');
 
-        // Suma mensual de pagos de hosting
         $hostingPaymentsByMonth = HostingPayment::query()
             ->select(DB::raw('MONTH(payment_date) as month'), DB::raw('SUM(amount) as total'))
             ->whereYear('payment_date', $currentYear)
@@ -137,7 +150,6 @@ class DashboardController extends Controller
             ],
         ];
 
-
         return Inertia::render('Dashboard/Index', [
             'kpis' => [
                 'quotes' => [
@@ -155,6 +167,9 @@ class DashboardController extends Controller
                 ],
                 'projects' => [
                     'total' => $projectsCount,
+                    'en_proceso' => $projectsStats['En proceso'] ?? 0,
+                    'pendientes' => $projectsStats['Pendiente'] ?? 0,
+                    'completados' => $projectsStats['Completado'] ?? 0,
                 ],
                 'hostings' => [
                     'total' => $hostingsCount,
@@ -167,9 +182,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Devuelve datos financieros para el gráfico como JSON para una solicitud AJAX.
-     */
     public function getFinancialsByYear(Request $request)
     {
         $validated = $request->validate([
@@ -181,9 +193,6 @@ class DashboardController extends Controller
         return response()->json($financials);
     }
 
-    /**
-     * Obtiene y formatea los datos financieros para un año específico.
-     */
     private function getFinancialDataForYear(int $year)
     {
         $clientPaymentsByMonth = ClientPayment::query()
@@ -217,18 +226,15 @@ class DashboardController extends Controller
         ];
     }
 
-    /**
-     * Obtiene los registros de tiempo de un usuario para una semana específica.
-     */
     public function getWeeklyPerformance(Request $request, User $user)
     {
         $request->validate([
-            'week' => 'required|string', // e.g., "2025-W41"
+            'week' => 'required|string',
         ]);
 
         [$year, $weekNumber] = sscanf($request->input('week'), '%d-W%d');
         
-        $startDate = Carbon::now()->setISODate($year, $weekNumber)->startOfWeek(Carbon::MONDAY);
+                $startDate = Carbon::now()->setISODate($year, $weekNumber)->startOfWeek(Carbon::MONDAY);
         $endDate = $startDate->copy()->endOfWeek(Carbon::SUNDAY);
 
         $timeLogs = TimeLog::with('task')
@@ -237,24 +243,25 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
         
-        // CORRECCIÓN: Usar 'duration_minutes'
         $totalWeekMinutes = $timeLogs->sum('duration_minutes');
 
         $logsByDay = $timeLogs->groupBy(function ($log) {
-            return Carbon::parse($log->created_at)->format('l'); // 'Monday', 'Tuesday', etc.
+            return Carbon::parse($log->created_at)->format('Y-m-d'); 
         });
 
-        $weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         $formattedLogs = [];
+        $currentDate = $startDate->copy();
 
-        foreach ($weekDays as $day) {
-            $dayLogs = $logsByDay->get($day, collect());
-            // CORRECCIÓN: Usar 'duration_minutes'
+        for ($i = 0; $i < 7; $i++) {
+            $dateKey = $currentDate->format('Y-m-d');
+            $dayName = $currentDate->format('l,'); // Monday, Tuesday, etc.
+            $dateFormatted = $currentDate->format('d'); // Ej: 23/02/26
+            
+            $dayLogs = $logsByDay->get($dateKey, collect());
             $totalDayMinutes = $dayLogs->sum('duration_minutes');
 
             $activities = 'Sin actividades registradas';
             if (!$dayLogs->isEmpty()) {
-                // CORRECCIÓN: Agrupar por tarea y sumar los minutos
                 $logsByTask = $dayLogs->groupBy('task_id');
                 
                 $activityStrings = $logsByTask->map(function ($taskLogs) {
@@ -268,16 +275,38 @@ class DashboardController extends Controller
                 $activities = $activityStrings->implode("\n");
             }
 
-            $formattedLogs[$day] = [
+            $formattedLogs[] = [
+                'day_name' => $dayName,
+                'date' => $dateFormatted,
                 'activities' => $activities,
                 'total_day_hours_formatted' => sprintf('%d hrs %d min', floor($totalDayMinutes / 60), $totalDayMinutes % 60),
             ];
+            
+            $currentDate->addDay();
         }
+
+        // Formateamos las fechas para el paréntesis
+        $startDateLabel = $startDate->locale('es')->translatedFormat('d M Y');
+        $endDateLabel = $endDate->locale('es')->translatedFormat('d M Y');
 
         return response()->json([
             'week_data' => $formattedLogs,
             'total_week_hours_formatted' => sprintf('%d hrs %d min', floor($totalWeekMinutes / 60), $totalWeekMinutes % 60),
-            'week_label' => 'Semana ' . $weekNumber . ', ' . $year
+            'week_label' => "Semana $weekNumber, $year ($startDateLabel al $endDateLabel)"
         ]);
+    }
+
+    public function getQuotesByStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string',
+        ]);
+
+        $quotes = Quote::with('client')
+            ->where('status', $validated['status'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($quotes);
     }
 }
