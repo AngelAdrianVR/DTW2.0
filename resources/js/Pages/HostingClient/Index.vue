@@ -127,9 +127,9 @@ const confirmDeleteHostingClient = (hostingClient) => {
     confirm.require({
         message: `¿Estás seguro de que quieres eliminar el registro de hosting para "${hostingClient.client.name}"?`,
         header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
         acceptLabel: 'Eliminar',
         rejectLabel: 'Cancelar',
         accept: () => {
@@ -224,7 +224,7 @@ const getStatusSeverity = (status) => {
 
                 <header class="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Hosting</h1>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Hosting</h1>
                         <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona los servicios de hosting de tus clientes.</p>
                     </div>
                     <Link :href="route('hosting-clients.create')">
@@ -350,36 +350,34 @@ const getStatusSeverity = (status) => {
     </AppLayout>
 </template>
 
-<style scoped>
+<style>
 /* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #f4f4f5 !important;
-    color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
-}
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+.zinc-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
 }
 
-/* Input overrides for dark mode */
-:deep(.p-inputtext), :deep(.p-inputnumber-input), :deep(.p-textarea) {
-    width: 100%;
+.zinc-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
 }
-.dark :deep(.p-inputtext), .dark :deep(.p-inputnumber-input), .dark :deep(.p-textarea) {
-    background-color: #27272a; /* zinc-800 */
-    color: #f4f4f5; /* zinc-100 */
-    border-color: #3f3f46; /* zinc-700 */
+
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .zinc-table .p-datatable-thead > tr > th,
+.dark .zinc-table .p-datatable-thead > tr > th {
+    background-color: #f4f4f5 !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #27272a !important;
+}
+
+html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

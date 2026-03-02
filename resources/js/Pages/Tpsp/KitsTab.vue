@@ -215,9 +215,10 @@ const deleteKit = (kit) => {
         message: `¿Está seguro de que desea eliminar el kit "${kit.name}"? Esta acción es permanente y borrará su definición de componentes.`,
         header: 'Eliminar Kit Permanentemente',
         icon: 'pi pi-exclamation-triangle',
-        acceptClass: 'p-button-danger',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
         acceptLabel: 'Eliminar Kit',
         rejectLabel: 'Cancelar',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
         accept: () => {
             axios.delete(`/tpsp/products/${kit.id}`)
             .then(() => {
@@ -313,7 +314,7 @@ onMounted(async () => {
                     :loading="loadingForm" 
                     dataKey="id"
                     responsiveLayout="scroll"
-                    class="zinc-table"
+                    class="kits-table"
                 >
                     <Column field="component_product.name" header="Nombre Componente">
                          <template #body="{ data }"><span class="dark:text-zinc-200">{{ data.component_product.name }}</span></template>
@@ -373,7 +374,7 @@ onMounted(async () => {
                 responsiveLayout="scroll" 
                 :rows="10" 
                 :paginator="true"
-                class="zinc-table"
+                class="kits-table"
             >
                 <Column field="image_url" header="Imagen">
                     <template #body="slotProps">
@@ -510,7 +511,7 @@ onMounted(async () => {
 
         <h4 class="mb-3 font-semibold text-gray-800 dark:text-zinc-200">Componentes del Kit</h4>
         <div class="rounded-lg overflow-hidden border dark:border-zinc-800">
-            <DataTable :value="selectedKitDetails.components" class="zinc-table">
+            <DataTable :value="selectedKitDetails.components" class="kits-table">
                 <Column field="component_name" header="Componente">
                      <template #body="{ data }"><span class="dark:text-zinc-200">{{ data.component_name }}</span></template>
                 </Column>
@@ -532,26 +533,34 @@ onMounted(async () => {
 
 </template>
 
-<style scoped>
+<style>
 /* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
+.kits-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.kits-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.kits-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .kits-table .p-datatable-thead > tr > th,
+.dark .kits-table .p-datatable-thead > tr > th {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
+    border-bottom: 1px solid #27272a !important;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+
+html.dark .kits-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .kits-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

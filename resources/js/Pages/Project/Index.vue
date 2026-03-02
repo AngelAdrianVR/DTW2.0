@@ -123,9 +123,9 @@ const confirmDeleteProject = (project) => {
     confirm.require({
         message: `¿Estás seguro de que quieres eliminar el proyecto "${project.name}"?`,
         header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
         acceptLabel: 'Eliminar',
         rejectLabel: 'Cancelar',
         accept: () => {
@@ -187,7 +187,7 @@ const rowClass = () => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/5
 
                 <header class="mb-8">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Proyectos</h1>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Proyectos</h1>
                         <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona todos tus proyectos, tareas y el tiempo invertido.</p>
                     </div>
                 </header>

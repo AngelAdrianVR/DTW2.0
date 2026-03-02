@@ -97,7 +97,7 @@ const formatCurrency = (value) => {
                         <div class="flex items-center gap-4">
                             <img :src="user.profile_photo_url" alt="" class="object-cover size-24 rounded-full border-4 border-white dark:border-zinc-800 shadow-md" />
                             <div>
-                                <h1 class="text-3xl font-bold text-gray-800 dark:text-zinc-100">{{ user.name }}</h1>
+                                <h1 class="text-3xl font-bold text-[#212121] dark:text-zinc-100">{{ user.name }}</h1>
                                 <p class="text-gray-500 dark:text-zinc-400 mt-1">{{ user.email }}</p>
                             </div>
                         </div>
@@ -246,58 +246,38 @@ const formatCurrency = (value) => {
 <style scoped>
 .p-card .p-card-content { padding-top: 0; }
 .p-card .p-card-title { margin-bottom: 1rem; }
+</style>
 
-/* TabView Customization for Zinc Theme */
-:deep(.custom-tabview .p-tabview-nav-content) { background: transparent !important; }
-:deep(.custom-tabview .p-tabview-nav) {
-    background: transparent !important;
-    border-bottom: 1px solid #e4e4e7 !important; /* zinc-200 */
-}
-.dark :deep(.custom-tabview .p-tabview-nav) { border-bottom-color: #27272a !important; /* zinc-800 */ }
-
-:deep(.custom-tabview .p-tabview-nav-link) {
-    background: transparent !important;
-    border: none !important;
-    border-bottom: 2px solid transparent !important;
-    color: #71717a !important; /* zinc-500 */
-    font-weight: 600;
-    transition: all 0.2s;
-}
-.dark :deep(.custom-tabview .p-tabview-nav-link) { color: #a1a1aa !important; /* zinc-400 */ }
-
-:deep(.custom-tabview .p-tabview-nav-link:hover) { color: #3b82f6 !important; } /* blue-500 */
-.dark :deep(.custom-tabview .p-tabview-nav-link:hover) { color: #60a5fa !important; } /* blue-400 */
-
-:deep(.custom-tabview .p-tabview-selected .p-tabview-nav-link) {
-    color: #2563eb !important; /* blue-600 */
-    border-bottom-color: #2563eb !important;
-}
-.dark :deep(.custom-tabview .p-tabview-selected .p-tabview-nav-link) {
-    color: #60a5fa !important; /* blue-400 */
-    border-bottom-color: #60a5fa !important;
-}
-:deep(.custom-tabview .p-tabview-ink-bar) { display: none !important; }
-:deep(.custom-tabview .p-tabview-panels) { background: transparent !important; padding: 1.5rem 0 !important; }
-
-/* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #f4f4f5 !important;
-    color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
-}
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important;
-    color: #a1a1aa !important;
-    border-bottom: 1px solid #27272a;
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
+<style>
+/* Estilos globales para PrimeVue DataTable 
+  Al estar fuera de "scoped", Vue no altera las clases y el navegador lee la ruta exacta.
+*/
+.zinc-table .p-datatable-thead > tr > th {
     background-color: transparent !important;
-    color: inherit;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7 !important;
 }
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
+
+.zinc-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
 }
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .zinc-table .p-datatable-thead > tr > th,
+.dark .zinc-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #a1a1aa !important;
+    border-bottom: 1px solid #27272a !important;
+}
+
+html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

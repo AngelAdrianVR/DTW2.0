@@ -132,7 +132,7 @@ onMounted(fetchKitProducts);
                 <!-- Cabecera de Página -->
                 <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h1 class="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                        <h1 class="text-3xl font-semibold tracking-tight text-[#212121] dark:text-zinc-50">
                             Gestión de Inventario y Producción
                         </h1>
                         <p class="text-zinc-500 dark:text-zinc-400 mt-1">
@@ -231,3 +231,4 @@ onMounted(fetchKitProducts);
     outline: none;
 }
 </style>
+

@@ -1,6 +1,20 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 1. Definimos el orden de las capas: base -> primevue -> utilidades (para que Tailwind siempre gane al final) */
+@layer tailwind-base, primevue, tailwind-utilities;
+
+/* 2. Metemos la base de Tailwind en su capa */
+@layer tailwind-base {
+  @tailwind base;
+}
+
+/* 3. Metemos los componentes y utilidades de Tailwind en su capa */
+@layer tailwind-utilities {
+  @tailwind components;
+  @tailwind utilities;
+}
+
+/* =========================================
+   TUS ESTILOS PERSONALIZADOS (Intactos)
+   ========================================= */
 
 [x-cloak] {
     display: none;

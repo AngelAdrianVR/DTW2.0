@@ -613,7 +613,7 @@ const getKanbanHeaderStyle = (status) => {
                     <Button label="Eliminar" icon="pi pi-trash" severity="danger" text @click="submitDeleteTask" class="!rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 font-semibold px-4" />
                     <div class="flex gap-3">
                         <Button label="Cancelar" text severity="secondary" class="!rounded-xl font-medium" @click="isEditTaskModalVisible = false" />
-                        <Button label="Guardar" icon="pi pi-check" type="submit" :loading="editTaskForm.processing" class="!rounded-xl font-medium bg-cyan-600 border-cyan-600 hover:bg-cyan-700 px-6 shadow-md shadow-cyan-500/20" />
+                        <Button label="Guardar" icon="pi pi-check" type="submit" :loading="editTaskForm.processing" class="!text-[var(--primary-text-color)] !rounded-xl" />
                     </div>
                 </div>
             </form>

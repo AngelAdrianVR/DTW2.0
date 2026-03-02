@@ -476,44 +476,6 @@ onMounted(fetchOrders);
     overflow: visible;
 }
 
-/* Estilos minimalistas "Apple" para DataTable */
-:deep(.apple-table .p-datatable-thead > tr > th) {
-    background-color: transparent !important;
-    color: #71717a !important; 
-    font-weight: 600;
-    font-size: 0.80rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid #f4f4f5; 
-    padding: 1rem 0.75rem;
-}
-.dark :deep(.apple-table .p-datatable-thead > tr > th) {
-    border-bottom-color: #27272a; 
-    color: #a1a1aa !important; 
-}
-
-:deep(.apple-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    transition: background-color 0.2s;
-}
-:deep(.apple-table .p-datatable-tbody > tr:hover) {
-    background-color: transparent !important; 
-}
-.dark :deep(.apple-table .p-datatable-tbody > tr:hover) {
-    background-color: #18181b !important; 
-}
-
-:deep(.apple-table .p-datatable-tbody > tr > td) {
-    border-bottom: 1px solid #f4f4f5;
-    padding: 1rem 0.75rem;
-    color: #3f3f46; 
-    font-size: 0.95rem;
-}
-.dark :deep(.apple-table .p-datatable-tbody > tr > td) {
-    border-bottom-color: #27272a;
-    color: #d4d4d8; 
-}
-
 /* Estilo para la barra de progreso minimalista */
 :deep(.custom-progress .p-progressbar) {
     background-color: #f4f4f5;
@@ -527,5 +489,39 @@ onMounted(fetchOrders);
 :deep(.custom-progress .p-progressbar-value) {
     background: #3b82f6; /* blue-500 */
     border-radius: 9999px;
+}
+</style>
+
+<style>
+/* Estilos globales para PrimeVue DataTable 
+  Al estar fuera de "scoped", Vue no altera las clases y el navegador lee la ruta exacta.
+*/
+.apple-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.apple-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.apple-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .apple-table .p-datatable-thead > tr > th,
+.dark .apple-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #a1a1aa !important;
+    border-bottom: 1px solid #27272a !important;
+}
+
+html.dark .apple-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .apple-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

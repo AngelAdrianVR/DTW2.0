@@ -266,7 +266,7 @@ const getStatusIcon = (status) => {
 
                 <header class="mb-8">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Cotizaciones</h1>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Cotizaciones</h1>
                         <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona todas tus cotizaciones y su estado.</p>
                     </div>
                 </header>
@@ -450,7 +450,7 @@ const getStatusIcon = (status) => {
             <template #footer>
                 <div class="flex justify-end gap-3 mt-4 w-full">
                     <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" class="!rounded-xl font-medium" />
-                    <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700" />
+                    <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)]" />
                 </div>
             </template>
         </Dialog>
@@ -472,14 +472,9 @@ const getStatusIcon = (status) => {
 
 /* Zinc Theme Overrides for PrimeVue DataTable */
 :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #f4f4f5 !important;
+    background-color: transparent !important;
     color: #52525b !important;
     border-bottom: 1px solid #e4e4e7;
-}
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
 }
 :deep(.zinc-table .p-datatable-tbody > tr) {
     background-color: transparent !important;
@@ -488,17 +483,9 @@ const getStatusIcon = (status) => {
 :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
     border-bottom: 1px solid #f4f4f5;
 }
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
-}
 
 /* Input overrides for dark mode */
 :deep(.p-inputtext), :deep(.p-dropdown), :deep(.p-textarea) {
     width: 100%;
-}
-.dark :deep(.p-inputtext), .dark :deep(.p-dropdown), .dark :deep(.p-textarea) {
-    background-color: #27272a; /* zinc-800 */
-    color: #f4f4f5; /* zinc-100 */
-    border-color: #3f3f46; /* zinc-700 */
 }
 </style>

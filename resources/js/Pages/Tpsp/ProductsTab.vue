@@ -164,8 +164,8 @@ const confirmDeleteProduct = (productData) => {
         icon: 'pi pi-exclamation-triangle',
         acceptLabel: 'Sí, Eliminar',
         rejectLabel: 'Cancelar',
-        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2',
-        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-300 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]' ,
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
         accept: async () => {
             await deleteProduct(productData);
         },
@@ -477,7 +477,7 @@ const openMovementsModal = async (productData) => {
                         cancelLabel="Cancelar"
                         :customUpload="true" 
                         @uploader="saveProduct" 
-                        class="apple-fileupload"
+                        class="apple-fileupload !text-[var(--primary-text-color)]"
                         :pt="{ root: { class: 'w-full' }, buttonbar: { class: 'hidden' }, content: { class: '!p-0 !border-0 bg-transparent' } }"
                     >
                         <template #empty>
@@ -601,7 +601,7 @@ const openMovementsModal = async (productData) => {
 
                 <!-- Tabla de Historial -->
                 <div class="border border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden">
-                    <DataTable :value="selectedProductMovements" :loading="movementsLoading" class="apple-table" :paginator="true" :rows="5" responsiveLayout="scroll">
+                    <DataTable :value="selectedProductMovements" :loading="movementsLoading" class="zinc-table" :paginator="true" :rows="5" responsiveLayout="scroll">
                         <Column field="created_at" header="Fecha" style="width: 25%">
                             <template #body="{ data }">
                                 <span class="text-sm text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{{ formatDateTime(data.created_at) }}</span>
@@ -704,5 +704,37 @@ const openMovementsModal = async (productData) => {
 }
 .dark :deep(.p-inputnumber-input:focus) {
     border-color: #3f3f46 !important;
+}
+</style>
+
+<style>
+/* Zinc Theme Overrides for PrimeVue DataTable */
+.zinc-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.zinc-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .zinc-table .p-datatable-thead > tr > th,
+.dark .zinc-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #a1a1aa !important;
+    border-bottom: 1px solid #27272a !important;
+}
+
+html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

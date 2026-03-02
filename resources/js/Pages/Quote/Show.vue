@@ -102,7 +102,7 @@ const deleteFile = (fileId) => {
                 <header class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
-                            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-zinc-100 tracking-tight">
+                            <h1 class="text-3xl md:text-4xl font-extrabold text-[#212121] dark:text-zinc-100 tracking-tight">
                                 Cotización #{{ quote.id }}
                             </h1>
                             <span :class="getStatusClasses(quote.status)">{{ quote.status }}</span>
@@ -296,7 +296,7 @@ const deleteFile = (fileId) => {
                                     </label>
                                 </div>
                                 <div v-if="form.invoice_file" class="mt-3 animate-fade-in-up">
-                                    <Button type="submit" label="Subir Archivo" icon="pi pi-upload" class="w-full" :loading="form.processing" rounded />
+                                    <Button type="submit" label="Subir Archivo" icon="pi pi-upload" class="w-full !text-[var(--primary-text-color)]" :loading="form.processing" rounded />
                                 </div>
                                 <p v-if="form.errors.invoice_file" class="text-xs text-red-500 mt-2 text-center">{{ form.errors.invoice_file }}</p>
                                 <ProgressBar v-if="form.progress" :value="form.progress.percentage" class="mt-3 h-1" :showValue="false" />

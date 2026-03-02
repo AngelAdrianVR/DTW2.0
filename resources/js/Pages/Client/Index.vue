@@ -86,13 +86,13 @@ const toggleMenu = (event, client) => {
 // --- METHODS ---
 const confirmDeleteClient = (client) => {
     confirm.require({
-        message: `¿Estás seguro de que quieres eliminar a "${client.name}"? Esta acción no se puede deshacer.`,
-        header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
-        acceptLabel: 'Eliminar',
+        message: `¿Estás seguro de que quieres eliminar "${client.name}"? Esta acción no se puede desahacer.`,
+        header: 'Confirmar Eliminación',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, Eliminar',
         rejectLabel: 'Cancelar',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]' ,
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
         accept: () => { deleteClient(client); }
     });
 };
@@ -151,7 +151,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 
                 <header class="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Clientes</h1>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Clientes</h1>
                         <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona la información y finanzas de tus clientes.</p>
                     </div>
                     <Link href="/clients/create">
@@ -162,7 +162,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                 <!-- Vista de Tabla para Escritorio -->
                 <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                     <DataTable :value="clientsWithBalance" paginator :rows="15" tableStyle="min-width: 50rem;"
-                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="index-client-table">
                         <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron clientes.</div> </template>
 
                         <Column field="id" header="ID" sortable style="width: 5%">
@@ -280,7 +280,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                     </form>
                     <template #footer>
                         <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" />
-                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" />
+                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!text-[var(--primary-text-color)]" />
                     </template>
                 </Dialog>
             </div>
@@ -293,26 +293,34 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 .p-inputtext, .p-inputnumber-input {
     width: 100% !important;
 }
+</style>
 
-/* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
+<style>
+/* Estilos globales para la tabla de INDEX */
+.index-client-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.index-client-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.index-client-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode para INDEX (Con el fondo claro que querías) */
+html.dark .index-client-table .p-datatable-thead > tr > th,
+.dark .index-client-table .p-datatable-thead > tr > th {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
+    border-bottom: 1px solid #27272a !important;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+
+html.dark .index-client-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-client-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

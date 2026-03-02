@@ -85,6 +85,20 @@ const getQuoteStatusSeverity = (status) => {
     const statuses = { 'Pendiente': 'info', 'Enviado': 'warn', 'Aceptado': 'success', 'Pagado': 'success', 'Rechazado': 'danger' };
     return statuses[status] || 'secondary';
 };
+
+// --- NUEVAS FUNCIONES PARA CONTACTOS ---
+
+// Limpia el teléfono para hacer llamadas (deja solo números y el signo +)
+const cleanForCall = (phone) => {
+    if (!phone) return '';
+    return phone.replace(/[^0-9+]/g, '');
+};
+
+// Limpia el teléfono para WhatsApp (deja estrictamente solo números)
+const cleanForWhatsApp = (phone) => {
+    if (!phone) return '';
+    return phone.replace(/[^0-9]/g, '');
+};
 </script>
 
 <template>
@@ -103,7 +117,7 @@ const getQuoteStatusSeverity = (status) => {
                             </Link>
                         </div>
                         <div class="flex items-center gap-4">
-                             <h1 class="text-3xl font-bold text-gray-800 dark:text-zinc-100">{{ client.name }}</h1>
+                             <h1 class="text-3xl font-bold text-[#212121] dark:text-zinc-100">{{ client.name }}</h1>
                              <Tag :value="client.status" :severity="getStatusSeverity(client.status)" rounded />
                         </div>
                         <p class="text-gray-500 dark:text-zinc-400 mt-1">ID: {{ client.id }} - {{ client.tax_id }}</p>
@@ -175,8 +189,25 @@ const getQuoteStatusSeverity = (status) => {
                                     <li v-for="contact in client.contacts" :key="contact.id" class="border-b border-gray-100 dark:border-zinc-800 pb-3 last:border-b-0">
                                         <p class="font-bold text-gray-800 dark:text-zinc-200">{{ contact.name }}</p>
                                         <p class="text-xs text-gray-500 dark:text-zinc-500 uppercase tracking-wide">{{ contact.position }}</p>
-                                        <p class="text-sm text-gray-600 dark:text-zinc-400 mt-1 flex items-center gap-2"><i class="pi pi-envelope text-xs"></i> {{ contact.email }}</p>
-                                        <p class="text-sm text-gray-600 dark:text-zinc-400 flex items-center gap-2"><i class="pi pi-phone text-xs"></i> {{ contact.phone }}</p>
+                                        
+                                        <!-- Correo Electrónico Clickeable -->
+                                        <p class="text-md text-gray-600 dark:text-zinc-400 mt-1 flex items-center gap-2">
+                                            <i class="pi pi-envelope text-xs"></i> 
+                                            <a :href="'mailto:' + contact.email" class="hover:underline text-blue-600 dark:text-blue-400">
+                                                {{ contact.email }}
+                                            </a>
+                                        </p>
+                                        
+                                        <!-- Teléfono Clickeable y WhatsApp -->
+                                        <div class="text-md text-gray-600 dark:text-zinc-400 flex items-center gap-2 mt-2">
+                                            <i class="pi pi-phone text-xs"></i> 
+                                            <a :href="'tel:' + cleanForCall(contact.phone)" class="hover:underline text-blue-600 dark:text-blue-400 mr-2" title="Llamar">
+                                                {{ contact.phone }}
+                                            </a>
+                                            <a v-if="contact.phone" :href="'https://wa.me/' + cleanForWhatsApp(contact.phone)" target="_blank" class="text-green-500 hover:text-green-600 dark:text-green-400 transition-colors" title="Enviar WhatsApp">
+                                                <i class="pi pi-whatsapp"></i>
+                                            </a>
+                                        </div>
                                     </li>
                                 </ul>
                                 <p v-else class="text-gray-500 dark:text-zinc-500 text-sm text-center py-2">No hay contactos registrados.</p>
@@ -251,6 +282,31 @@ const getQuoteStatusSeverity = (status) => {
                                             <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(data.amount) }}</span>
                                         </template>
                                     </Column>
+
+                                    <!-- NUEVA COLUMNA: Cotización -->
+                                    <Column header="Cotización">
+                                        <template #body="{ data }">
+                                            <Link v-if="data.quote" :href="route('quotes.show', data.quote.id)" class="text-blue-500 hover:underline dark:text-blue-400 font-medium">
+                                                {{ data.quote.folio || 'Cot-' + data.quote.id }}
+                                            </Link>
+                                            <span v-else class="text-gray-400 dark:text-zinc-500 italic">N/A</span>
+                                        </template>
+                                    </Column>
+
+                                    <!-- NUEVA COLUMNA: Comprobante (Soporte para Spatie Media Library) -->
+                                    <Column header="Comprobante" bodyClass="text-center">
+                                        <template #body="{ data }">
+                                            <a v-if="data.media && data.media.length > 0" :href="data.media[0].original_url" target="_blank" class="text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 transition-colors" title="Ver comprobante">
+                                                <i class="pi pi-file-pdf text-xl"></i>
+                                            </a>
+                                            <!-- Fallback en caso de que lo mandes como un string simple llamado comprobante -->
+                                            <a v-else-if="data.comprobante" :href="'/storage/' + data.comprobante" target="_blank" class="text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 transition-colors" title="Ver comprobante">
+                                                <i class="pi pi-file-pdf text-xl"></i>
+                                            </a>
+                                            <span v-else class="text-gray-300 dark:text-zinc-700">-</span>
+                                        </template>
+                                    </Column>
+
                                     <Column field="notes" header="Notas">
                                         <template #body="{ data }"><span class="text-gray-500 dark:text-zinc-500 text-sm">{{ data.notes || '-' }}</span></template>
                                     </Column>
@@ -292,7 +348,7 @@ const getQuoteStatusSeverity = (status) => {
                     </form>
                     <template #footer>
                         <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" />
-                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" />
+                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!text-[var(--primary-text-color)]" />
                     </template>
                 </Dialog>
 
@@ -312,16 +368,45 @@ const getQuoteStatusSeverity = (status) => {
 
 /* Zinc Theme Overrides for PrimeVue DataTable */
 :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #f4f4f5 !important;
+    background-color: transparent !important;
     color: #52525b !important;
     border-bottom: 1px solid #e4e4e7;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important;
-    color: #a1a1aa !important;
-    border-bottom: 1px solid #27272a;
-}
+
 :deep(.zinc-table .p-datatable-tbody > tr) { background-color: transparent !important; }
 :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) { border-bottom: 1px solid #f4f4f5; }
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) { border-bottom: 1px solid #27272a; }
+</style>
+
+<style>
+/* Estilos globales para PrimeVue DataTable 
+  Al estar fuera de "scoped", Vue no altera las clases y el navegador lee la ruta exacta.
+*/
+.zinc-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.zinc-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .zinc-table .p-datatable-thead > tr > th,
+.dark .zinc-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #a1a1aa !important;
+    border-bottom: 1px solid #27272a !important;
+}
+
+html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
+}
 </style>
