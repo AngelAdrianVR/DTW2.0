@@ -38,7 +38,11 @@ const getStatusSeverity = (status) => {
 <template>
     <AppLayout title="Detalles del Servicio de Hosting">
         <div class="py-12">
-            <Back :href="route('hosting-clients.index')" />
+            <div class="max-w-4xl mx-20 mb-6">
+                 <Link :href="route('hosting-clients.index')" class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-300">
+                    <i class="pi pi-arrow-left text-gray-500 dark:text-gray-300"></i>
+                </Link>
+            </div>
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 <!-- Columna Izquierda: Cliente y Contactos -->

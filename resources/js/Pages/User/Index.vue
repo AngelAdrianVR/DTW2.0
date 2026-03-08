@@ -42,13 +42,8 @@ const menuItems = computed(() => {
         {
             label: 'Editar Usuario',
             icon: 'pi pi-pencil',
-            command: () => router.get(route('users.edit', user.id)) // Descomentar cuando la ruta exista
+            command: () => router.get(route('users.edit', user.id))
         },
-        // {
-        //     label: 'Cambiar Contraseña',
-        //     icon: 'pi pi-key',
-        //     // command: () => router.get(route('users.password.edit', user.id)) // Descomentar cuando la ruta exista
-        // },
         {
             separator: true
         },
@@ -64,7 +59,7 @@ const onRowClick = (event) => {
      router.get(route('users.show', event.data.id));
 };
 
-const rowClass = () => 'cursor-pointer';
+const rowClass = () => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors';
 
 const toggleMenu = (event, user) => {
     selectedUserForMenu.value = user;
@@ -76,9 +71,9 @@ const confirmDeleteUser = (user) => {
     confirm.require({
         message: `¿Estás seguro de que quieres eliminar a "${user.name}"? Esta acción no se puede deshacer.`,
         header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
         acceptLabel: 'Eliminar',
         rejectLabel: 'Cancelar',
         accept: () => {
@@ -88,27 +83,25 @@ const confirmDeleteUser = (user) => {
 };
 
 const deleteUser = (user) => {
-    // router.delete(route('users.destroy', user.id), { // Descomentar cuando la ruta exista
-    //     preserveScroll: true,
-    //     onSuccess: () => {
-    //         toast.add({
-    //             severity: 'success',
-    //             summary: 'Éxito',
-    //             detail: 'Usuario eliminado correctamente',
-    //             life: 3000
-    //         });
-    //     },
-    //     onError: () => {
-    //          toast.add({
-    //             severity: 'error',
-    //             summary: 'Error',
-    //             detail: 'No se pudo eliminar al usuario.',
-    //             life: 3000
-    //         });
-    //     }
-    // });
-    // Alerta temporal mientras no exista la ruta
-     toast.add({ severity: 'info', summary: 'Información', detail: `Funcionalidad para eliminar a ${user.name} aún no implementada.`, life: 3000 });
+    router.delete(route('users.destroy', user.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: 'Usuario eliminado correctamente',
+                life: 3000
+            });
+        },
+        onError: () => {
+             toast.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo eliminar al usuario.',
+                life: 3000
+            });
+        }
+    });
 };
 
 const formatDate = (value) => {
@@ -133,28 +126,30 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
 
                 <header class="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-gray-200 text-gray-800">Módulo de Usuarios</h1>
-                        <p class="text-gray-400 mt-1">Administra los miembros de tu equipo y sus accesos.</p>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Usuarios</h1>
+                        <p class="text-gray-400 dark:text-zinc-400 mt-1">Administra los miembros de tu equipo y sus accesos.</p>
                     </div>
                     <Link :href="route('users.create')">
-                        <Button label="Crear Usuario" icon="pi pi-plus" />
+                        <Button label="Crear Usuario" icon="pi pi-plus" class="!text-[var(--primary-text-color)]" />
                     </Link>
                 </header>
 
                 <!-- Vista de Tabla para Escritorio -->
-                <div class="hidden md:block">
+                <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                     <DataTable @row-click="onRowClick" :rowClass="rowClass" :value="users.data" stripedRows paginator :rows="10" :totalRecords="users.total"
-                               tableStyle="min-width: 50rem;" dataKey="id">
-                        <template #empty> No se encontraron usuarios. </template>
+                               tableStyle="min-width: 50rem;" dataKey="id" class="index-user-table">
+                        <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron usuarios.</div> </template>
 
-                        <Column field="id" header="ID" sortable style="width: 5%"></Column>
+                        <Column field="id" header="ID" sortable style="width: 5%">
+                             <template #body="{ data }"><span class="text-gray-500 dark:text-zinc-500 font-bold">#{{ data.id }}</span></template>
+                        </Column>
                         <Column field="name" header="Nombre" sortable>
                              <template #body="{ data }">
                                 <div class="flex items-center gap-3">
-                                    <img :src="data.profile_photo_url" :alt="data.name" class="w-8 h-8 rounded-full" />
+                                    <img :src="data.profile_photo_url" :alt="data.name" class="w-8 h-8 rounded-full border border-gray-200 dark:border-zinc-700" />
                                     <div>
-                                        <div class="font-semibold">{{ data.name }}</div>
-                                        <div class="text-sm text-gray-500">{{ data.email }}</div>
+                                        <div class="font-semibold text-gray-800 dark:text-zinc-200">{{ data.name }}</div>
+                                        <div class="text-sm text-gray-500 dark:text-zinc-500">{{ data.email }}</div>
                                     </div>
                                 </div>
                             </template>
@@ -167,13 +162,13 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
                         </Column>
                         <Column field="created_at" header="Fecha de Registro" sortable>
                             <template #body="{ data }">
-                                {{ formatDate(data.created_at) }}
+                                <span class="text-gray-600 dark:text-zinc-400">{{ formatDate(data.created_at) }}</span>
                             </template>
                         </Column>
                         <Column header="Acciones" style="width: 10%" bodyClass="text-center">
                             <template #body="{ data }">
                                 <Button icon="pi pi-ellipsis-v" text rounded aria-haspopup="true"
-                                    aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" />
+                                    aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" class="!text-gray-500 dark:!text-zinc-400 hover:!bg-gray-100 dark:hover:!bg-zinc-800" />
                             </template>
                         </Column>
                     </DataTable>
@@ -183,26 +178,29 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
 
                 <!-- Vista de Tarjetas para Móvil -->
                 <div class="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Card v-for="user in users.data" :key="user.id">
+                    <Card v-for="user in users.data" :key="user.id" class="cursor-pointer dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm !rounded-xl" @click="onRowClick({data: user})">
                         <template #title>
                             <div class="flex justify-between items-start">
-                                <span class="text-lg font-bold">{{ user.name }}</span>
+                                <div class="flex items-center gap-3">
+                                    <img :src="user.profile_photo_url" :alt="user.name" class="w-8 h-8 rounded-full" />
+                                    <span class="text-lg font-bold text-gray-800 dark:text-zinc-100">{{ user.name }}</span>
+                                </div>
                                 <Tag :value="user.email_verified_at ? 'Verificado' : 'Pendiente'"
                                      :severity="getStatusSeverity(user.email_verified_at)" />
                             </div>
                         </template>
-                        <template #subtitle>{{ user.email }}</template>
+                        <template #subtitle><span class="text-gray-500 dark:text-zinc-500 text-sm">{{ user.email }}</span></template>
                         <template #content>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Registrado: {{ formatDate(user.created_at) }}</p>
+                            <p class="text-sm text-gray-600 dark:text-zinc-400 mt-2">Registrado: {{ formatDate(user.created_at) }}</p>
                         </template>
                         <template #footer>
                              <div class="flex justify-end">
                                 <Button label="Acciones" icon="pi pi-bars" @click.stop="toggleMenu($event, user)"
-                                    aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" />
+                                    aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" size="small" outlined />
                             </div>
                         </template>
                     </Card>
-                     <div v-if="users.data.length === 0" class="text-center text-gray-500 col-span-full mt-8">
+                     <div v-if="users.data.length === 0" class="text-center text-gray-500 dark:text-zinc-500 col-span-full mt-8">
                         No se encontraron usuarios.
                     </div>
                 </div>
@@ -211,3 +209,34 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
         </div>
     </AppLayout>
 </template>
+
+
+<style>
+/* Estilos globales para la tabla de INDEX */
+.index-user-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.index-user-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.index-user-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode para INDEX (Con el fondo claro que querías) */
+html.dark .index-user-table .p-datatable-thead > tr > th,
+.dark .index-user-table .p-datatable-thead > tr > th {
+    background-color: #f4f4f5 !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #27272a !important;
+}
+
+html.dark .index-user-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-user-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
+}
+</style>

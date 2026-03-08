@@ -131,21 +131,38 @@ const switchToTeam = (team) => {
         
         <PomodoroTimer />
 
-        <div class="flex min-h-screen bg-gray-100 dark:bg-slate-950">
+        <div class="flex min-h-screen bg-[#ececec] dark:bg-zinc-950">
             <Sidebar :navigation="navigationMenu" />
             <MobileSideBar v-model:isOpen="isMobileMenuOpen" :navigation="navigationMenu" />
 
-            <div class="flex-1 flex flex-col w-full px-2">
-                <nav class="bg-white dark:bg-gray-800 shadow-md max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3 rounded-2xl w-full">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="flex justify-between items-center h-16">
-                           <!-- Lado Izquierdo: Botón de Menú Móvil y Timer -->
+            <!-- Contenedor Principal Ajustado -->
+            <div class="flex-1 flex flex-col w-full px-3 md:px-6 transition-all duration-300">
+                
+                <!-- Navbar "Flotante" y Redondeado -->
+                <!-- 
+                    Cambios en clases de Navbar:
+                    - 'px-4 sm:px-6 lg:px-8' reemplazado por 'pl-4 sm:pl-6 lg:pl-8 pr-2'
+                    - Esto da más padding a la izquierda (título/botón) y reduce el de la derecha para el Switch.
+                    - El Switch mide 50px de alto. Navbar 64px (h-16). Diferencia vertical: 14px total (7px arriba/abajo).
+                    - 'pr-2' añade 0.5rem (8px) a la derecha, equilibrando visualmente los 7px verticales.
+                -->
+                <nav class="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-sm border border-gray-100 dark:border-zinc-800 max-w-7xl mx-auto pl-4 sm:pl-6 lg:pl-8 pr-2 mt-1 rounded-[2rem] w-full z-20 sticky top-4">
+                    <div class="w-full">
+                        <div class="flex justify-between items-center h-14">
+                           <!-- Lado Izquierdo: Botón Menú, Título del Proyecto y Timer -->
                             <div class="flex items-center gap-x-4">
                                 <!-- Botón de Menú Móvil -->
-                                <button @click="isMobileMenuOpen = true" class="lg:hidden p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                                <button @click="isMobileMenuOpen = true" class="lg:hidden p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 focus:outline-none transition-colors">
                                     <span class="sr-only">Open main menu</span>
-                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                                 </button>
+
+                                <!-- TÍTULO DEL PROYECTO (Si se proporciona) -->
+                                <div v-if="title" class="hidden md:flex flex-col border-l border-gray-200 dark:border-zinc-700 pl-4 h-10 justify-center">
+                                    <h1 class="text-lg font-bold text-gray-800 dark:text-white leading-tight">
+                                        {{ title }}
+                                    </h1>
+                                </div>
                                 
                                <transition
                                     enter-active-class="transition ease-out duration-200"
@@ -155,17 +172,18 @@ const switchToTeam = (team) => {
                                     leave-from-class="opacity-100 scale-100"
                                     leave-to-class="opacity-0 scale-95"
                                 >
-                                    <div v-if="state.isRunning" class="flex items-center gap-x-2 px-3 py-1 rounded-full text-sm font-medium text-white"
+                                    <div v-if="state.isRunning" class="flex items-center gap-x-2 px-3 py-1 rounded-full text-sm font-medium text-white shadow-sm"
                                         :class="state.isWorkSession ? 'bg-emerald-500/90' : 'bg-sky-500/90'">
-                                        <svg v-if="state.isWorkSession" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
-                                        <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <svg v-if="state.isWorkSession" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
+                                        <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         <span class="font-mono tracking-wider">{{ displayTime }}</span>
                                     </div>
                                </transition>
                             </div>
 
-                            <!-- Lado Derecho para el nuevo Dark Mode Switch -->
-                            <div class="flex items-center">
+                            <!-- Lado Derecho: Switch de Modo Oscuro -->
+                            <!-- El gap-3 se mantiene, pero al estar pegado a la derecha por 'justify-between' y el 'pr-2' del nav, queda alineado -->
+                            <div class="flex items-center gap-3">
                                 <DarkModeSwitch v-model="isDarkMode" />
                             </div>
                         </div>
@@ -173,10 +191,56 @@ const switchToTeam = (team) => {
                 </nav>
 
                 <!-- Contenido de la Página -->
-                <main class="mt-2 lg:mx-auto h-[calc(100vh-7rem)] overflow-auto lg:w-[90%]">
+                <main class="mt-6 lg:mx-auto h-[calc(100vh-8rem)] overflow-y-auto w-full custom-scrollbar pb-10">
                     <slot />
                 </main>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Scrollbar moderno, delgado y sin flechas */
+.custom-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent; /* Firefox */
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+    border: 2px solid transparent; /* Crea un efecto de margen */
+    background-clip: content-box;
+    transition: background-color 0.3s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* Modo oscuro para el scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(82, 82, 91, 0.5); /* zinc-600 con opacidad */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(82, 82, 91, 0.8);
+}
+
+/* Ocultar flechas explícitamente */
+.custom-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+</style>

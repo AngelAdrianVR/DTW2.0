@@ -13,9 +13,13 @@ import Calendar from 'primevue/calendar';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import Tooltip from 'primevue/tooltip';
+import InputText from 'primevue/inputtext';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Tag from 'primevue/tag';
+import Card from 'primevue/card';
 
 // --- DIRECTIVES ---
-// Directiva para el tooltip de PrimeVue
 const vTooltip = Tooltip;
 
 // --- PROPS ---
@@ -57,6 +61,7 @@ const paymentForm = useForm({
     amount: null,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
+    receipt: null,
 });
 
 // --- WATCHERS ---
@@ -108,15 +113,13 @@ const menuItems = computed(() => {
         {
             label: 'Crear Proyecto',
             icon: 'pi pi-folder-plus',
-            // Redirige a la página de creación de proyecto con el ID de la cotización
             command: () => router.get(route('projects.create', { quote_id: quote.id })),
-            // Solo visible si la cotización está aceptada y no tiene un proyecto ya creado
             visible: quote.status === 'Aceptado' && !quote.project_id
         },
         {
             label: 'Imprimir',
             icon: 'pi pi-print',
-            command: () => router.get(route('quotes.print', quote.id))
+            command: () => window.open(route('quotes.print', quote.id), '_blank')
         },
         {
             label: 'Agregar Pago',
@@ -153,7 +156,6 @@ const openPaymentDialog = (quote) => {
     paymentForm.reset();
     paymentForm.quote_id = quote.id;
     paymentForm.client_id = quote.client_id;
-    // MODIFICACIÓN: Se usa 'final_amount' para calcular el saldo restante real.
     const remainingBalance = quote.final_amount - (quote.total_paid || 0);
     paymentForm.amount = remainingBalance > 0 ? remainingBalance : null;
     isPaymentDialogVisible.value = true;
@@ -168,21 +170,11 @@ const submitPayment = () => {
         preserveScroll: true,
         onSuccess: () => {
             closePaymentDialog();
-            toast.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Pago registrado correctamente',
-                life: 3000
-            });
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago registrado correctamente', life: 3000 });
         },
         onError: (errors) => {
             const errorMessages = Object.values(errors).join(' ');
-            toast.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: errorMessages || 'No se pudo registrar el pago. Revisa los datos.',
-                life: 3000
-            });
+            toast.add({ severity: 'error', summary: 'Error', detail: errorMessages || 'No se pudo registrar el pago.', life: 3000 });
         }
     });
 };
@@ -191,21 +183,11 @@ const changeQuoteStatus = (quote, newStatus) => {
     router.put(route('quotes.updateStatus', { quote: quote.id }), { status: newStatus }, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Estado actualizado correctamente.',
-                life: 3000
-            });
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Estado actualizado correctamente.', life: 3000 });
         },
         onError: (errors) => {
             const errorMessage = Object.values(errors).join(' ');
-            toast.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: errorMessage || 'No se pudo actualizar el estado.',
-                life: 3000
-            });
+            toast.add({ severity: 'error', summary: 'Error', detail: errorMessage || 'No se pudo actualizar el estado.', life: 3000 });
         }
     });
 };
@@ -223,20 +205,10 @@ const confirmDeleteQuote = (quote) => {
             router.delete(route('quotes.destroy', { quote: quote.id }), {
                 preserveScroll: true,
                 onSuccess: () => {
-                    toast.add({
-                        severity: 'success',
-                        summary: 'Éxito',
-                        detail: 'Cotización eliminada correctamente',
-                        life: 3000
-                    });
+                    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Cotización eliminada correctamente', life: 3000 });
                 },
                 onError: () => {
-                    toast.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo eliminar la cotización.',
-                        life: 3000
-                    });
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar la cotización.', life: 3000 });
                 }
             });
         }
@@ -247,24 +219,18 @@ const onRowClick = (event) => {
      router.get(route('quotes.show', event.data.id));
 };
 
-const rowClass = () => 'cursor-pointer';
+const rowClass = () => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors';
 
 // --- HELPERS ---
 const formatCurrency = (value) => {
-    if (value === null || isNaN(value)) {
-        value = 0;
-    }
+    if (value === null || isNaN(value)) value = 0;
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
 };
 
 const formatDate = (value) => {
     if (!value) return '';
     const date = new Date(value);
-    return date.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-    });
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 const getStatusSeverity = (status) => {
@@ -300,50 +266,53 @@ const getStatusIcon = (status) => {
 
                 <header class="mb-8">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-gray-200 text-gray-800">Módulo de Cotizaciones</h1>
-                        <p class="text-gray-400 mt-1">Gestiona todas tus cotizaciones y su estado.</p>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Cotizaciones</h1>
+                        <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona todas tus cotizaciones y su estado.</p>
                     </div>
                 </header>
 
-                <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 md:p-6">
+                <div class="bg-white dark:bg-zinc-900 shadow-sm border border-gray-100 dark:border-zinc-800 rounded-2xl p-4 md:p-6 overflow-hidden">
                     <div class="flex justify-between items-center flex-wrap gap-4 mb-4">
-                        <span class="p-input-icon-left w-full md:w-1/3 flex items-center space-x-2">
-                            <i class="pi pi-search" />
-                            <InputText v-model="search" placeholder="Buscar por Folio, Cliente o Estado..." class="w-full" />
-                        </span>
+                        <IconField class="w-full md:w-1/3">
+                            <InputIcon class="pi pi-search text-gray-400" />
+                            <InputText 
+                                v-model="search" 
+                                placeholder="Buscar por Folio, Cliente o Estado..." 
+                                class="w-full" 
+                            />
+                        </IconField>
                         <Link :href="route('quotes.create')">
-                            <Button label="Crear Cotización" icon="pi pi-plus" />
+                            <Button label="Crear Cotización" icon="pi pi-plus" class="!text-[var(--primary-text-color)]" />
                         </Link>
                     </div>
 
                     <!-- Vista de Tabla para Escritorio -->
                     <div class="hidden md:block">
-                        <DataTable :value="quotes.data" stripedRows tableStyle="min-width: 50rem;"
-                            @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass">
-                            <template #empty> No se encontraron cotizaciones. </template>
+                        <DataTable :value="quotes.data" paginator :rows="15" stripedRows tableStyle="min-width: 50rem;"
+                            @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                            <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron cotizaciones.</div> </template>
 
                             <Column header="Folio" style="width: 10%">
                                 <template #body="{ data }">
                                    <div class="flex items-center gap-2">
-                                        <i :class="getStatusIcon(data.status)" :title="data.status"></i>
-                                        <span class="font-mono">Cot-{{ data.id }}</span>
+                                        <i :class="getStatusIcon(data.status)" :title="data.status" class="text-gray-400 dark:text-zinc-500"></i>
+                                        <span class="text-gray-600 dark:text-zinc-400">Cot-{{ data.id }}</span>
                                    </div>
                                 </template>
                             </Column>
                             <Column field="client" header="Cliente" sortable>
                                 <template #body="{ data }">
-                                    <div class="font-semibold">{{ data.client?.name || data.client_name }}</div>
-                                    <div class="text-sm text-gray-500">{{ data.client?.tax_id || data.origin }}</div>
+                                    <div class="font-semibold text-gray-800 dark:text-zinc-200">{{ data.client?.name || data.client_name }}</div>
+                                    <div class="text-sm text-gray-500 dark:text-zinc-500">{{ data.client?.tax_id || data.origin }}</div>
                                 </template>
                             </Column>
-                             <Column field="title" header="Título" sortable></Column>
-                            <!-- Columna de Monto actualizada -->
+                             <Column field="title" header="Título" sortable>
+                                 <template #body="{ data }"><span class="text-gray-700 dark:text-zinc-300">{{ data.title }}</span></template>
+                             </Column>
                             <Column field="amount" header="Monto" sortable class="text-right">
                                 <template #body="{ data }">
                                     <div class="flex items-center justify-end gap-2">
-                                        <!-- Se muestra el monto final con descuento -->
-                                        <span class="font-semibold">{{ formatCurrency(data.final_amount) }}</span>
-                                        <!-- NUEVO: Ícono con tooltip si hay descuento -->
+                                        <span class="font-semibold text-gray-800 dark:text-zinc-200">{{ formatCurrency(data.final_amount) }}</span>
                                         <i v-if="data.percentage_discount && data.percentage_discount > 0"
                                            class="pi pi-info-circle text-gray-400 cursor-pointer"
                                            v-tooltip.left="{
@@ -357,33 +326,31 @@ const getStatusIcon = (status) => {
                             </Column>
                             <Column header="Pagado" sortable class="text-right">
                                 <template #body="{ data }">
-                                    <span class="text-green-600">{{ formatCurrency(data.total_paid) }}</span>
+                                    <span class="text-emerald-600 dark:text-emerald-400 font-medium">{{ formatCurrency(data.total_paid) }}</span>
                                 </template>
                             </Column>
-                            <!-- MODIFICACIÓN: Columna de Saldo actualizada -->
                             <Column header="Saldo" sortable class="text-right">
                                 <template #body="{ data }">
-                                    <!-- Se usa 'final_amount' para el cálculo y se añade tolerancia para decimales -->
-                                    <span class="font-bold" :class="[(data.final_amount - (data.total_paid || 0)) > 0.01 ? 'text-red-600' : 'text-gray-700']">
+                                    <span class="font-bold" :class="[(data.final_amount - (data.total_paid || 0)) > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-zinc-500']">
                                         {{ formatCurrency(data.final_amount - (data.total_paid || 0)) }}
                                     </span>
                                 </template>
                             </Column>
                              <Column field="status" header="Estado" sortable>
                                 <template #body="{ data }">
-                                    <Tag :value="data.status" :severity="getStatusSeverity(data.status)" rounded />
+                                    <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
                                 </template>
                             </Column>
                              <Column field="project_id" header="Proyecto">
                                 <template #body="{ data }">
-                                    <p class="text-blue-400 hover:underline" @click.stop="$inertia.visit(route('projects.show', data.project_id))" v-if="data.project_id">{{ data.project.name }}</p>
-                                    <p v-else>-</p>
+                                    <p class="text-blue-500 hover:text-blue-400 hover:underline cursor-pointer" @click.stop="$inertia.visit(route('projects.show', data.project_id))" v-if="data.project_id">{{ data.project.name }}</p>
+                                    <p v-else class="text-gray-400">-</p>
                                 </template>
                             </Column>
                             <Column header="Acciones" style="width: 10%" bodyClass="text-center">
                                 <template #body="{ data }">
                                     <Button icon="pi pi-ellipsis-v" text rounded aria-haspopup="true"
-                                        aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" />
+                                        aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" class="!text-gray-500 dark:!text-zinc-400 hover:!bg-gray-100 dark:hover:!bg-zinc-800" />
                                 </template>
                             </Column>
                         </DataTable>
@@ -396,41 +363,39 @@ const getStatusIcon = (status) => {
                     <!-- Vista de Tarjetas para Móvil -->
                     <div class="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <Card v-for="quote in quotes.data" :key="quote.id"
-                            @click="onRowClick({data: quote})">
+                            class="cursor-pointer dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm !rounded-xl" @click="onRowClick({data: quote})">
                             <template #title>
                                 <div class="flex justify-between items-start">
-                                    <span class="text-lg font-bold font-mono">Cot-{{ quote.id }}</span>
-                                    <Tag :value="quote.status" :severity="getStatusSeverity(quote.status)" rounded />
+                                    <span class="text-lg font-bold text-gray-800 dark:text-zinc-200">Cot-{{ quote.id }}</span>
+                                    <Tag :value="quote.status" :severity="getStatusSeverity(quote.status)" />
                                 </div>
                             </template>
-                            <template #subtitle>{{ quote.client?.name || quote.client_name }}</template>
+                            <template #subtitle><span class="text-gray-500 dark:text-zinc-500">{{ quote.client?.name || quote.client_name }}</span></template>
                             <template #content>
-                                <p class="font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ quote.title }}</p>
-                                <ul class="space-y-2 text-gray-700 dark:text-gray-300">
-                                    <!-- MODIFICACIÓN: Se usa 'final_amount' para el monto en vista móvil -->
-                                    <li class="flex justify-between border-t pt-2 mt-2">
+                                <p class="font-semibold text-gray-700 dark:text-zinc-300 mb-2">{{ quote.title }}</p>
+                                <ul class="space-y-2 text-sm text-gray-600 dark:text-zinc-400">
+                                    <li class="flex justify-between border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2">
                                         <span class="font-bold">Monto:</span>
-                                        <span class="font-bold text-blue-600">{{ formatCurrency(quote.final_amount) }}</span>
+                                        <span class="font-bold text-blue-600 dark:text-blue-400">{{ formatCurrency(quote.final_amount) }}</span>
                                     </li>
                                      <li class="flex justify-between">
-                                        <span class="text-green-600">Pagado:</span>
-                                        <span class="text-green-600">{{ formatCurrency(quote.total_paid) }}</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400">Pagado:</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400">{{ formatCurrency(quote.total_paid) }}</span>
                                     </li>
-                                    <!-- MODIFICACIÓN: Se usa 'final_amount' para el saldo en vista móvil -->
                                     <li class="flex justify-between">
-                                        <span class="font-semibold" :class="[(quote.final_amount - (quote.total_paid || 0)) > 0.01 ? 'text-red-600' : 'text-gray-700']">Saldo:</span>
-                                        <span class="font-semibold" :class="[(quote.final_amount - (quote.total_paid || 0)) > 0.01 ? 'text-red-600' : 'text-gray-700']">{{ formatCurrency(quote.final_amount - (quote.total_paid || 0)) }}</span>
+                                        <span class="font-semibold" :class="[(quote.final_amount - (quote.total_paid || 0)) > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-zinc-400']">Saldo:</span>
+                                        <span class="font-semibold" :class="[(quote.final_amount - (quote.total_paid || 0)) > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-zinc-400']">{{ formatCurrency(quote.final_amount - (quote.total_paid || 0)) }}</span>
                                     </li>
                                 </ul>
                             </template>
                             <template #footer>
                                 <div class="flex justify-end">
                                     <Button label="Acciones" icon="pi pi-bars" @click.stop="toggleMenu($event, quote)"
-                                        aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" />
+                                        aria-haspopup="true" aria-controls="overlay_menu" severity="secondary" size="small" outlined />
                                 </div>
                             </template>
                         </Card>
-                         <div v-if="quotes.data.length === 0" class="text-center text-gray-500 col-span-full mt-8">
+                         <div v-if="quotes.data.length === 0" class="text-center text-gray-500 dark:text-zinc-500 col-span-full mt-8">
                             No se encontraron cotizaciones.
                         </div>
                     </div>
@@ -438,44 +403,62 @@ const getStatusIcon = (status) => {
             </div>
         </div>
 
-        <!-- Diálogo Modal para Agregar Pago -->
-        <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }">
+        <!-- Diálogo Modal para Agregar Pago (Apple Style) -->
+        <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '28rem' }"
+            :pt="{ 
+                root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0' }, 
+                header: { class: 'pt-8 px-8 pb-0 bg-transparent rounded-t-[2rem] dark:text-zinc-100' }, 
+                content: { class: 'px-8 pb-8 pt-4 bg-transparent rounded-b-[2rem]' } 
+            }">
             <template #header>
-                <div class="flex flex-col">
-                    <h3 class="text-lg font-semibold">Registrar Pago a Cotización</h3>
-                    <p class="text-sm text-gray-500">Para: Cot-{{ selectedQuoteForPayment?.id }}</p>
+                <div class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                        <i class="pi pi-dollar text-emerald-600 dark:text-emerald-400 text-lg font-bold"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-xl font-bold text-gray-800 dark:text-white tracking-tight">Registrar Pago</span>
+                        <span class="text-xs text-gray-500 dark:text-zinc-400">Cot-{{ selectedQuoteForPayment?.id }}</span>
+                    </div>
                 </div>
             </template>
             <form @submit.prevent="submitPayment">
-                <div class="flex flex-col gap-4 p-4">
+                <div class="flex flex-col gap-5 mt-2">
                     <div class="flex flex-col gap-2">
-                        <label for="amount">Monto del Pago</label>
+                        <label for="amount" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Monto del Pago <span class="text-red-500">*</span></label>
                         <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN"
-                            locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
+                            locale="es-MX" class="!rounded-xl w-full" :class="{ 'p-invalid': paymentForm.errors.amount }" required />
                         <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label for="payment_date">Fecha del Pago</label>
-                        <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd"
-                            :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
+                        <label for="payment_date" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Fecha del Pago <span class="text-red-500">*</span></label>
+                        <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" class="!rounded-xl w-full"
+                            :class="{ 'p-invalid': paymentForm.errors.payment_date }" required />
                         <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label for="notes">Notas (Opcional)</label>
-                        <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
+                        <label for="notes" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Notas (Opcional)</label>
+                        <Textarea id="notes" v-model="paymentForm.notes" rows="2" class="!rounded-xl w-full" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="receipt" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Comprobante (Opcional)</label>
+                        <input type="file" id="receipt" @input="paymentForm.receipt = $event.target.files[0]" 
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-zinc-800 dark:file:text-emerald-400 transition-colors cursor-pointer" 
+                            accept=".pdf,.jpg,.jpeg,.png" />
                     </div>
                 </div>
             </form>
             <template #footer>
-                <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" />
-                <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" />
+                <div class="flex justify-end gap-3 mt-4 w-full">
+                    <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" class="!rounded-xl font-medium" />
+                    <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)]" />
+                </div>
             </template>
         </Dialog>
 
     </AppLayout>
 </template>
 
-<style>
+<style scoped>
 .p-tag {
     text-transform: capitalize;
 }
@@ -485,5 +468,24 @@ const getStatusIcon = (status) => {
 .custom-tooltip .p-tooltip-text {
   text-align: left;
   white-space: pre-wrap;
+}
+
+/* Zinc Theme Overrides for PrimeVue DataTable */
+:deep(.zinc-table .p-datatable-thead > tr > th) {
+    background-color: transparent !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7;
+}
+:deep(.zinc-table .p-datatable-tbody > tr) {
+    background-color: transparent !important;
+    color: inherit;
+}
+:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+    border-bottom: 1px solid #f4f4f5;
+}
+
+/* Input overrides for dark mode */
+:deep(.p-inputtext), :deep(.p-dropdown), :deep(.p-textarea) {
+    width: 100%;
 }
 </style>

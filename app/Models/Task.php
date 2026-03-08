@@ -25,7 +25,9 @@ class Task extends Model
         'estimated_hours',
         'status',
         'priority',
-        'due_date',
+        'is_high_priority',
+        'start_date',
+        'end_date',
         'total_invested_minutes',
     ];
 
@@ -35,12 +37,13 @@ class Task extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'due_date' => 'date',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'is_high_priority' => 'boolean',
     ];
 
     /**
      * The accessors to append to the model's array form.
-     * Esto hace que 'total_hours_invested' esté disponible automáticamente en el frontend.
      *
      * @var array
      */
@@ -69,8 +72,6 @@ class Task extends Model
     {
         return $this->hasMany(TimeLog::class);
     }
-
-
 
     /**
      * Accessor para obtener el total de horas invertidas en la tarea en formato legible.

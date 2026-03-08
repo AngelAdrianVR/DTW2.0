@@ -54,27 +54,23 @@ const printQuote = () => {
 <template>
     <Head :title="`COT-${quote.id} - ${quote.client?.name || 'Cliente'}`" />
     
-    <!-- Contenedor Principal (Fondo gris en pantalla, blanco al imprimir) -->
-    <!-- COMPACTADO: Reduje py-8 a py-4 -->
-    <div class="min-h-screen bg-gray-100 py-4 print:bg-white print:p-0 font-sans text-gray-800">
+    <!-- Contenedor Principal: Se adapta al fondo oscuro de la app cuando se ve en pantalla -->
+    <div class="min-h-screen bg-gray-100 dark:bg-zinc-950 py-4 print:bg-white print:p-0 font-sans text-gray-800">
         
         <!-- Barra de Herramientas (Visible solo en pantalla) -->
         <div class="max-w-[21cm] mx-auto mb-4 px-4 print:hidden flex justify-between items-center">
             <Link :href="route('quotes.index')">
-                <Button label="Regresar" icon="pi pi-arrow-left" severity="secondary" text rounded />
+                <Button label="Regresar" icon="pi pi-arrow-left" severity="secondary" text rounded class="dark:text-zinc-300 dark:hover:bg-zinc-800"/>
             </Link>
             <Button @click="printQuote" label="Imprimir Documento" icon="pi pi-print" severity="contrast" rounded />
         </div>
 
-        <!-- La Hoja de Papel (Tamaño A4 aprox) -->
+        <!-- La Hoja de Papel (Se mantiene blanca siempre para simular el documento) -->
         <div class="max-w-[21cm] mx-auto bg-white shadow-xl rounded-none sm:rounded-xl overflow-hidden print:shadow-none print:rounded-none print:w-full print:max-w-none">
             
-            <!-- 1. HEADER: Logotipo y Folio -->
-            <!-- COMPACTADO: Reduje paddings (p-5 md:p-7 -> p-4 md:p-5) -->
+            <!-- 1. HEADER -->
             <header class="p-4 md:p-5 pb-3 flex justify-between items-start border-b border-gray-100">
                 <div class="flex flex-col">
-                    <!-- Placeholder Logo: Reemplaza src con tu logo real -->
-                    <!-- COMPACTADO: Reduje tamaño logo y margen (mb-4 -> mb-2) -->
                     <img src="/images/black_logo.png" alt="Logo Empresa" class="h-12 w-auto object-contain mb-2">
                     <div class="text-xs text-gray-500 space-y-0.5">
                         <p>Zapopan, Jalisco, México</p>
@@ -87,12 +83,11 @@ const printQuote = () => {
                 </div>
             </header>
 
-            <!-- 2. RESUMEN FINANCIERO Y CLIENTE (Total al inicio) -->
-            <!-- COMPACTADO: Márgenes y paddings reducidos drásticamente para ocupar menos altura -->
+            <!-- 2. RESUMEN FINANCIERO Y CLIENTE -->
             <section class="bg-gray-50 m-4 mt-2 rounded-xl p-3 print:bg-gray-50 print:break-inside-avoid">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     
-                    <!-- Columna Izquierda: Para quién es -->
+                    <!-- Columna Izquierda -->
                     <div class="flex flex-col justify-center">
                         <div class="flex items-baseline gap-2">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Cliente:</h3>
@@ -113,11 +108,9 @@ const printQuote = () => {
                         </div>
                     </div>
 
-                    <!-- Columna Derecha: EL TOTAL (Compacto) -->
+                    <!-- Columna Derecha -->
                     <div class="flex flex-col justify-center">
-                        <!-- COMPACTADO: p-5 -> p-3 -->
                         <div class="bg-white rounded-lg p-3 border border-gray-100 shadow-sm print:border-gray-200">
-                            <!-- COMPACTADO: mb-4 pb-4 -> mb-2 pb-2 -->
                             <div class="space-y-1 mb-2 pb-2 border-b border-gray-100">
                                 <div class="flex justify-between text-sm text-gray-600">
                                     <span>Subtotal</span>
@@ -139,22 +132,14 @@ const printQuote = () => {
             </section>
 
             <!-- 3. DETALLES DEL PROYECTO -->
-            <!-- COMPACTADO: Padding vertical y espaciado entre secciones reducido (space-y-8 -> space-y-4) -->
             <main class="px-6 md:px-8 pb-4 space-y-4">
-                
-                <!-- Título y Descripción -->
                 <div>
                     <h2 class="text-xl font-bold text-gray-900 mb-1">{{ quote.title }}</h2>
-                    <!-- Separador más pequeño -->
                     <div class="h-1 w-12 bg-blue-500 rounded-full mb-3 print:bg-black"></div>
-                    
-                    <!-- Contenido HTML -->
-                    <!-- COMPACTADO: leading-relaxed -> leading-snug para líneas de texto más juntas -->
-                    <div class="prose prose-sm max-w-none text-gray-700 leading-snug" v-html="quote.description"></div>
+                    <!-- FIX: Agregado 'break-words whitespace-pre-wrap' para ajustar texto largo -->
+                    <div class="prose prose-sm max-w-none text-gray-700 leading-snug break-words whitespace-pre-wrap" v-html="quote.description"></div>
                 </div>
 
-                <!-- Tabla de Datos Clave (Forma de pago, Tiempos) -->
-                <!-- COMPACTADO: pt-6 -> pt-4, gap-6 -> gap-4 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100 break-inside-avoid">
                     <div>
                         <h4 class="flex items-center text-sm font-bold text-gray-900 uppercase mb-1">
@@ -176,7 +161,6 @@ const printQuote = () => {
                     </div>
                 </div>
 
-                <!-- Secciones Opcionales (Proceso y Beneficios) -->
                 <div v-if="quote.show_process || quote.show_benefits" class="grid grid-cols-1 gap-4 pt-4 border-t border-gray-100 break-inside-avoid">
                     <div v-if="quote.show_process">
                         <h4 class="text-sm font-bold text-gray-900 uppercase mb-1">Metodología</h4>
@@ -198,32 +182,21 @@ const printQuote = () => {
                 </div>
             </main>
 
-            <!-- 4. FOOTER: Datos Bancarios y Legal -->
-            <!-- COMPACTADO: Padding reducido (py-8 -> py-4) y margin top reducido -->
+            <!-- 4. FOOTER -->
             <footer class="bg-gray-50 px-6 md:px-8 py-4 border-t border-gray-200 break-inside-avoid print:bg-white print:border-t-2 print:border-black">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    <!-- Datos Bancarios -->
                     <div v-if="quote.show_bank_info">
                         <h4 class="text-xs font-bold text-gray-900 uppercase mb-2">Instrucciones de Pago</h4>
                         <div class="bg-white border border-gray-200 rounded-md p-3 text-xs text-gray-600 print:border-gray-300">
                             <div class="grid grid-cols-[80px_1fr] gap-y-0.5">
-                                <span class="text-gray-400">Banco:</span>
-                                <span class="font-bold text-gray-900">NU México</span>
-                                
-                                <span class="text-gray-400">Beneficiario:</span>
-                                <span class="font-bold text-gray-900">Miguel Osvaldo Vázquez Rodríguez</span>
-                                
-                                <span class="text-gray-400">Cuenta:</span>
-                                <span class="font-mono">00017049244</span>
-                                
-                                <span class="text-gray-400">CLABE:</span>
-                                <span class="font-mono font-bold text-gray-900">638180000170492445</span>
+                                <span class="text-gray-400">Banco:</span> <span class="font-bold text-gray-900">NU México</span>
+                                <span class="text-gray-400">Beneficiario:</span> <span class="font-bold text-gray-900">Miguel Osvaldo Vázquez Rodríguez</span>
+                                <span class="text-gray-400">Cuenta:</span> <span class="font-mono">00017049244</span>
+                                <span class="text-gray-400">CLABE:</span> <span class="font-mono font-bold text-gray-900">638180000170492445</span>
                             </div>
                         </div>
                     </div>
                 </div>
-
                 <div class="text-center mt-4 text-[12px] text-gray-500">
                     <p>Esta cotización no incluye costos adicionales que puedan surgir debido a cambios significativos en el alcance del proyecto.</p>
                 </div>
