@@ -40,7 +40,7 @@ class TpspProductController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'sku' => 'nullable|string|unique:tpsp_products,sku',
-            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Kit Terminado'])],
+            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Kit Terminado', 'Corte', 'Doblado'])],
             'unit_of_measure' => ['required', 'string', Rule::in(['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo','Metro','Rollo','Litro'])],
             'stock' => 'required|numeric',
             'is_kit' => 'required|boolean',
@@ -68,7 +68,7 @@ class TpspProductController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'sku' => ['nullable', 'string', Rule::unique('tpsp_products', 'sku')->ignore($product->id)],
-            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Kit Terminado'])],
+            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Kit Terminado', 'Corte', 'Doblado'])],
             'unit_of_measure' => ['required', 'string', Rule::in(['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo','Metro','Rollo','Litro'])],
             'stock' => 'required|numeric',
             'is_kit' => 'required|boolean',

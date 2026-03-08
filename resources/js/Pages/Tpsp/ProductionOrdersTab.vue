@@ -9,20 +9,27 @@ import InputNumber from 'primevue/inputnumber';
 import Calendar from 'primevue/calendar';
 import Dropdown from 'primevue/dropdown';
 import Toast from 'primevue/toast';
+import ConfirmDialog from 'primevue/confirmdialog'; // Importar confirmación
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm'; // Importar composable de confirmación
 import ProgressBar from 'primevue/progressbar';
 import axios from 'axios';
 
 const orders = ref([]);
 const loading = ref(true);
 const toast = useToast();
+const confirm = useConfirm();
 
 // --- Estado para Modales ---
 const progressModalVisible = ref(false);
 const deliverModalVisible = ref(false);
+const historyModalVisible = ref(false); // Modal de historial de entregas
+
 const selectedOrder = ref(null);
 const progressData = ref({ quantity: null });
-const deliverData = ref({ delivery_date: null, unit_price: null });
+const deliverData = ref({ quantity: null, delivery_date: null, unit_price: null });
+const deliveryHistory = ref([]);
+const loadingHistory = ref(false);
 const isSubmitting = ref(false);
 
 // --- Opciones para el Dropdown de Estado ---
@@ -36,7 +43,7 @@ const appleModalStyles = {
     root: { class: 'bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden border-0' }, 
     header: { class: 'px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md text-xl font-semibold text-zinc-900 dark:text-zinc-100' },
     content: { class: 'p-6 bg-white dark:bg-zinc-900' },
-    footer: { class: 'px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end gap-3 border-t border-zinc-100 dark:border-zinc-800' },
+    footer: { class: 'px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 flex flex-col sm:flex-row justify-end gap-3 border-t border-zinc-100 dark:border-zinc-800' },
     mask: { class: 'backdrop-blur-sm bg-zinc-900/30 dark:bg-zinc-900/70 transition-all duration-300' }
 };
 
@@ -53,7 +60,7 @@ const fetchOrders = async () => {
     }
 };
 
-// --- Formateo de Fechas ---
+// --- Formateo de Fechas y Moneda ---
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
@@ -67,18 +74,24 @@ const formatDate = (dateString) => {
             timeZone: 'UTC'
         }).replace('.', '').replace(' de ', '-');
     } catch (e) {
-        console.error("Error formatting date:", e);
         return dateString;
     }
 };
 
-// --- Cálculo de progreso ---
+const formatCurrency = (value) => {
+    if (value === null || value === undefined) return '-';
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
+};
+
+// --- Cálculos ---
 const getProductionProgress = (produced, requested) => {
-    if (!requested || requested === 0) {
-        return 0;
-    }
-    const progress = (produced / requested) * 100;
-    return parseFloat(progress.toFixed(2));
+    if (!requested || requested === 0) return 0;
+    return parseFloat(((produced / requested) * 100).toFixed(2));
+};
+
+const getDeliveryProgress = (delivered, requested) => {
+    if (!requested || requested === 0) return 0;
+    return parseFloat((((delivered || 0) / requested) * 100).toFixed(2));
 };
 
 // Mapeo de estados a colores de Tag
@@ -92,9 +105,31 @@ const getStatusSeverity = (status) => {
     }
 };
 
-// --- Manejadores de Modales ---
+// --- Manejadores de Modales y Acciones ---
 
-// Modal de Progreso
+// ELIMINAR ORDEN
+const confirmDeleteOrder = (order) => {
+    confirm.require({
+        message: `¿Estás seguro de que deseas eliminar la orden #${order.order_number}? Esto no se puede deshacer.`,
+        header: 'Eliminar Orden de Producción',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, Eliminar',
+        rejectLabel: 'Cancelar',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        accept: async () => {
+            try {
+                await axios.delete(`/tpsp/production-orders/${order.id}`);
+                orders.value = orders.value.filter(o => o.id !== order.id);
+                toast.add({ severity: 'success', summary: 'Eliminada', detail: 'Orden eliminada con éxito.', life: 3000 });
+            } catch (error) {
+                toast.add({ severity: 'error', summary: 'Error', detail: error.response?.data?.message || 'No se puede eliminar la orden (puede que tenga progreso o entregas registradas).', life: 4000 });
+            }
+        }
+    });
+};
+
+// PROGRESO
 const openProgressModal = (order) => {
     selectedOrder.value = order;
     progressData.value = { quantity: 1 };
@@ -120,7 +155,6 @@ const submitAddProgress = async () => {
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Progreso agregado correctamente.', life: 3000 });
         progressModalVisible.value = false;
     } catch (error) {
-        console.error("Error adding progress:", error);
         const detail = error.response?.data?.message || 'Error desconocido al agregar progreso.';
         toast.add({ severity: 'error', summary: 'Error', detail: detail, life: 4000 });
     } finally {
@@ -128,21 +162,35 @@ const submitAddProgress = async () => {
     }
 };
 
-// Modal de Entrega
+// ENTREGA (Parcial o Total)
 const openDeliverModal = (order) => {
-    if (order.quantity_produced <= 0) {
-        toast.add({ severity: 'warn', summary: 'Sin producción', detail: 'No se puede entregar una orden sin producción registrada.', life: 4000 });
+    const availableToDeliver = order.quantity_produced - (order.quantity_delivered || 0);
+    
+    if (availableToDeliver <= 0) {
+        toast.add({ severity: 'warn', summary: 'Sin producción disponible', detail: 'No hay cantidad producida pendiente de entregar.', life: 4000 });
         return;
     }
+    
     selectedOrder.value = order;
-    deliverData.value = { delivery_date: new Date(), unit_price: null };
+    deliverData.value = { 
+        quantity: availableToDeliver, // Por defecto sugiere entregar todo lo disponible
+        delivery_date: new Date(), 
+        unit_price: null 
+    };
     deliverModalVisible.value = true;
 };
 
 const submitDeliverOrder = async () => {
-    const { delivery_date, unit_price } = deliverData.value;
-    if (!selectedOrder.value || !delivery_date || unit_price == null || unit_price < 0) {
+    const { quantity, delivery_date, unit_price } = deliverData.value;
+    const availableToDeliver = selectedOrder.value.quantity_produced - (selectedOrder.value.quantity_delivered || 0);
+
+    if (!selectedOrder.value || !delivery_date || unit_price == null || unit_price < 0 || !quantity || quantity <= 0) {
         toast.add({ severity: 'warn', summary: 'Datos inválidos', detail: 'Complete todos los campos correctamente.', life: 3000 });
+        return;
+    }
+
+    if (quantity > availableToDeliver) {
+        toast.add({ severity: 'error', summary: 'Cantidad excedida', detail: `Solo puedes entregar hasta ${availableToDeliver} unidades.`, life: 3000 });
         return;
     }
 
@@ -156,14 +204,29 @@ const submitDeliverOrder = async () => {
             orders.value[index] = response.data;
         }
 
-        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Orden marcada como entregada y completada.', life: 3000 });
+        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Entrega registrada correctamente.', life: 3000 });
         deliverModalVisible.value = false;
     } catch (error) {
-        console.error("Error delivering order:", error);
         const detail = error.response?.data?.message || 'Error desconocido al entregar la orden.';
         toast.add({ severity: 'error', summary: 'Error', detail: detail, life: 4000 });
     } finally {
         isSubmitting.value = false;
+    }
+};
+
+// HISTORIAL DE ENTREGAS
+const openHistoryModal = async (order) => {
+    selectedOrder.value = order;
+    historyModalVisible.value = true;
+    loadingHistory.value = true;
+    
+    try {
+        const response = await axios.get(`/tpsp/production-orders/${order.id}/deliveries`);
+        deliveryHistory.value = response.data;
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el historial de entregas.', life: 3000 });
+    } finally {
+        loadingHistory.value = false;
     }
 };
 
@@ -181,7 +244,6 @@ const onStatusChange = async (event, order) => {
         toast.add({ severity: 'success', summary: 'Actualizado', detail: `Estado cambiado a ${newStatus}`, life: 3000 });
     } catch (error) {
         order.status = oldStatus;
-        console.error("Error updating status:", error);
         toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el estado.', life: 4000 });
     }
 };
@@ -191,10 +253,11 @@ onMounted(fetchOrders);
 </script>
 
 <template>
-    <div>
+    <div class="pb-20 md:pb-0">
         <Toast />
+        <ConfirmDialog :pt="{ root: { class: 'dark:bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl border-0 mx-3 sm:mx-0' }, header: { class: 'bg-white dark:bg-zinc-900 pb-0' }, content: { class: 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300' }, footer: { class: 'bg-white dark:bg-zinc-900 pt-0 flex gap-2 justify-end' } }" />
         
-        <!-- Vista de Tabla (Escritorio) - Estilo Minimalista Apple -->
+        <!-- Vista de Tabla (Escritorio) -->
         <div class="hidden md:block bg-white dark:bg-zinc-900 mt-4 rounded-3xl shadow-sm border border-zinc-100 dark:border-zinc-800 p-2 sm:p-5 overflow-hidden">
             <DataTable :value="orders" :loading="loading" responsiveLayout="scroll" paginator :rows="10" class="apple-table" :rowsPerPageOptions="[10, 20, 50]">
                 
@@ -206,39 +269,48 @@ onMounted(fetchOrders);
                      <template #body="{ data }"><span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ data.product.name }}</span></template>
                 </Column>
 
-                <!-- Fechas Formateadas -->
-                <Column header="Creado" :sortable="true" field="created_at" style="min-width: 120px;">
+                <Column header="Creado" :sortable="true" field="created_at" style="min-width: 110px;">
                     <template #body="slotProps">
                         <span class="text-zinc-600 dark:text-zinc-400">{{ formatDate(slotProps.data.created_at) }}</span>
                     </template>
                 </Column>
-                <Column header="Entrega" :sortable="true" field="due_date" style="min-width: 120px;">
+                
+                <Column header="Meta (F. Entrega)" :sortable="true" field="due_date" style="min-width: 130px;">
                     <template #body="slotProps">
-                         <span class="text-zinc-600 dark:text-zinc-400">{{ formatDate(slotProps.data.due_date) }}</span>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-zinc-800 dark:text-zinc-200">{{ slotProps.data.quantity_requested }} unid.</span>
+                            <span class="text-xs text-zinc-500">{{ formatDate(slotProps.data.due_date) }}</span>
+                        </div>
                     </template>
                 </Column>
 
-                <!-- Columna de Progreso -->
-                <Column header="Progreso" style="min-width: 170px;">
+                <!-- Columna de Progreso (Producido vs Entregado) -->
+                <Column header="Avance" style="min-width: 180px;">
                     <template #body="slotProps">
-                        <div class="flex flex-col gap-1.5">
-                            <ProgressBar :value="getProductionProgress(slotProps.data.quantity_produced, slotProps.data.quantity_requested)" class="custom-progress h-2" :showValue="false" />
-                            <span class="text-[0.7rem] uppercase tracking-wider text-center font-bold text-zinc-500 dark:text-zinc-400">
-                                {{ slotProps.data.quantity_produced }} / {{ slotProps.data.quantity_requested }}
-                            </span>
+                        <div class="flex flex-col gap-2 w-full">
+                            <!-- Barra de Producido -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-[0.65rem] uppercase tracking-wider font-bold text-blue-600 dark:text-blue-400 w-12">Prod.</span>
+                                <ProgressBar :value="getProductionProgress(slotProps.data.quantity_produced, slotProps.data.quantity_requested)" class="custom-progress flex-1 h-1.5" :showValue="false" />
+                                <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300 w-8 text-right">{{ slotProps.data.quantity_produced }}</span>
+                            </div>
+                            <!-- Barra de Entregado -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-[0.65rem] uppercase tracking-wider font-bold text-emerald-600 dark:text-emerald-400 w-12">Entr.</span>
+                                <ProgressBar :value="getDeliveryProgress(slotProps.data.quantity_delivered, slotProps.data.quantity_requested)" class="custom-progress delivery flex-1 h-1.5" :showValue="false" />
+                                <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300 w-8 text-right">{{ slotProps.data.quantity_delivered || 0 }}</span>
+                            </div>
                         </div>
                     </template>
                 </Column>
                 
-                <!-- Estado (Tag) -->
                 <Column field="status" header="Estado" style="min-width: 130px;">
                     <template #body="slotProps">
-                        <Tag :value="slotProps.data.status" :severity="getStatusSeverity(slotProps.data.status)" class="!rounded-full !px-3 !py-1 text-xs font-semibold tracking-wide" />
+                        <Tag :value="slotProps.data.status" :severity="getStatusSeverity(slotProps.data.status)" class="!rounded-md text-xs font-bold tracking-wide" />
                     </template>
                 </Column>
 
-                <!-- Dropdown para Cambiar Estado -->
-                <Column header="Ajuste" style="min-width: 160px;">
+                <Column header="Cambiar Estado" style="min-width: 150px;">
                     <template #body="slotProps">
                         <Dropdown 
                             v-if="slotProps.data.status !== 'Completado' && slotProps.data.status !== 'Cancelado'"
@@ -250,29 +322,42 @@ onMounted(fetchOrders);
                             class="!rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:bg-zinc-950 p-inputtext-sm w-full shadow-sm"
                             @change="onStatusChange($event, slotProps.data)"
                         />
-                        <span v-else class="text-zinc-400 dark:text-zinc-600 text-sm flex items-center gap-2">
-                            <i class="pi pi-lock text-xs"></i> Cerrada
+                        <span v-else class="text-zinc-400 dark:text-zinc-600 text-sm flex items-center gap-1.5 font-medium">
+                            <i class="pi pi-lock text-[0.7rem]"></i> Cerrada
                         </span>
                     </template>
                 </Column>
 
                 <!-- Botones de Acción -->
-                <Column header="Acciones" bodyStyle="text-align: center; overflow: visible;" style="min-width: 120px;">
+                <Column header="Acciones" bodyStyle="text-align: right; overflow: visible;" style="min-width: 160px;">
                     <template #body="slotProps">
-                        <div class="flex gap-2 justify-center">
+                        <div class="flex gap-1.5 justify-end">
                             <Button 
                                 icon="pi pi-plus" 
-                                class="!rounded-xl !w-9 !h-9 !p-0 !bg-blue-50 dark:!bg-blue-900/30 !text-blue-600 dark:!text-blue-400 hover:!bg-blue-100 dark:hover:!bg-blue-900/50 !border-0 transition-colors" 
-                                v-tooltip.top="'Agregar Progreso'"
+                                class="!rounded-xl !w-8 !h-8 !p-0 !bg-blue-50 dark:!bg-blue-900/30 !text-blue-600 dark:!text-blue-400 hover:!bg-blue-100 dark:hover:!bg-blue-900/50 !border-0 transition-colors" 
+                                v-tooltip.top="'Agregar Producción'"
                                 @click="openProgressModal(slotProps.data)"
                                 :disabled="slotProps.data.status === 'Completado' || slotProps.data.status === 'Cancelado'"
                             />
                             <Button 
-                                icon="pi pi-check" 
-                                class="!rounded-xl !w-9 !h-9 !p-0 !bg-emerald-50 dark:!bg-emerald-900/30 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-100 dark:hover:!bg-emerald-900/50 !border-0 transition-colors" 
-                                v-tooltip.top="'Entregar Orden'"
+                                icon="pi pi-truck" 
+                                class="!rounded-xl !w-8 !h-8 !p-0 !bg-emerald-50 dark:!bg-emerald-900/30 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-100 dark:hover:!bg-emerald-900/50 !border-0 transition-colors" 
+                                v-tooltip.top="'Registrar Entrega'"
                                 @click="openDeliverModal(slotProps.data)"
-                                :disabled="slotProps.data.status === 'Completado' || slotProps.data.status === 'Cancelado' || slotProps.data.quantity_produced !== slotProps.data.quantity_requested"
+                                :disabled="slotProps.data.status === 'Completado' || slotProps.data.status === 'Cancelado' || (slotProps.data.quantity_produced - (slotProps.data.quantity_delivered || 0)) <= 0"
+                            />
+                            <Button 
+                                icon="pi pi-list" 
+                                class="!rounded-xl !w-8 !h-8 !p-0 !bg-indigo-50 dark:!bg-indigo-900/30 !text-indigo-600 dark:!text-indigo-400 hover:!bg-indigo-100 dark:hover:!bg-indigo-900/50 !border-0 transition-colors" 
+                                v-tooltip.top="'Historial Entregas'"
+                                @click="openHistoryModal(slotProps.data)"
+                                :disabled="!slotProps.data.quantity_delivered"
+                            />
+                            <Button 
+                                icon="pi pi-trash" 
+                                class="!rounded-xl !w-8 !h-8 !p-0 !bg-red-50 dark:!bg-red-900/30 !text-red-500 dark:!text-red-400 hover:!bg-red-100 dark:hover:!bg-red-900/50 !border-0 transition-colors" 
+                                v-tooltip.top="'Eliminar Orden'"
+                                @click="confirmDeleteOrder(slotProps.data)"
                             />
                         </div>
                     </template>
@@ -288,57 +373,55 @@ onMounted(fetchOrders);
 
         <!-- Vista de Tarjetas (Móvil) -->
         <div class="md:hidden mt-4">
-            <!-- Estado de carga -->
             <div v-if="loading" class="text-center p-8 text-zinc-400 flex flex-col items-center gap-3">
                 <i class="pi pi-spin pi-spinner text-3xl"></i>
                 <p>Cargando órdenes...</p>
             </div>
-            <!-- Estado vacío -->
             <div v-else-if="orders.length === 0" class="text-center p-8 text-zinc-400 flex flex-col items-center gap-2">
                 <i class="pi pi-inbox text-3xl"></i>
                 <p>No se encontraron órdenes.</p>
             </div>
-            <!-- Lista de tarjetas -->
             <div v-else class="flex flex-col gap-4">
-                <div v-for="order in orders" :key="order.id" class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
+                <div v-for="order in orders" :key="order.id" class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 shadow-sm">
                     
-                    <!-- Encabezado de la tarjeta -->
-                    <div class="flex justify-between items-start mb-4">
+                    <div class="flex justify-between items-start mb-3">
                         <div>
-                            <span class="text-xs font-medium text-zinc-400 block mb-1">Orden #{{ order.order_number }}</span>
-                            <div class="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">{{ order.product.name }}</div>
+                            <span class="text-[0.65rem] font-bold tracking-wider text-zinc-400 uppercase mb-0.5 block">Folio #{{ order.order_number }}</span>
+                            <div class="font-bold text-zinc-900 dark:text-zinc-100 text-lg leading-tight">{{ order.product.name }}</div>
                         </div>
-                        <Tag :value="order.status" :severity="getStatusSeverity(order.status)" class="!rounded-full !px-3 !py-1 text-xs font-semibold tracking-wide" />
+                        <Tag :value="order.status" :severity="getStatusSeverity(order.status)" class="!rounded-md text-[0.65rem] font-bold tracking-wide" />
                     </div>
 
-                    <!-- Cuerpo: Progreso -->
-                    <div class="mb-5 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                Progreso
-                            </span>
-                            <span class="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                                {{ order.quantity_produced }} / {{ order.quantity_requested }}
-                            </span>
+                    <!-- Progreso Móvil -->
+                    <div class="mb-4 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
+                        <div class="flex items-center justify-between text-xs mb-1">
+                            <span class="font-semibold text-zinc-500">Solicitado:</span>
+                            <span class="font-bold text-zinc-800 dark:text-zinc-200">{{ order.quantity_requested }} u.</span>
                         </div>
-                        <ProgressBar :value="getProductionProgress(order.quantity_produced, order.quantity_requested)" class="custom-progress h-1.5" :showValue="false" />
-                    </div>
-
-                    <!-- Información: Fechas -->
-                    <div class="grid grid-cols-2 gap-3 mb-5 text-sm">
-                        <div>
-                            <span class="text-xs text-zinc-400 block mb-0.5">Creado</span>
-                            <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ formatDate(order.created_at) }}</span>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-[0.65rem] font-bold text-blue-600 w-10">PROD</span>
+                            <ProgressBar :value="getProductionProgress(order.quantity_produced, order.quantity_requested)" class="custom-progress flex-1 h-1.5" :showValue="false" />
+                            <span class="text-xs font-bold w-6 text-right">{{ order.quantity_produced }}</span>
                         </div>
-                        <div>
-                            <span class="text-xs text-zinc-400 block mb-0.5">Entrega</span>
-                            <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ formatDate(order.due_date) }}</span>
+                        <div class="flex items-center gap-2 mt-1.5">
+                            <span class="text-[0.65rem] font-bold text-emerald-600 w-10">ENTR</span>
+                            <ProgressBar :value="getDeliveryProgress(order.quantity_delivered, order.quantity_requested)" class="custom-progress delivery flex-1 h-1.5" :showValue="false" />
+                            <span class="text-xs font-bold w-6 text-right">{{ order.quantity_delivered || 0 }}</span>
                         </div>
                     </div>
 
-                    <!-- Acciones -->
-                    <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                        <!-- Cambiar Estado -->
+                    <div class="flex gap-2 mb-4 text-xs">
+                        <div class="flex-1 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                            <span class="text-zinc-400 block mb-0.5 font-medium">F. Creado</span>
+                            <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ formatDate(order.created_at) }}</span>
+                        </div>
+                        <div class="flex-1 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                            <span class="text-zinc-400 block mb-0.5 font-medium">F. Entrega</span>
+                            <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ formatDate(order.due_date) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
                         <Dropdown 
                             v-if="order.status !== 'Completado' && order.status !== 'Cancelado'"
                             :modelValue="order.status" 
@@ -349,121 +432,171 @@ onMounted(fetchOrders);
                             class="!rounded-xl p-inputtext-sm w-full mb-3 dark:bg-zinc-950 dark:border-zinc-700 shadow-sm"
                             @change="onStatusChange($event, order)"
                         />
-                        <span v-else class="text-zinc-400 dark:text-zinc-600 text-sm mb-4 flex justify-center items-center gap-2">
-                            <i class="pi pi-lock text-xs"></i> Orden Finalizada
-                        </span>
                         
-                        <!-- Botones -->
                         <div class="flex gap-2">
-                            <Button 
-                                icon="pi pi-plus" 
-                                label="Progreso"
-                                class="!rounded-xl !bg-blue-50 dark:!bg-blue-900/30 !text-blue-700 dark:!text-blue-400 hover:!bg-blue-100 dark:hover:!bg-blue-900/50 !border-0 flex-1 font-medium transition-colors" 
-                                @click="openProgressModal(order)"
-                                :disabled="order.status === 'Completado' || order.status === 'Cancelado'"
-                            />
-                            <Button 
-                                icon="pi pi-check" 
-                                label="Entregar"
-                                class="!rounded-xl !bg-emerald-50 dark:!bg-emerald-900/30 !text-emerald-700 dark:!text-emerald-400 hover:!bg-emerald-100 dark:hover:!bg-emerald-900/50 !border-0 flex-1 font-medium transition-colors" 
-                                @click="openDeliverModal(order)"
-                                :disabled="order.status === 'Completado' || order.status === 'Cancelado' || order.quantity_produced !== order.quantity_requested"
-                            />
+                            <Button icon="pi pi-plus" class="!rounded-xl !bg-blue-50 dark:!bg-blue-900/30 !text-blue-700 dark:!text-blue-400 hover:!bg-blue-100 !border-0 flex-1 h-10" @click="openProgressModal(order)" :disabled="order.status === 'Completado' || order.status === 'Cancelado'" />
+                            <Button icon="pi pi-truck" class="!rounded-xl !bg-emerald-50 dark:!bg-emerald-900/30 !text-emerald-700 dark:!text-emerald-400 hover:!bg-emerald-100 !border-0 flex-1 h-10" @click="openDeliverModal(order)" :disabled="order.status === 'Completado' || order.status === 'Cancelado' || (order.quantity_produced - (order.quantity_delivered || 0)) <= 0" />
+                            <Button icon="pi pi-list" class="!rounded-xl !bg-indigo-50 dark:!bg-indigo-900/30 !text-indigo-700 dark:!text-indigo-400 hover:!bg-indigo-100 !border-0 flex-1 h-10" @click="openHistoryModal(order)" :disabled="!order.quantity_delivered" />
+                            <Button icon="pi pi-trash" class="!rounded-xl !bg-red-50 dark:!bg-red-900/30 !text-red-500 !border-0 w-10 h-10 shrink-0" @click="confirmDeleteOrder(order)" />
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-
-        <!-- Modal para Agregar Progreso -->
+        <!-- MODAL: AGREGAR PROGRESO (Producción) -->
         <Dialog 
             v-model:visible="progressModalVisible" 
             modal 
-            header="Agregar Progreso" 
+            header="Agregar Producción" 
             :style="{ width: '100%', maxWidth: '26rem', margin: '1rem' }"
             :pt="appleModalStyles"
             :dismissableMask="true"
         >
             <div class="flex flex-col gap-5 mt-2" v-if="selectedOrder">
-                <div class="bg-zinc-50 dark:bg-zinc-950/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                    <span class="font-semibold text-zinc-900 dark:text-zinc-100 block mb-2 text-lg">{{ selectedOrder.product.name }}</span>
+                <div class="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-800/30">
+                    <span class="font-bold text-blue-900 dark:text-blue-100 block mb-2 text-lg">{{ selectedOrder.product.name }}</span>
                     <div class="flex justify-between text-sm">
-                        <span class="text-zinc-500">Meta: <strong class="text-zinc-700 dark:text-zinc-300">{{ selectedOrder.quantity_requested }}</strong></span>
-                        <span class="text-zinc-500">Actual: <strong class="text-zinc-700 dark:text-zinc-300">{{ selectedOrder.quantity_produced }}</strong></span>
+                        <span class="text-blue-600/80">Meta: <strong class="text-blue-800 dark:text-blue-200">{{ selectedOrder.quantity_requested }}</strong></span>
+                        <span class="text-blue-600/80">Producido: <strong class="text-blue-800 dark:text-blue-200">{{ selectedOrder.quantity_produced }}</strong></span>
                     </div>
                 </div>
                 
                 <div class="flex flex-col gap-2">
-                    <label for="progressQty" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Cantidad Terminada (Nueva)</label>
+                    <label for="progressQty" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Cantidad Nueva a Reportar</label>
                     <InputNumber 
                         id="progressQty" 
                         v-model="progressData.quantity" 
-                        mode="decimal" 
-                        :min="1" 
-                        :max="selectedOrder.quantity_requested - selectedOrder.quantity_produced" 
+                        mode="decimal" :min="1" :max="selectedOrder.quantity_requested - selectedOrder.quantity_produced" 
                         class="w-full"
-                        inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3 text-lg font-medium" 
+                        inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3 text-lg font-medium text-center" 
                     />
-                    <small class="text-zinc-500 ml-1">
-                        Máximo a agregar: <span class="font-semibold">{{ selectedOrder.quantity_requested - selectedOrder.quantity_produced }}</span>
+                    <small class="text-zinc-500 ml-1 text-center mt-1">
+                        Máximo que falta producir: <span class="font-bold text-zinc-800 dark:text-zinc-200">{{ selectedOrder.quantity_requested - selectedOrder.quantity_produced }}</span>
                     </small>
                 </div>
             </div>
 
             <template #footer>
-                <Button label="Cancelar" @click="progressModalVisible = false" class="!px-5 !py-2.5 !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium mt-4" />
-                <Button label="Guardar" @click="submitAddProgress" :loading="isSubmitting" class="!px-5 !py-2.5 !rounded-xl !text-[var(--primary-text-color)] font-medium mt-4" />
+                <Button label="Cancelar" @click="progressModalVisible = false" class="!px-5 !py-3 w-full sm:w-auto !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium" />
+                <Button label="Guardar Producción" @click="submitAddProgress" :loading="isSubmitting" class="!px-5 !py-3 w-full sm:w-auto !rounded-xl !text-[var(--primary-text-color)] font-medium" />
             </template>
         </Dialog>
 
-        <!-- Modal para Entregar (Venta) -->
+        <!-- MODAL: REGISTRAR ENTREGA (Parcial o Total) -->
         <Dialog 
             v-model:visible="deliverModalVisible" 
             modal 
-            header="Registrar Entrega" 
+            header="Registrar Entrega (Venta)" 
             :style="{ width: '100%', maxWidth: '28rem', margin: '1rem' }"
             :pt="appleModalStyles"
             :dismissableMask="true"
         >
             <div class="flex flex-col gap-5 mt-2" v-if="selectedOrder">
                 <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
-                    <span class="font-semibold text-emerald-800 dark:text-emerald-300 block mb-1">{{ selectedOrder.product.name }}</span>
-                    <span class="text-sm text-emerald-600 dark:text-emerald-400">
-                        Se entregarán <strong class="text-emerald-700 dark:text-emerald-300 text-base">{{ selectedOrder.quantity_produced }}</strong> unidades terminadas.
-                    </span>
+                    <span class="font-bold text-emerald-800 dark:text-emerald-300 block mb-2">{{ selectedOrder.product.name }}</span>
+                    <div class="grid grid-cols-2 gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                        <div class="flex flex-col"><span class="opacity-70">Total Producido:</span><span class="font-bold text-sm">{{ selectedOrder.quantity_produced }}</span></div>
+                        <div class="flex flex-col"><span class="opacity-70">Ya Entregado:</span><span class="font-bold text-sm">{{ selectedOrder.quantity_delivered || 0 }}</span></div>
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label for="deliveryDate" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Fecha de Entrega</label>
-                    <Calendar 
-                        id="deliveryDate" 
-                        v-model="deliverData.delivery_date" 
-                        dateFormat="dd/mm/yy" 
-                        showIcon 
+                    <div class="flex justify-between items-end">
+                        <label for="deliverQty" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Cantidad a Entregar Hoy</label>
+                        <span class="text-xs text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md">Disp: {{ selectedOrder.quantity_produced - (selectedOrder.quantity_delivered || 0) }}</span>
+                    </div>
+                    <InputNumber 
+                        id="deliverQty" 
+                        v-model="deliverData.quantity" 
+                        mode="decimal" :min="1" :max="selectedOrder.quantity_produced - (selectedOrder.quantity_delivered || 0)"
                         class="w-full"
-                        inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" 
-                        :pt="{ dropdownButton: { root: { class: '!rounded-r-xl dark:!bg-zinc-800 dark:!border-zinc-700' } } }"
+                        inputClass="!w-full !rounded-xl !border-emerald-200 dark:!border-emerald-800/50 dark:!bg-zinc-950 dark:!text-emerald-600 dark:!text-emerald-400 shadow-sm p-3 text-lg font-bold text-center" 
                     />
                 </div>
-                
-                <div class="flex flex-col gap-2">
-                    <label for="unitPrice" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Precio Unitario de Venta</label>
-                    <InputNumber 
-                        id="unitPrice" 
-                        v-model="deliverData.unit_price" 
-                        mode="currency" 
-                        currency="MXN" 
-                        locale="es-MX" 
-                        class="w-full"
-                        inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3 font-medium" 
-                    />
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label for="deliveryDate" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Fecha</label>
+                        <Calendar 
+                            id="deliveryDate" 
+                            v-model="deliverData.delivery_date" 
+                            dateFormat="dd/mm/yy" 
+                            class="w-full"
+                            inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" 
+                        />
+                    </div>
+                    
+                    <div class="flex flex-col gap-2">
+                        <label for="unitPrice" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Precio Unit.</label>
+                        <InputNumber 
+                            id="unitPrice" 
+                            v-model="deliverData.unit_price" 
+                            mode="currency" currency="MXN" locale="es-MX" 
+                            class="w-full"
+                            inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3 font-medium" 
+                        />
+                    </div>
                 </div>
             </div>
 
             <template #footer>
-                <Button label="Cancelar" @click="deliverModalVisible = false" class="!px-5 !py-2.5 !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium mt-4" />
-                <Button label="Completar" @click="submitDeliverOrder" :loading="isSubmitting" class="!px-5 !py-2.5 !rounded-xl !text-[var(--primary-text-color)] mt-4" />
+                <Button label="Cancelar" @click="deliverModalVisible = false" class="!px-5 !py-3 w-full sm:w-auto !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium" />
+                <Button label="Registrar Entrega" @click="submitDeliverOrder" :loading="isSubmitting" class="!px-5 !py-3 w-full sm:w-auto !rounded-xl !text-[var(--primary-text-color)]" />
+            </template>
+        </Dialog>
+
+        <!-- MODAL: HISTORIAL DE ENTREGAS -->
+        <Dialog 
+            v-model:visible="historyModalVisible" 
+            modal 
+            header="Historial de Entregas" 
+            :style="{ width: '100%', maxWidth: '40rem', margin: '1rem' }"
+            :pt="appleModalStyles"
+            :dismissableMask="true"
+        >
+            <div class="flex flex-col gap-4 mt-2" v-if="selectedOrder">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                        <i class="pi pi-list text-indigo-500 dark:text-indigo-400 text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-zinc-900 dark:text-zinc-100 text-lg m-0">{{ selectedOrder.product.name }}</h4>
+                        <span class="text-sm text-zinc-500">Orden #{{ selectedOrder.order_number }}</span>
+                    </div>
+                </div>
+
+                <div class="border border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden">
+                    <DataTable :value="deliveryHistory" :loading="loadingHistory" class="zinc-table" responsiveLayout="scroll">
+                        <Column field="created_at" header="Fecha de Entrega">
+                            <template #body="{ data }">
+                                <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ formatDate(data.created_at) }}</span>
+                            </template>
+                        </Column>
+                        <Column field="quantity" header="Cantidad">
+                            <template #body="{ data }">
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400">+{{ Math.abs(data.quantity) }}</span>
+                            </template>
+                        </Column>
+                        <Column field="unit_price" header="Precio Unit.">
+                            <template #body="{ data }">
+                                <span class="text-sm text-zinc-500">{{ formatCurrency(data.unit_price) }}</span>
+                            </template>
+                        </Column>
+                        <Column field="total_price" header="Total" style="text-align: right;">
+                            <template #body="{ data }">
+                                <span class="font-bold text-zinc-800 dark:text-zinc-200">{{ formatCurrency(data.total_price) }}</span>
+                            </template>
+                        </Column>
+                        <template #empty>
+                            <div class="text-center p-6 text-zinc-500 text-sm">No hay entregas registradas aún.</div>
+                        </template>
+                    </DataTable>
+                </div>
+            </div>
+            
+            <template #footer>
+                <Button label="Cerrar Historial" @click="historyModalVisible = false" class="!px-5 !py-3 w-full sm:w-auto !rounded-xl !bg-zinc-100 dark:!bg-zinc-800 hover:!bg-zinc-200 dark:hover:!bg-zinc-700 !text-zinc-800 dark:!text-zinc-200 !border-0 font-medium transition-colors" />
             </template>
         </Dialog>
 
@@ -471,12 +604,11 @@ onMounted(fetchOrders);
 </template>
 
 <style scoped>
-/* Estilos para asegurar que el dropdown no se corte en la tabla */
 :deep(.p-datatable-tbody > tr > td) {
     overflow: visible;
 }
 
-/* Estilo para la barra de progreso minimalista */
+/* Estilo para barras de progreso */
 :deep(.custom-progress .p-progressbar) {
     background-color: #f4f4f5;
     border-radius: 9999px;
@@ -485,43 +617,51 @@ onMounted(fetchOrders);
 .dark :deep(.custom-progress .p-progressbar) {
     background-color: #27272a;
 }
-
 :deep(.custom-progress .p-progressbar-value) {
-    background: #3b82f6; /* blue-500 */
+    background: #3b82f6; /* Azul para producción */
     border-radius: 9999px;
+}
+:deep(.custom-progress.delivery .p-progressbar-value) {
+    background: #10b981; /* Esmeralda para entregas */
 }
 </style>
 
 <style>
-/* Estilos globales para PrimeVue DataTable 
-  Al estar fuera de "scoped", Vue no altera las clases y el navegador lee la ruta exacta.
-*/
+/* Estilos globales para PrimeVue DataTable */
 .apple-table .p-datatable-thead > tr > th {
     background-color: transparent !important;
     color: #52525b !important;
     border-bottom: 1px solid #e4e4e7 !important;
+    font-size: 0.8rem;
 }
-
 .apple-table .p-datatable-tbody > tr { 
     background-color: transparent !important; 
 }
-
 .apple-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #f4f4f5 !important; 
 }
-
-/* Reglas de Dark Mode 
-  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
-*/
 html.dark .apple-table .p-datatable-thead > tr > th,
 .dark .apple-table .p-datatable-thead > tr > th {
     background-color: transparent !important;
     color: #a1a1aa !important;
     border-bottom: 1px solid #27272a !important;
 }
-
 html.dark .apple-table .p-datatable-tbody > tr:not(:last-child) > td,
 .dark .apple-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #27272a !important; 
 }
+
+/* Estilos Minimalistas adicionales para tabla interna */
+.zinc-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #71717a !important;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+.dark .zinc-table .p-datatable-thead > tr > th { border-bottom: 1px solid #27272a !important; color: #a1a1aa !important; }
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { border-bottom: 1px solid #27272a !important; }
 </style>

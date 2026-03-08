@@ -13,7 +13,6 @@ import axios from 'axios';
 // Importa los componentes de las pestañas
 import ProductionOrdersTab from './ProductionOrdersTab.vue';
 import ProductsTab from './ProductsTab.vue';
-import KitsTab from './KitsTab.vue';
 import MovementsTab from './MovementsTab.vue';
 import FinanceTab from './FinanceTab.vue';
 
@@ -26,13 +25,15 @@ const newOrder = ref({
     due_date: null
 });
 
+// NUEVO: Llave maestra para forzar la recarga de la pestaña de órdenes
+const ordersRefreshKey = ref(0);
+
 // Estado para nuestras pestañas personalizadas
 const activeTab = ref('orders');
 
 const tabs = [
     { id: 'orders', label: 'Órdenes de Producción' },
     { id: 'products', label: 'Productos' },
-    { id: 'kits', label: 'Kits' },
     { id: 'movements', label: 'Movimientos' },
     { id: 'finance', label: 'Finanzas' }
 ];
@@ -55,12 +56,21 @@ const fetchKitProducts = async () => {
     }
 };
 
+const openNewOrderModal = async () => {
+    await fetchKitProducts();
+    displayNewOrderModal.value = true;
+};
+
 const createProductionOrder = async () => {
     try {
         await axios.post('/tpsp/production-orders', newOrder.value);
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Orden de producción creada', life: 3000 });
         displayNewOrderModal.value = false;
         newOrder.value = { product_id: null, quantity_requested: 1, due_date: null };
+        
+        // Magia: Incrementamos la llave y obligamos a la tabla a refrescar los datos en pantalla
+        ordersRefreshKey.value++;
+
     } catch (error) {
         toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo crear la orden', life: 3000 });
     }
@@ -149,7 +159,7 @@ onMounted(fetchKitProducts);
                         <Button 
                             label="Nueva Orden" 
                             icon="pi pi-plus" 
-                            @click="displayNewOrderModal = true" 
+                            @click="openNewOrderModal" 
                             class="!rounded-xl !text-[var(--primary-text-color)] w-full sm:w-auto"
                         />
                     </div>
@@ -179,9 +189,9 @@ onMounted(fetchKitProducts);
                 <div class="relative min-h-[400px]">
                     <Transition name="fade" mode="out-in">
                         <div :key="activeTab">
-                            <ProductionOrdersTab v-if="activeTab === 'orders'" />
+                            <!-- NUEVO: Hemos añadido la propiedad :key para obligar a refrescar la vista de Órdenes -->
+                            <ProductionOrdersTab v-if="activeTab === 'orders'" :key="ordersRefreshKey" />
                             <ProductsTab v-if="activeTab === 'products'" />
-                            <KitsTab v-if="activeTab === 'kits'" />
                             <MovementsTab v-if="activeTab === 'movements'" />
                             <FinanceTab v-if="activeTab === 'finance'" />
                         </div>
@@ -231,4 +241,3 @@ onMounted(fetchKitProducts);
     outline: none;
 }
 </style>
-

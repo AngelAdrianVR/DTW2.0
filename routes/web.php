@@ -157,6 +157,10 @@ Route::middleware([
     Route::post('production-orders/{order}/deliver', [TpspProductionOrderController::class, 'deliverOrder'])
         ->name('production-orders.deliver');
 
+    // ¡CORRECCIÓN AQUÍ! Se quitó el /tpsp inicial porque el prefix ya lo agrega
+    Route::get('production-orders/{id}/deliveries', [TpspProductionOrderController::class, 'deliveries']);
+
+
     // Log de Movimientos de Inventario (Solo ver y crear ajustes)
     // /produccion/inventory-movements
     Route::resource('inventory-movements', TpspInventoryMovementController::class)
