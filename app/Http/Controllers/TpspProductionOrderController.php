@@ -17,8 +17,16 @@ class TpspProductionOrderController extends Controller
      */
     public function index()
     {
+        // Se agregó orderBy('created_at', 'desc') para mostrar la más nueva arriba
+        // Y withSum() para calcular totales y abonos en tiempo real y mostrar "Cerrada / Pagada"
         $orders = TpspProductionOrder::with('product')
-            ->orderBy('due_date', 'desc')
+            ->withSum(['inventoryMovements as total_price_sum' => function ($query) {
+                $query->where('type', 'Venta');
+            }], 'total_price')
+            ->withSum(['inventoryMovements as amount_paid_sum' => function ($query) {
+                $query->where('type', 'Venta');
+            }], 'amount_paid')
+            ->orderBy('created_at', 'desc')
             ->get();
             
         return $orders;
@@ -48,7 +56,6 @@ class TpspProductionOrderController extends Controller
 
     /**
      * Elimina una orden de producción.
-     * SOLUCIÓN: Usar $id y findOrFail para evitar problemas de Route Model Binding
      */
     public function destroy($id)
     {
@@ -76,6 +83,27 @@ class TpspProductionOrderController extends Controller
             ->get();
             
         return response()->json($deliveries);
+    }
+
+    /**
+     * Novedad: Registra o actualiza el pago de una entrega en específico.
+     * Recuerda crear la ruta en tu api.php para apuntar a esta función.
+     */
+    public function updateDeliveryPayment(Request $request, $deliveryId)
+    {
+        $validatedData = $request->validate([
+            'amount_paid' => 'required|numeric|min:0',
+            'payment_date' => 'nullable|date',
+        ]);
+
+        $movement = tpspInventoryMovement::findOrFail($deliveryId);
+        
+        $movement->update([
+            'amount_paid' => $validatedData['amount_paid'],
+            'payment_date' => $validatedData['payment_date'],
+        ]);
+
+        return response()->json($movement);
     }
 
     /**
@@ -231,6 +259,8 @@ class TpspProductionOrderController extends Controller
                 'type' => 'Venta',
                 'unit_price' => $validated['unit_price'],
                 'total_price' => $totalPrice,
+                // Inicializamos como no pagado por defecto
+                'amount_paid' => 0, 
                 'reference_type' => tpspProductionOrder::class,
                 'reference_id' => $order->id,
                 'notes' => 'Entrega de ' . $quantityToDeliver . ' unidades. Orden: ' . $order->order_number,

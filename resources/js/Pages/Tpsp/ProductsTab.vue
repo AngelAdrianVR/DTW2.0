@@ -5,7 +5,6 @@ import { useConfirm } from 'primevue/useconfirm';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
-import InputNumber from 'primevue/inputnumber';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
 import Button from 'primevue/button';
@@ -16,6 +15,9 @@ import Image from 'primevue/image';
 import Textarea from 'primevue/textarea';
 import Tag from 'primevue/tag';
 import axios from 'axios';
+
+// IMPORTANTE: Importamos el nuevo componente indicando la ruta correcta
+import AppleInputNumber from '@/Components/AppleInputNumber.vue';
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -647,32 +649,34 @@ const deleteKitComponent = (component) => {
             :pt="appleModalStyles"
             :dismissableMask="true"
         >
+            <!-- Ajuste de la altura de los inputs a !h-[48px] para que todos midan lo mismo -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-3">
                 <div class="flex flex-col gap-2 md:col-span-2">
                     <label for="productName" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
                         Nombre del Producto <span class="text-red-500">*</span>
                     </label>
-                    <InputText id="productName" v-model.trim="product.name" required autofocus class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" />
+                    <InputText id="productName" v-model.trim="product.name" required autofocus class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm !h-[48px] px-3" />
                 </div>
                 
                 <div class="flex flex-col gap-2">
                     <label for="productSku" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">SKU / Clave (Opcional)</label>
-                    <InputText id="productSku" v-model.trim="product.sku" class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" />
+                    <InputText id="productSku" v-model.trim="product.sku" class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm !h-[48px] px-3" />
                 </div>
                 
                 <div class="flex flex-col gap-2">
                     <label for="productCategory" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Categoría</label>
-                    <Dropdown id="productCategory" v-model="product.category" :options="productCategories" placeholder="Seleccione categoría" class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm" />
+                    <Dropdown id="productCategory" v-model="product.category" :options="productCategories" placeholder="Seleccione categoría" class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm !h-[48px] flex items-center" />
                 </div>
                 
                 <div class="flex flex-col gap-2">
                     <label for="productUnit" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Unidad de Medida</label>
-                    <Dropdown id="productUnit" v-model="product.unit_of_measure" :options="unitsOfMeasure" placeholder="Seleccione unidad" class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm" />
+                    <Dropdown id="productUnit" v-model="product.unit_of_measure" :options="unitsOfMeasure" placeholder="Seleccione unidad" class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm !h-[48px] flex items-center" />
                 </div>
                 
                 <div class="flex flex-col gap-2">
                     <label for="productStock" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Stock Físico Inicial</label>
-                    <InputNumber id="productStock" v-model="product.stock" mode="decimal" class="w-full" inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" />
+                    <!-- USANDO NUESTRO COMPONENTE -->
+                    <AppleInputNumber v-model="product.stock" :allowDecimals="true" class="!border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm"  />
                 </div>
 
                 <div class="flex flex-col gap-2 md:col-span-2 mt-2 bg-purple-50/50 dark:bg-purple-900/10 p-4 rounded-2xl border border-purple-100 dark:border-purple-800/30">
@@ -687,8 +691,22 @@ const deleteKitComponent = (component) => {
                     </p>
                 </div>
 
-                <div class="flex flex-col gap-2 md:col-span-2 mt-2">
-                    <label for="productImage" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Imagen del Producto</label>
+                <div class="flex flex-col gap-3 md:col-span-2 mt-2">
+                    <label class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Imagen del Producto</label>
+                    
+                    <!-- IMAGEN EN GRANDE Y CON PREVIEW (Fuera del FileUpload para evitar clics accidentales) -->
+                    <div v-if="isEditing && product.image_url" class="flex flex-col items-center sm:items-start bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 w-full mb-2">
+                        <span class="text-xs text-zinc-500 mb-3 font-medium uppercase tracking-wider">Imagen Actual (Clic para ampliar)</span>
+                        <Image 
+                            :src="product.image_url" 
+                            alt="Imagen actual" 
+                            width="140" 
+                            preview 
+                            imageClass="rounded-xl shadow-md border border-zinc-200 dark:border-zinc-700 object-cover h-[140px] w-[140px] cursor-pointer hover:opacity-90 transition-opacity" 
+                        />
+                    </div>
+
+                    <!-- AREA DE SUBIDA -->
                     <FileUpload 
                         ref="fileUploadRef" 
                         name="image" 
@@ -707,9 +725,8 @@ const deleteKitComponent = (component) => {
                         <template #empty>
                             <div class="flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-zinc-950/50 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer" @click="$refs.fileUploadRef.choose()">
                                 <i class="pi pi-image text-3xl mb-3 text-zinc-400"></i>
-                                <p class="mb-0 font-medium text-sm text-center">Toca aquí para subir una imagen</p>
+                                <p class="mb-0 font-medium text-sm text-center">Toca aquí para subir una imagen {{ isEditing && product.image_url ? 'nueva' : '' }}</p>
                                 <p class="text-xs text-zinc-400 mt-1">PNG, JPG hasta 2MB</p>
-                                <Image v-if="isEditing && product.image_url" :src="product.image_url" alt="Imagen actual" width="80" class="mt-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700" />
                             </div>
                         </template>
                     </FileUpload>
@@ -770,20 +787,17 @@ const deleteKitComponent = (component) => {
                             optionValue="id" 
                             placeholder="Buscar material o insumo..." 
                             filter
-                            class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-white dark:!bg-zinc-900 shadow-sm" 
+                            class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-white dark:!bg-zinc-900 shadow-sm !h-[48px] flex items-center" 
                         />
                     </div>
                     <div class="w-full sm:w-32 flex flex-col gap-2">
-                        <InputNumber 
-                            v-model="newKitComponent.quantity_required" 
-                            mode="decimal" :min="0.01" :minFractionDigits="0" :maxFractionDigits="3"
-                            placeholder="Cant."
-                            class="w-full"
-                            inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-white dark:!bg-zinc-900 dark:!text-zinc-100 shadow-sm" 
+                        <!-- USANDO NUESTRO COMPONENTE -->
+                        <AppleInputNumber 
+                            v-model="newKitComponent.quantity_required" :min="0.01" :allowDecimals="true"
                         />
                     </div>
                     <div class="w-full sm:w-auto flex items-end">
-                        <Button label="Añadir" icon="pi pi-plus" @click="addKitComponent" class="w-full !rounded-xl !bg-zinc-900 dark:!bg-zinc-100 !text-white dark:!text-zinc-900 hover:!bg-zinc-800 dark:hover:!bg-white !border-0 shadow-sm px-4 py-3" />
+                        <Button label="Añadir" icon="pi pi-plus" @click="addKitComponent" class="w-full !rounded-xl !bg-zinc-900 dark:!bg-zinc-100 !text-white dark:!text-zinc-900 hover:!bg-zinc-800 dark:hover:!bg-white !border-0 shadow-sm px-4 !h-[48px]" />
                     </div>
                 </div>
 
@@ -814,11 +828,12 @@ const deleteKitComponent = (component) => {
                         </Column>
                         <Column header="Req. p/Unidad" style="width: 140px;">
                             <template #body="slotProps">
-                                <InputNumber 
+                                <!-- USANDO NUESTRO COMPONENTE TAMAÑO SMALL -->
+                                <AppleInputNumber 
                                     v-model="slotProps.data.quantity_required" 
-                                    mode="decimal" :min="0.01" :maxFractionDigits="3"
-                                    class="w-full"
-                                    inputClass="!w-full !rounded-lg !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 text-center !py-1.5"
+                                    :min="0.01" 
+                                    :allowDecimals="true"
+                                    size="sm"
                                 />
                             </template>
                         </Column>
@@ -848,12 +863,15 @@ const deleteKitComponent = (component) => {
                             <div class="flex items-center gap-2">
                                 <div class="flex flex-col">
                                     <span class="text-[0.65rem] text-zinc-500 uppercase tracking-wider mb-1">Requerido</span>
-                                    <InputNumber 
-                                        v-model="comp.quantity_required" 
-                                        mode="decimal" :min="0.01" :maxFractionDigits="3"
-                                        class="w-20"
-                                        inputClass="!w-full !rounded-lg !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-50 dark:!bg-zinc-950 dark:!text-zinc-100 text-center !py-1"
-                                    />
+                                    <!-- USANDO NUESTRO COMPONENTE TAMAÑO SMALL -->
+                                    <div class="w-28">
+                                        <AppleInputNumber 
+                                            v-model="comp.quantity_required" 
+                                            :min="0.01" 
+                                            :allowDecimals="true"
+                                            size="sm"
+                                        />
+                                    </div>
                                 </div>
                                 <Button icon="pi pi-check" class="!w-9 !h-9 !mt-4 !p-0 !bg-emerald-50 dark:!bg-emerald-900/20 !text-emerald-600 !border-0 shrink-0" @click="updateKitComponent(comp)" />
                             </div>
@@ -885,7 +903,7 @@ const deleteKitComponent = (component) => {
         </Dialog>
 
 
-        <!-- Modal (Dialog) para Ajustar Inventario Físico (Mantener Inalterado en funcionalidad) -->
+        <!-- Modal (Dialog) para Ajustar Inventario Físico -->
         <Dialog 
             v-model:visible="stockMovementDialog" 
             :style="{width: '100%', maxWidth: '28rem'}" 
@@ -907,15 +925,8 @@ const deleteKitComponent = (component) => {
                 
                 <div class="flex flex-col gap-2">
                     <label for="movementQuantity" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Cantidad a Ajustar</label>
-                    <InputNumber 
-                        id="movementQuantity" 
-                        v-model="movementData.quantity" 
-                        mode="decimal" :allowEmpty="false" showButtons class="w-full"
-                        inputClass="!w-full !rounded-xl !bg-zinc-50 dark:!bg-zinc-950 dark:!border-zinc-700 dark:!text-zinc-100 p-3 text-center text-lg font-medium"
-                        :pt="{ 
-                            incrementButton: { class: '!text-zinc-600 dark:!text-zinc-300 hover:!bg-transparent' },
-                            decrementButton: { class: '!text-zinc-600 dark:!text-zinc-300 hover:!bg-transparent' }
-                        }"
+                    <AppleInputNumber 
+                        v-model="movementData.quantity" :allowDecimals="true" class="!border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm"
                     />
                     <div class="flex justify-between items-center text-[0.90rem] mt-1 px-1">
                         <span class="text-red-500/80 bg-red-50 dark:bg-red-900/10 px-2 py-0.5 rounded-md font-medium"><i class="pi pi-minus mr-1" style="font-size: 0.8rem "></i>Negativo = Salida</span>
@@ -930,7 +941,7 @@ const deleteKitComponent = (component) => {
                         v-model="movementData.type" 
                         :options="movementTypes" 
                         placeholder="Seleccione un motivo" 
-                        class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm" 
+                        class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm !h-[48px] flex items-center" 
                     />
                 </div>
 
@@ -1067,15 +1078,8 @@ const deleteKitComponent = (component) => {
 }
 :deep(.p-dropdown:focus-within), :deep(.p-inputtext:focus), :deep(.p-textarea:focus) {
     border-color: #5d5dba !important; 
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    box-shadow: 0 0 0 2px rgba(121, 34, 236, 0.2) !important;
     outline: none;
-}
-:deep(.p-inputnumber-input:focus) {
-    box-shadow: none !important;
-    border-color: #5d5dba !important;
-}
-.dark :deep(.p-inputnumber-input:focus) {
-    border-color: #3f3f46 !important;
 }
 
 /* Asegurar que modales no topen en móvil */
@@ -1105,7 +1109,7 @@ const deleteKitComponent = (component) => {
     border-bottom: 1px solid #f4f4f5 !important; 
 }
 
-/* Reglas de Dark Mode */
+/* Reglas de Dark Mode para DataTable zinc interna */
 html.dark .zinc-table .p-datatable-thead > tr > th,
 .dark .zinc-table .p-datatable-thead > tr > th {
     color: #a1a1aa !important;
@@ -1115,5 +1119,27 @@ html.dark .zinc-table .p-datatable-thead > tr > th,
 html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
 .dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #27272a !important; 
+}
+
+/* REGLAS GLOBALES PARA INPUTS EN DARK MODE (Fuerza fondo oscuro y letra clara) */
+html.dark .p-inputtext,
+.dark .p-inputtext,
+html.dark .p-dropdown,
+.dark .p-dropdown {
+    background-color: #09090b !important; /* bg-zinc-950 */
+    border-color: #3f3f46 !important; /* border-zinc-700 */
+    color: #f4f4f5 !important; /* text-zinc-100 */
+}
+
+/* Texto interno de los dropdowns en modo oscuro */
+html.dark .p-dropdown .p-dropdown-label,
+.dark .p-dropdown .p-dropdown-label {
+    color: #f4f4f5 !important;
+}
+
+/* Ícono flecha de dropdowns en modo oscuro */
+html.dark .p-dropdown .p-dropdown-trigger,
+.dark .p-dropdown .p-dropdown-trigger {
+    color: #a1a1aa !important;
 }
 </style>

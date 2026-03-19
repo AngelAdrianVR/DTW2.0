@@ -73,6 +73,7 @@ Route::post('/quotes/{quote}/invoices', [QuoteController::class, 'storeInvoice']
 Route::delete('/quotes/{quote}/invoices/{media}', [QuoteController::class, 'destroyInvoice'])->name('quotes.invoices.destroy')->middleware(['auth']);
 // Cotizaciones desde la web
 Route::post('/quote-request', [QuoteController::class, 'handleWebRequest'])->name('quote.web.request');
+Route::put('/quotes/{quote}/dates', [QuoteController::class, 'updateDates'])->name('quotes.updateDates');
 
 
 // Rutas de Proyectos --------------------------------------------------------------------------------------
@@ -180,6 +181,7 @@ Route::get('/public/inventario', [TpspDashboardController::class, 'publicInvento
 // Ruta para que el componente Vue filtre y cargue los movimientos de venta
 Route::get('/public-sales-movements', [TpspInventoryMovementController::class, 'publicSalesHistory'])
      ->name('tpsp.public.sales-history');
+Route::put('/tpsp/production-orders/deliveries/{deliveryId}/pay', [TpspProductionOrderController::class, 'updateDeliveryPayment']);
 
 // En tu archivo routes/web.php 
 Route::post('/tpsp/products/{product}/adjust-stock', [TpspProductController::class, 'adjustStock']);

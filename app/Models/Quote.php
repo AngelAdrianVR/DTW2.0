@@ -22,6 +22,7 @@ class Quote extends Model implements HasMedia
         'title',
         'description',
         'amount',
+        'amount_usd',
         'status',
         'origin',
         'valid_until',
@@ -31,6 +32,11 @@ class Quote extends Model implements HasMedia
         'show_process',
         'show_benefits',
         'show_bank_info',
+        // NUEVOS CAMPOS:
+        'sent_at',
+        'accepted_at',
+        'rejected_at',
+        'paid_at',
     ];
 
     protected $casts = [
@@ -38,43 +44,30 @@ class Quote extends Model implements HasMedia
         'show_process' => 'boolean',
         'show_benefits' => 'boolean',
         'show_bank_info' => 'boolean',
+        'amount' => 'float',
+        'amount_usd' => 'float',
+        // NUEVOS CASTS DE FECHAS:
+        'sent_at' => 'datetime',
+        'accepted_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
-    /**
-     * Se añade un "booted method" para escuchar eventos del modelo.
-     * Esta función se ejecuta automáticamente cuando el modelo es inicializado.
-     */
     protected static function booted(): void
     {
-        // Se define un listener para el evento 'updated' (se dispara después de actualizar una cotización).
         static::updated(function (Quote $quote) {
-            // 1. Verificamos si el campo 'status' cambió y si el nuevo valor es 'Aceptado'.
-            // El método wasChanged() comprueba si un atributo ha cambiado desde la última vez que se guardó.
             if ($quote->wasChanged('status') && $quote->status === 'Aceptado') {
-                // 2. Obtenemos el cliente relacionado con esta cotización.
                 $client = $quote->client;
-
-                // 3. Si el cliente existe y su estado actual es 'Prospecto', lo actualizamos a 'Cliente'.
                 if ($client && $client->status === 'Prospecto') {
                     $client->status = 'Cliente';
-                    $client->save(); // Guardamos el cambio en la base de datos.
+                    $client->save();
                 }
             }
         });
     }
 
-    /**
-     * Se agrega el accesor 'final_amount' a la serialización del modelo.
-     * Esto hace que el monto con descuento esté disponible automáticamente en el frontend.
-     */
     protected $appends = ['final_amount'];
 
-    /**
-     * Accesor para obtener el monto final de la cotización aplicando el descuento.
-     * Este valor se usará para todos los cálculos de ahora en adelante.
-     *
-     * @return float
-     */
     public function getFinalAmountAttribute(): float
     {
         if ($this->percentage_discount > 0) {
@@ -104,14 +97,9 @@ class Quote extends Model implements HasMedia
         return $this->hasMany(ClientPayment::class);
     }
     
-    /**
-     * MODIFICACIÓN: Se corrige el cálculo del saldo para usar el nuevo 'final_amount'.
-     */
     public function getBalanceAttribute(): float
     {
         $totalPaid = $this->payments()->sum('amount');
-        // Se utiliza el accesor getFinalAmountAttribute() para el cálculo.
         return (float) $this->getFinalAmountAttribute() - $totalPaid;
     }
-
 }

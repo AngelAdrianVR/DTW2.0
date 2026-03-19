@@ -29,7 +29,7 @@ class DashboardController extends Controller
         // --- KPI de Clientes ---
         $totalOwedPerClient = DB::table('quotes')
             ->select('client_id', DB::raw('SUM(amount * (1 - COALESCE(percentage_discount, 0) / 100)) as total_owed'))
-            ->where('status', 'Aceptado')
+            ->whereIn('status', ['Aceptado', 'Pagado']) // <--- Corrección: Se agrega 'Pagado' para equilibrar los pagos totales
             ->groupBy('client_id');
 
         $totalPaidPerClient = DB::table('client_payments')
@@ -37,12 +37,11 @@ class DashboardController extends Controller
             ->groupBy('client_id');
 
         $clientsWithDebt = DB::table('clients')
-            ->select('clients.name', DB::raw('COALESCE(owed.total_owed, 0) - COALESCE(paid.total_paid, 0) as debt'))
+            ->select('clients.id', 'clients.name', DB::raw('COALESCE(owed.total_owed, 0) - COALESCE(paid.total_paid, 0) as debt'))
             ->leftJoinSub($totalOwedPerClient, 'owed', 'clients.id', '=', 'owed.client_id')
             ->leftJoinSub($totalPaidPerClient, 'paid', 'clients.id', '=', 'paid.client_id')
             ->having('debt', '>', 0.01)
             ->orderBy('debt', 'desc')
-            ->limit(10)
             ->get();
             
         // --- KPI de Proyectos y Hostings ---
@@ -56,6 +55,25 @@ class DashboardController extends Controller
 
         $hostingsCount = HostingClient::count();
         $clientsCount = Client::count();
+
+        // --- Hostings: Próximos pagos del mes actual ---
+        $currentMonth = Carbon::now()->month;
+        $currentYear = Carbon::now()->year;
+
+        $upcomingHostings = HostingClient::with('client:id,name')
+            ->where('status', 'Activo')
+            ->whereMonth('next_payment_date', $currentMonth)
+            ->whereYear('next_payment_date', $currentYear)
+            ->orderBy('next_payment_date', 'asc')
+            ->get()
+            ->map(function ($h) {
+                return [
+                    'id' => $h->id,
+                    'client_name' => $h->client ? $h->client->name : 'Sin Cliente',
+                    'date' => $h->next_payment_date ? Carbon::parse($h->next_payment_date)->format('Y-m-d') : null,
+                    'amount' => $h->payment_amount,
+                ];
+            });
 
         // --- KPI de Desempeño ---
         $users = User::with('assignedTasks')->get();
@@ -108,8 +126,6 @@ class DashboardController extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
-        $currentYear = Carbon::now()->year;
-
         $clientPaymentsByMonth = ClientPayment::query()
             ->select(DB::raw('MONTH(payment_date) as month'), DB::raw('SUM(amount) as total'))
             ->whereYear('payment_date', $currentYear)
@@ -154,7 +170,8 @@ class DashboardController extends Controller
             'kpis' => [
                 'quotes' => [
                     'total' => array_sum($quoteStatusCounts),
-                    'accepted' => ($quoteStatusCounts['Aceptado'] ?? 0) + ($quoteStatusCounts['Pagado'] ?? 0),
+                    'paid' => $quoteStatusCounts['Pagado'] ?? 0,
+                    'accepted' => $quoteStatusCounts['Aceptado'] ?? 0,
                     'rejected' => $quoteStatusCounts['Rechazado'] ?? 0,
                     'pending' => $quoteStatusCounts['Pendiente'] ?? 0,
                     'sent' => $quoteStatusCounts['Enviado'] ?? 0,
@@ -173,6 +190,8 @@ class DashboardController extends Controller
                 ],
                 'hostings' => [
                     'total' => $hostingsCount,
+                    'upcoming' => $upcomingHostings,
+                    'current_month_name' => Carbon::now()->locale('es')->monthName,
                 ],
                 'performance' => $performanceData,
                 'financials' => [

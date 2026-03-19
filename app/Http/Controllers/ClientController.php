@@ -85,7 +85,8 @@ class ClientController extends Controller
         $client->load([
             'contacts',
             'payments' => function ($query) {
-                $query->orderBy('payment_date', 'desc');
+                // AQUÍ ESTÁ LA MAGIA: Agregamos ->with(['quote', 'media']) para que también viaje la cotización y los archivos PDF/JPG
+                $query->with(['quote', 'media'])->orderBy('payment_date', 'desc');
             },
             'quotes' => function ($query) {
                 $query->orderBy('created_at', 'desc')

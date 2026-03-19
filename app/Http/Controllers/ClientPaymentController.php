@@ -6,6 +6,7 @@ use App\Models\ClientPayment;
 use App\Models\Quote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 
 class ClientPaymentController extends Controller
 {
@@ -21,24 +22,30 @@ class ClientPaymentController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Validamos los datos, incluyendo el archivo 'receipt'
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'quote_id' => 'nullable|exists:quotes,id',
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
             'notes' => 'nullable|string',
+            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // Máximo 5MB
         ]);
 
-        // Create the payment record
+        // 2. Si el request trae un archivo, lo guardamos en la carpeta public/receipts
+        if ($request->hasFile('receipt')) {
+            $validated['receipt'] = $request->file('receipt')->store('receipts', 'public');
+        }
+
+        // 3. Creamos el registro del pago con la ruta del archivo ya incluida
         ClientPayment::create($validated);
 
-        // If a quote_id is provided, check if it's fully paid
+        // 4. Lógica para actualizar el estado de la cotización
         if (!empty($validated['quote_id'])) {
             $quote = Quote::find($validated['quote_id']);
 
             if ($quote) {
-                // To check the balance, we need to sum all payments associated with this quote.
-                // This assumes your ClientPayment model has a 'quote_id' column that can be null.
+                // Sumar todos los pagos asociados a esta cotización
                 $totalPaidForQuote = ClientPayment::where('quote_id', $quote->id)->sum('amount');
 
                 if ($totalPaidForQuote >= $quote->amount) {

@@ -289,7 +289,7 @@ const getStatusIcon = (status) => {
                     <!-- Vista de Tabla para Escritorio -->
                     <div class="hidden md:block">
                         <DataTable :value="quotes.data" paginator :rows="15" stripedRows tableStyle="min-width: 50rem;"
-                            @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                            @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="index-quotes-table">
                             <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron cotizaciones.</div> </template>
 
                             <Column header="Folio" style="width: 10%">
@@ -469,23 +469,27 @@ const getStatusIcon = (status) => {
   text-align: left;
   white-space: pre-wrap;
 }
+.index-quotes-table {
+    color:#212121 !important
+}
 
-/* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: transparent !important;
+</style>
+
+<style>
+/* Estilos globales para la tabla de INDEX */
+.index-quotes-table .p-datatable-thead > tr > th {
+    background-color: transparent!important;
     color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
+    
 }
 
-/* Input overrides for dark mode */
-:deep(.p-inputtext), :deep(.p-dropdown), :deep(.p-textarea) {
-    width: 100%;
+.index-quotes-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+
+html.dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

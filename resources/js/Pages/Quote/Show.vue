@@ -1,61 +1,179 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { Link, Head, useForm, router } from '@inertiajs/vue3';
+import { useToast } from 'primevue/usetoast';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressBar from 'primevue/progressbar';
-import Timeline from 'primevue/timeline';
-import Back from '@/Components/MyComponents/Back.vue';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import Calendar from 'primevue/calendar';
+import Textarea from 'primevue/textarea';
+import Toast from 'primevue/toast';
 
 // --- PROPS ---
 const props = defineProps({
     quote: { type: Object, required: true },
 });
 
-// --- FORMULARIO PARA SUBIR ARCHIVOS ---
-const form = useForm({ invoice_file: null });
+// --- STATE MANAGEMENT ---
+const toast = useToast();
+const isUpdatingStatus = ref(false);
+const isPaymentDialogVisible = ref(false);
+const isDateDialogVisible = ref(false);
+const selectedStageLabel = ref('');
 
-const submitInvoice = () => {
-    form.post(route('quotes.invoices.store', props.quote.id), {
+// --- FORMS ---
+const invoiceForm = useForm({ invoice_file: null });
+
+const paymentForm = useForm({
+    quote_id: props.quote.id,
+    client_id: props.quote.client_id,
+    amount: null,
+    payment_date: new Date().toISOString().slice(0, 10),
+    notes: '',
+    receipt: null,
+});
+
+const dateForm = useForm({
+    field: '',
+    date: null,
+});
+
+// --- TIMELINE LOGIC (APPLE STYLE CON FECHAS) ---
+const stages = computed(() => {
+    const isRejected = props.quote.status === 'Rechazado';
+    
+    return [
+        { id: 'Pendiente', label: 'Pendiente', icon: 'pi pi-history', color: 'bg-green-500', date: props.quote.created_at, dateField: 'created_at' },
+        { id: 'Enviado', label: 'Enviado', icon: 'pi pi-send', color: 'bg-green-500', date: props.quote.sent_at, dateField: 'sent_at' },
+        { id: isRejected ? 'Rechazado' : 'Aceptado', label: isRejected ? 'Rechazado' : 'Aceptado', icon: isRejected ? 'pi pi-times' : 'pi pi-check', color: isRejected ? 'bg-[#EF4444]' : 'bg-green-500', date: isRejected ? props.quote.rejected_at : props.quote.accepted_at, dateField: isRejected ? 'rejected_at' : 'accepted_at' },
+        { id: 'Pagado', label: 'Pagado', icon: 'pi pi-verified', color: 'bg-green-500', date: props.quote.paid_at, dateField: 'paid_at' }
+    ];
+});
+
+const currentStageIndex = computed(() => {
+    return stages.value.findIndex(s => s.id === props.quote.status);
+});
+
+const progressWidth = computed(() => {
+    if (currentStageIndex.value === -1 || currentStageIndex.value === 0) return '0%';
+    return `${(currentStageIndex.value / (stages.value.length - 1)) * 100}%`;
+});
+
+const canUpdateTo = (targetStatus) => {
+    if (isUpdatingStatus.value) return false;
+    if (props.quote.status === 'Pendiente' && targetStatus === 'Enviado') return true;
+    if (props.quote.status === 'Enviado' && (targetStatus === 'Aceptado' || targetStatus === 'Rechazado')) return true;
+    return false;
+};
+
+const changeQuoteStatus = (newStatus) => {
+    if (!canUpdateTo(newStatus)) return;
+    
+    isUpdatingStatus.value = true;
+    router.put(route('quotes.updateStatus', { quote: props.quote.id }), { status: newStatus }, {
         preserveScroll: true,
         onSuccess: () => {
-            form.reset('invoice_file');
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Estado actualizado correctamente.', life: 3000 });
+        },
+        onError: () => {
+            toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el estado.', life: 3000 });
+        },
+        onFinish: () => {
+            isUpdatingStatus.value = false;
+        }
+    });
+};
+
+// --- DATE EDITOR LOGIC ---
+const openDateEditor = (stage) => {
+    selectedStageLabel.value = stage.label;
+    dateForm.field = stage.dateField;
+    // Si ya hay fecha, la precarga en el calendario, si no, usa la fecha actual
+    dateForm.date = stage.date ? new Date(stage.date) : new Date();
+    isDateDialogVisible.value = true;
+};
+
+const submitDateChange = () => {
+    // Formatear la fecha para evitar problemas de zona horaria con Javascript (YYYY-MM-DD HH:mm:ss)
+    const formattedDate = dateForm.date.toISOString().slice(0, 19).replace('T', ' ');
+    
+    dateForm.transform((data) => ({
+        ...data,
+        date: formattedDate
+    })).put(route('quotes.updateDates', props.quote.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isDateDialogVisible.value = false;
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Fecha actualizada correctamente.', life: 3000 });
+        },
+        onError: () => {
+            toast.add({ severity: 'error', summary: 'Error', detail: 'Hubo un problema al guardar la fecha.', life: 3000 });
+        }
+    });
+};
+
+// --- SUBMIT INVOICE ---
+const submitInvoice = () => {
+    invoiceForm.post(route('quotes.invoices.store', props.quote.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            invoiceForm.reset('invoice_file');
             const fileInput = document.getElementById('invoice-input');
             if (fileInput) fileInput.value = '';
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Archivo adjuntado correctamente', life: 3000 });
         },
     });
 };
 
 const invoices = computed(() => props.quote.media?.filter(file => file.collection_name === 'invoices') || []);
 
+// --- PAYMENT LOGIC ---
 const totalPaid = computed(() => {
     if (!props.quote.payments) return 0;
     return props.quote.payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 });
 
-const timelineEvents = computed(() => {
-    const status = props.quote.status;
-    const events = [
-        { status: 'Pendiente', icon: 'pi pi-file', color: '#64748b', active: true },
-        { status: 'Enviado', icon: 'pi pi-send', color: '#3b82f6', active: ['Enviado', 'Aceptado', 'Rechazado', 'Pagado'].includes(status) },
-    ];
-
-    if (status === 'Rechazado') {
-        events.push({ status: 'Rechazado', icon: 'pi pi-times', color: '#f43f5e', active: true });
-    } else {
-        events.push({ status: 'Aceptado', icon: 'pi pi-check', color: '#10b981', active: ['Aceptado', 'Pagado'].includes(status) });
-        events.push({ status: 'Pagado', icon: 'pi pi-verified', color: '#059669', active: status === 'Pagado' });
-    }
-    return events;
-});
-
-const totalWithDiscount = computed(() => {    const amount = parseFloat(props.quote.amount) || 0;
+const totalWithDiscount = computed(() => {    
+    const amount = parseFloat(props.quote.amount) || 0;
     const discount = parseFloat(props.quote.percentage_discount) || 0;
     if (discount <= 0 || discount > 100) return amount;
     return amount - ((amount * discount) / 100);
 });
 
+const remainingBalance = computed(() => {
+    return Math.max(0, totalWithDiscount.value - totalPaid.value);
+});
+
+const openPaymentDialog = () => {
+    paymentForm.reset();
+    paymentForm.quote_id = props.quote.id;
+    paymentForm.client_id = props.quote.client_id;
+    paymentForm.amount = remainingBalance.value > 0 ? remainingBalance.value : null;
+    isPaymentDialogVisible.value = true;
+};
+
+const closePaymentDialog = () => {
+    isPaymentDialogVisible.value = false;
+};
+
+const submitPayment = () => {
+    paymentForm.post(route('client-payments.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            closePaymentDialog();
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago registrado correctamente', life: 3000 });
+        },
+        onError: (errors) => {
+            const errorMessages = Object.values(errors).join(' ');
+            toast.add({ severity: 'error', summary: 'Error', detail: errorMessages || 'No se pudo registrar el pago.', life: 3000 });
+        }
+    });
+};
+
+// --- HELPERS ---
 const getStatusClasses = (status) => {
     const base = "px-3 py-1 rounded-full text-xs font-semibold tracking-wide border";
     const styles = {
@@ -63,6 +181,7 @@ const getStatusClasses = (status) => {
         'Enviado': 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800',
         'Aceptado': 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
         'Rechazado': 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800',
+        'Pagado': 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-700',
     };
     return `${base} ${styles[status] || 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-gray-800 dark:text-gray-400'}`;
 };
@@ -70,7 +189,13 @@ const getStatusClasses = (status) => {
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const formatDateShort = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
 };
 
 const formatCurrency = (value) => {
@@ -84,12 +209,21 @@ const deleteFile = (fileId) => {
         router.delete(route('quotes.invoices.destroy', { quote: props.quote.id, media: fileId }), { preserveScroll: true });
     }
 };
+
+const getReceiptUrl = (payment) => {
+    if (payment.media && payment.media.length > 0) return payment.media[0].original_url;
+    if (payment.receipt_path || payment.receipt) return '/storage/' + (payment.receipt_path || payment.receipt);
+    if (payment.receipt_url) return payment.receipt_url;
+    return null;
+};
 </script>
 
 <template>
     <Head :title="`Cotización #${quote.id}`" />
     
     <AppLayout title="Detalle de Cotización">
+        <Toast />
+
         <div class="py-12">
             <div class="max-w-4xl mx-40 mb-6">
                  <Link :href="route('quotes.index')" class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-300">
@@ -111,45 +245,83 @@ const deleteFile = (fileId) => {
                     </div>
                     
                     <div class="flex items-center gap-3">
-                        <!-- Solución Link Impresión -->
                          <a :href="route('quotes.print', quote.id)" target="_blank" rel="noopener noreferrer">
                             <Button label="Imprimir" icon="pi pi-print" severity="secondary" outlined rounded class="!bg-white dark:!bg-transparent !border-gray-300 dark:!border-zinc-600 !text-gray-700 dark:!text-zinc-300 shadow-sm" />
                         </a>
-                        <Link :href="route('quotes.edit', quote.id)">
+                        <Link v-if="quote.status !== 'Pagado'" :href="route('quotes.edit', quote.id)">
                             <Button label="Editar" icon="pi pi-pencil" rounded class="!text-[var(--primary-text-color)]" />
                         </Link>
                     </div>
                 </header>
             </div>
 
-            <!-- Timeline Section -->
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-                <div class="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-zinc-800 p-6 sm:p-8">
-                    <Timeline :value="timelineEvents" layout="horizontal" align="top" class="custom-timeline hidden sm:flex">
-                        <template #marker="slotProps">
-                            <span class="flex items-center justify-center w-10 h-10 rounded-full z-10 shadow-sm transition-all duration-300" :style="{ backgroundColor: slotProps.item.active ? slotProps.item.color : '#e2e8f0', color: slotProps.item.active ? '#fff' : '#94a3b8' }">
-                                <i :class="slotProps.item.icon" class="text-lg"></i>
-                            </span>
-                        </template>
-                        <template #content="slotProps">
-                            <div class="mt-3 text-sm font-bold tracking-wide" :class="slotProps.item.active ? 'text-gray-800 dark:text-zinc-200' : 'text-gray-400 dark:text-zinc-600'">
-                                {{ slotProps.item.status }}
+            <!-- Apple Style Interactive Timeline -->
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+                <div class="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-zinc-800 p-8 pt-10 sm:px-12 relative overflow-visible">
+                    <h3 class="text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-10 text-center">Progreso de la Cotización</h3>
+                    
+                    <div class="relative flex items-center justify-between w-full z-10 max-w-4xl mx-auto mb-16">
+                        <!-- Barra de fondo -->
+                        <div class="absolute left-0 right-0 top-1/2 h-1.5 bg-gray-100 dark:bg-zinc-800 -translate-y-1/2 rounded-full z-0"></div>
+                        <!-- Barra de progreso con animación -->
+                        <div class="absolute left-0 top-1/2 h-1.5 bg-green-300 dark:bg-green-200 -translate-y-1/2 rounded-full z-0 transition-all duration-700 ease-in-out" :style="{ width: progressWidth }"></div>
+
+                        <!-- Nodos -->
+                        <div v-for="(stage, index) in stages" :key="stage.id" class="relative z-10 flex flex-col items-center group">
+                            
+                            <!-- Botón del Nodo -->
+                            <button 
+                                @click="changeQuoteStatus(stage.id)"
+                                :disabled="!canUpdateTo(stage.id)"
+                                class="w-12 h-12 rounded-full flex items-center justify-center border-[3px] transition-all duration-300 shadow-sm"
+                                :class="[
+                                    index <= currentStageIndex ? `${stage.color} border-white dark:border-zinc-900 text-white` : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-400 dark:text-zinc-600',
+                                    canUpdateTo(stage.id) ? 'cursor-pointer hover:scale-110 hover:shadow-md ring-4 ring-blue-50 dark:ring-purple-900/30' : 'cursor-default',
+                                    isUpdatingStatus && canUpdateTo(stage.id) ? 'opacity-50' : ''
+                                ]"
+                            >
+                                <i v-if="isUpdatingStatus && canUpdateTo(stage.id)" class="pi pi-spinner pi-spin text-xl"></i>
+                                <i v-else :class="stage.icon" class="text-xl"></i>
+                            </button>
+
+                            <!-- Etiqueta y Fecha Interactiva -->
+                            <div class="absolute top-14 left-1/2 -translate-x-1/2 flex flex-col items-center w-32 transition-colors duration-300">
+                                <span class="whitespace-nowrap text-xs font-bold"
+                                    :class="index <= currentStageIndex ? 'text-gray-800 dark:text-zinc-200' : 'text-gray-400 dark:text-zinc-600'">
+                                    {{ stage.label }}
+                                </span>
+                                
+                                <!-- Editor de Fecha -->
+                                <div v-if="index <= currentStageIndex" class="mt-1">
+                                    <div v-if="stage.date" 
+                                         @click="openDateEditor(stage)"
+                                         class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-all border border-transparent hover:border-gray-200 dark:hover:border-zinc-700 group/date">
+                                        <i class="pi pi-calendar text-[10px] opacity-70 group-hover/date:opacity-100"></i>
+                                        <span class="capitalize">{{ formatDateShort(stage.date) }}</span>
+                                        <i class="pi pi-pencil text-[9px] opacity-0 group-hover/date:opacity-100 transition-opacity"></i>
+                                    </div>
+                                    <div v-else
+                                         @click="openDateEditor(stage)"
+                                         class="flex items-center gap-1 mt-1 text-[10px] font-medium text-blue-500 hover:text-blue-600 cursor-pointer transition-colors px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                                        <i class="pi pi-calendar-plus text-[10px]"></i>
+                                        <span>Definir fecha</span>
+                                    </div>
+                                </div>
                             </div>
-                        </template>
-                    </Timeline>
-                    <!-- Fallback for mobile (vertical) -->
-                    <Timeline :value="timelineEvents" class="sm:hidden">
-                        <template #marker="slotProps">
-                            <span class="flex items-center justify-center w-8 h-8 rounded-full z-10 shadow-sm transition-all duration-300" :style="{ backgroundColor: slotProps.item.active ? slotProps.item.color : '#e2e8f0', color: slotProps.item.active ? '#fff' : '#94a3b8' }">
-                                <i :class="slotProps.item.icon" class="text-sm"></i>
-                            </span>
-                        </template>
-                        <template #content="slotProps">
-                            <div class="text-sm font-bold track ing-wide py-2" :class="slotProps.item.active ? 'text-gray-800 dark:text-zinc-200' : 'text-gray-400 dark:text-zinc-600'">
-                                {{ slotProps.item.status }}
+                            
+                            <!-- Tooltip guía -->
+                            <div v-if="canUpdateTo(stage.id)" class="absolute -top-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] py-1 px-3 rounded-lg font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg">
+                                Clic para cambiar a {{ stage.label }}
                             </div>
-                        </template>
-                    </Timeline>
+                        </div>
+                    </div>
+
+                    <!-- Botón alternativo de rechazo -->
+                    <div v-if="quote.status === 'Enviado'" class="text-center mt-6 animate-fade-in-up">
+                        <button @click="changeQuoteStatus('Rechazado')" :disabled="isUpdatingStatus" class="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors underline decoration-dotted underline-offset-4">
+                            O marcar cotización como Rechazada
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -159,8 +331,6 @@ const deleteFile = (fileId) => {
                     
                     <!-- Columna Izquierda: Información Principal -->
                     <div class="lg:col-span-8 space-y-8">
-                        
-                        <!-- Tarjeta de Detalles -->
                         <section class="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                             <div class="p-8">
                                 <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 mb-6 flex items-center">
@@ -202,7 +372,6 @@ const deleteFile = (fileId) => {
 
                                 <div class="mt-10 pt-8 border-t border-gray-100 dark:border-zinc-800">
                                      <h4 class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-4">Descripción del Proyecto</h4>
-                                     <!-- FIX: Agregado 'break-words whitespace-pre-wrap' para ajustar texto largo -->
                                      <div class="prose prose-blue prose-lg max-w-none text-gray-600 dark:text-zinc-300 leading-relaxed break-words whitespace-pre-wrap" v-html="quote.description"></div>
                                 </div>
                             </div>
@@ -242,7 +411,7 @@ const deleteFile = (fileId) => {
                                         </div>
                                         <div class="flex justify-between items-end mt-2" v-if="totalPaid > 0">
                                             <span class="text-gray-500 dark:text-zinc-400 text-sm font-medium uppercase tracking-wide">Saldo Restante</span>
-                                            <span class="text-xl font-bold" :class="totalWithDiscount - totalPaid > 0.01 ? 'text-rose-500 dark:text-rose-400' : 'text-gray-400 dark:text-zinc-500'">{{ formatCurrency(Math.max(0, totalWithDiscount - totalPaid)) }}</span>
+                                            <span class="text-xl font-bold" :class="remainingBalance > 0.01 ? 'text-rose-500 dark:text-rose-400' : 'text-gray-400 dark:text-zinc-500'">{{ formatCurrency(remainingBalance) }}</span>
                                         </div>
                                         <p class="text-right text-xs text-gray-400 dark:text-zinc-500 mt-1">Impuestos no incluidos</p>
                                     </div>
@@ -250,11 +419,20 @@ const deleteFile = (fileId) => {
                             </div>
                         </div>
 
-                        <!-- Tarjeta de Historial de Pagos -->
+                        <!-- Tarjeta de Historial de Pagos con botón de Agregar -->
                         <div class="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-zinc-800 p-6">
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 mb-4 flex items-center">
-                                <i class="pi pi-history mr-2 text-emerald-500"></i> Historial de Pagos
-                            </h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 flex items-center">
+                                    <i class="pi pi-history mr-2 text-emerald-500"></i> Historial de Pagos
+                                </h3>
+                                <Button v-if="['Aceptado', 'Pagado'].includes(quote.status) && remainingBalance > 0" 
+                                    @click="openPaymentDialog" 
+                                    icon="pi pi-plus" 
+                                    class="!w-8 !h-8 !p-0 !bg-emerald-50 dark:!bg-emerald-900/30 !text-emerald-600 dark:!text-emerald-400 !border-none hover:!bg-emerald-100 dark:hover:!bg-emerald-900/50" 
+                                    rounded 
+                                    v-tooltip.top="'Registrar Nuevo Pago'" />
+                            </div>
+
                             <div v-if="quote.payments && quote.payments.length > 0" class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 <div v-for="payment in quote.payments" :key="payment.id" class="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700 relative group">
                                     <div class="flex justify-between items-start mb-1">
@@ -264,8 +442,8 @@ const deleteFile = (fileId) => {
                                     <p v-if="payment.notes" class="text-sm text-gray-600 dark:text-zinc-400 mt-2 italic border-l-2 border-emerald-200 dark:border-emerald-800 pl-2">
                                         {{ payment.notes }}
                                     </p>
-                                    <div v-if="payment.media && payment.media.length > 0" class="mt-4 pt-3 border-t border-gray-200 dark:border-zinc-700">
-                                        <a :href="payment.media[0].original_url" target="_blank" class="inline-flex items-center text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">
+                                    <div v-if="getReceiptUrl(payment)" class="mt-4 pt-3 border-t border-gray-200 dark:border-zinc-700">
+                                        <a :href="getReceiptUrl(payment)" target="_blank" class="inline-flex items-center text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">
                                             <i class="pi pi-file mr-1.5"></i> Ver Comprobante
                                         </a>
                                     </div>
@@ -274,10 +452,11 @@ const deleteFile = (fileId) => {
                             <div v-else class="text-center py-6">
                                 <i class="pi pi-wallet text-3xl text-gray-300 dark:text-zinc-600 mb-2"></i>
                                 <p class="text-sm text-gray-500 dark:text-zinc-400">Aún no hay pagos registrados.</p>
+                                <Button v-if="['Aceptado', 'Pagado'].includes(quote.status)" @click="openPaymentDialog" label="Registrar Primer Pago" text size="small" class="mt-2 !text-emerald-600" />
                             </div>
                         </div>
 
-                        <!-- Tarjeta de Archivos -->
+                        <!-- Tarjeta de Archivos / Facturas -->
                         <div class="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-zinc-800 p-6">
                             <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 mb-4 flex items-center">
                                 <i class="pi pi-paperclip mr-2 text-gray-400"></i> Adjuntos y Facturas
@@ -287,19 +466,19 @@ const deleteFile = (fileId) => {
                                 <div class="relative flex items-center justify-center w-full">
                                     <label for="invoice-input" class="flex flex-col items-center justify-center w-full h-28 border-2 border-gray-200 border-dashed rounded-2xl cursor-pointer bg-gray-50 dark:bg-zinc-800/50 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200 group-hover:border-blue-300">
                                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <i v-if="!form.invoice_file" class="pi pi-cloud-upload text-3xl text-gray-400 mb-2 group-hover:text-blue-500 transition-colors"></i>
+                                            <i v-if="!invoiceForm.invoice_file" class="pi pi-cloud-upload text-3xl text-gray-400 mb-2 group-hover:text-blue-500 transition-colors"></i>
                                             <i v-else class="pi pi-check-circle text-3xl text-emerald-500 mb-2"></i>
-                                            <p v-if="!form.invoice_file" class="text-sm text-gray-500 dark:text-zinc-400"><span class="font-semibold">Click para subir</span> factura</p>
-                                            <p v-else class="text-sm text-emerald-600 font-medium truncate max-w-[80%]">{{ form.invoice_file.name }}</p>
+                                            <p v-if="!invoiceForm.invoice_file" class="text-sm text-gray-500 dark:text-zinc-400"><span class="font-semibold">Click para subir</span> archivo</p>
+                                            <p v-else class="text-sm text-emerald-600 font-medium truncate max-w-[80%]">{{ invoiceForm.invoice_file.name }}</p>
                                         </div>
-                                        <input id="invoice-input" type="file" @input="form.invoice_file = $event.target.files[0]" class="hidden" accept=".pdf,.xml,.jpg,.png,.jpeg" />
+                                        <input id="invoice-input" type="file" @input="invoiceForm.invoice_file = $event.target.files[0]" class="hidden" accept=".pdf,.xml,.jpg,.png,.jpeg" />
                                     </label>
                                 </div>
-                                <div v-if="form.invoice_file" class="mt-3 animate-fade-in-up">
-                                    <Button type="submit" label="Subir Archivo" icon="pi pi-upload" class="w-full !text-[var(--primary-text-color)]" :loading="form.processing" rounded />
+                                <div v-if="invoiceForm.invoice_file" class="mt-3 animate-fade-in-up">
+                                    <Button type="submit" label="Subir Archivo" icon="pi pi-upload" class="w-full !text-[var(--primary-text-color)]" :loading="invoiceForm.processing" rounded />
                                 </div>
-                                <p v-if="form.errors.invoice_file" class="text-xs text-red-500 mt-2 text-center">{{ form.errors.invoice_file }}</p>
-                                <ProgressBar v-if="form.progress" :value="form.progress.percentage" class="mt-3 h-1" :showValue="false" />
+                                <p v-if="invoiceForm.errors.invoice_file" class="text-xs text-red-500 mt-2 text-center">{{ invoiceForm.errors.invoice_file }}</p>
+                                <ProgressBar v-if="invoiceForm.progress" :value="invoiceForm.progress.percentage" class="mt-3 h-1" :showValue="false" />
                             </form>
 
                             <div class="space-y-3">
@@ -332,6 +511,93 @@ const deleteFile = (fileId) => {
                 </div>
             </div>
         </div>
+
+        <!-- Diálogo Modal para Agregar Pago -->
+        <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '28rem' }"
+            :pt="{ 
+                root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0' }, 
+                header: { class: 'pt-8 px-8 pb-0 bg-transparent rounded-t-[2rem] dark:text-zinc-100' }, 
+                content: { class: 'px-8 pb-8 pt-4 bg-transparent rounded-b-[2rem]' } 
+            }">
+            <template #header>
+                <div class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                        <i class="pi pi-dollar text-emerald-600 dark:text-emerald-400 text-lg font-bold"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-xl font-bold text-gray-800 dark:text-white tracking-tight">Registrar Pago</span>
+                        <span class="text-xs text-gray-500 dark:text-zinc-400">Cot-{{ quote.id }}</span>
+                    </div>
+                </div>
+            </template>
+            <form @submit.prevent="submitPayment">
+                <div class="flex flex-col gap-5 mt-2">
+                    <div class="flex flex-col gap-2">
+                        <label for="amount" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Monto del Pago <span class="text-red-500">*</span></label>
+                        <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN"
+                            locale="es-MX" class="!rounded-xl w-full" :class="{ 'p-invalid': paymentForm.errors.amount }" required />
+                        <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="payment_date" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Fecha del Pago <span class="text-red-500">*</span></label>
+                        <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" class="!rounded-xl w-full"
+                            :class="{ 'p-invalid': paymentForm.errors.payment_date }" required />
+                        <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="notes" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Notas (Opcional)</label>
+                        <Textarea id="notes" v-model="paymentForm.notes" rows="2" class="!rounded-xl w-full" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="receipt" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Comprobante (Opcional)</label>
+                        <input type="file" id="receipt" @input="paymentForm.receipt = $event.target.files[0]" 
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-zinc-800 dark:file:text-emerald-400 transition-colors cursor-pointer" 
+                            accept=".pdf,.jpg,.jpeg,.png" />
+                    </div>
+                </div>
+            </form>
+            <template #footer>
+                <div class="flex justify-end gap-3 mt-4 w-full">
+                    <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" class="!rounded-xl font-medium" />
+                    <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)]" />
+                </div>
+            </template>
+        </Dialog>
+
+        <!-- Diálogo Modal para Editar Fecha -->
+        <Dialog v-model:visible="isDateDialogVisible" modal :style="{ width: '22rem' }"
+            :pt="{ 
+                root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0' }, 
+                header: { class: 'pt-6 px-6 pb-0 bg-transparent rounded-t-[2rem] dark:text-zinc-100' }, 
+                content: { class: 'px-6 pb-6 pt-4 bg-transparent rounded-b-[2rem]' } 
+            }">
+            <template #header>
+                <div class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/50 flex items-center justify-center">
+                        <i class="pi pi-calendar-plus text-blue-500 dark:text-blue-400 text-lg font-bold"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-lg font-bold text-gray-800 dark:text-white tracking-tight">Editar Fecha</span>
+                        <span class="text-xs text-gray-500 dark:text-zinc-400">Estado: {{ selectedStageLabel }}</span>
+                    </div>
+                </div>
+            </template>
+            <form @submit.prevent="submitDateChange">
+                <div class="flex flex-col gap-4 mt-2">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Selecciona la nueva fecha</label>
+                        <Calendar v-model="dateForm.date" dateFormat="dd/mm/yy" class="!rounded-xl w-full" :showIcon="true" />
+                    </div>
+                </div>
+            </form>
+            <template #footer>
+                <div class="flex justify-end gap-3 mt-4 w-full">
+                    <Button label="Cancelar" text severity="secondary" @click="isDateDialogVisible = false" class="!rounded-xl font-medium" />
+                    <Button label="Guardar" icon="pi pi-check" @click="submitDateChange" :loading="dateForm.processing" class="!rounded-xl font-medium !text-[var(--primary-text-color)]" />
+                </div>
+            </template>
+        </Dialog>
+
     </AppLayout>
 </template>
 
@@ -343,19 +609,15 @@ const deleteFile = (fileId) => {
 .prose ul { list-style-type: disc; padding-left: 1.5em; margin-top: 1em; margin-bottom: 1em; }
 .prose p { margin-bottom: 1em; }
 
-/* Custom Timeline Styles */
-:deep(.custom-timeline .p-timeline-event-opposite) {
-    display: none;
-}
-:deep(.custom-timeline.p-timeline-horizontal .p-timeline-event-content) {
-    text-align: center;
-    padding-top: 0.5rem;
-}
-
-/* Scrollbar super fino tipo Apple */
+/* Scrollbar super fino tipo Apple para Historial de Pagos */
 .custom-scrollbar::-webkit-scrollbar { width: 3px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #52525b; }
 .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #94a3b8; }
+
+/* Input overrides para asegurar consistencia */
+:deep(.p-inputtext), :deep(.p-dropdown), :deep(.p-textarea) {
+    width: 100%;
+}
 </style>
