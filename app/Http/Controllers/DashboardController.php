@@ -328,4 +328,18 @@ class DashboardController extends Controller
 
         return response()->json($quotes);
     }
+
+    public function getProjectsByStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string',
+        ]);
+
+        $projects = Project::with('client:id,name')
+            ->where('status', $validated['status'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($projects);
+    }
 }

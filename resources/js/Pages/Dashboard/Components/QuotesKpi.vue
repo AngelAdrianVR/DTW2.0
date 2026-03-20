@@ -176,7 +176,7 @@ const statuses = computed(() => [
         </template>
         
         <template #content>
-            <div class="flex flex-col sm:flex-row gap-6 h-full items-center">
+            <div class="flex flex-col sm:flex-row gap-6 h-full items-center mt-5">
                 <!-- Gráfico Donut -->
                 <div class="flex justify-center relative h-32 w-32 sm:w-40 sm:h-40 shrink-0">
                     <Chart type="doughnut" :data="chartData" :options="chartOptions" class="h-full w-full" />

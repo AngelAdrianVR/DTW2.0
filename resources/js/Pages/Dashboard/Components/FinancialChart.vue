@@ -105,7 +105,7 @@ watch(selectedYear, async (newYear) => {
             <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Ingresos Anuales</h3>
             <Dropdown v-model="selectedYear" :options="years" placeholder="Año" class="w-32" />
         </div>
-        <div class="h-96 relative">
+        <div class="h-[190px] relative">
             <div v-if="isLoading" class="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-50 flex items-center justify-center rounded-lg z-10">
                 <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
             </div>

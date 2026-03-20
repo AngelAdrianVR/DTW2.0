@@ -22,11 +22,11 @@ const topDebtors = computed(() => {
 </script>
 
 <template>
-    <Card class="shadow-sm rounded-2xl overflow-hidden h-full bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 flex flex-col">
+    <Card class="shadow-sm rounded-3xl overflow-hidden h-full bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 flex flex-col">
         <template #title>
-             <div class="flex items-center space-x-2">
-                <div class="p-1.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
-                    <i class="pi pi-users text-lg text-emerald-500"></i>
+             <div class="flex items-center space-x-2 gap-1">
+                <div class="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl">
+                    <i class="pi pi-users text-xl text-emerald-500 mb-1 mx-1 mt-1"></i>
                 </div>
                 <span class="text-gray-700 dark:text-gray-200 text-base font-semibold">Clientes</span>
             </div>

@@ -32,7 +32,7 @@ const topClients = computed(() => {
         <div class="p-6 pb-2 flex-shrink-0">
             <div class="flex items-center gap-2 mb-3">
                 <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
-                    <i class="pi pi-wallet text-emerald-600 dark:text-emerald-400 text-lg"></i>
+                    <i class="pi pi-wallet text-emerald-600 dark:text-emerald-400 text-xl mb-1 mx-1 mt-1"></i>
                 </div>
                 <h3 class="text-base font-bold text-gray-700 dark:text-gray-300">Total Facturado</h3>
             </div>

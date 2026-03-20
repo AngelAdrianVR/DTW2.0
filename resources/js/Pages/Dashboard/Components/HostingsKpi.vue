@@ -27,11 +27,11 @@ const currentMonthName = computed(() => {
 </script>
 
 <template>
-    <Card class="shadow-sm rounded-2xl overflow-hidden h-full flex flex-col bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
+    <Card class="shadow-sm rounded-3xl overflow-hidden h-full flex flex-col bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
         <template #title>
-             <div class="flex items-center space-x-2">
-                <div class="p-1.5 bg-cyan-50 dark:bg-cyan-900/30 rounded-lg">
-                    <i class="pi pi-server text-lg text-cyan-500"></i>
+             <div class="flex items-center space-x-2 gap-1">
+                <div class="p-2 bg-cyan-50 dark:bg-cyan-900/30 rounded-xl">
+                    <i class="pi pi-server text-2xl text-cyan-500 mb-1 mx-1 mt-1"></i>
                 </div>
                 <span class="text-gray-700 dark:text-gray-200 text-base font-semibold">Hostings</span>
             </div>

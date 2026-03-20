@@ -13,14 +13,19 @@ import InputNumber from 'primevue/inputnumber';
 import Back from '@/Components/MyComponents/Back.vue';
 
 const props = defineProps({
-    hostingClient: { type: Object, required: true },
-    clients: { type: Array, required: true }
+    hostingClient: Object,
+    clients: Array
 });
 
 const statusOptions = ref([
     { label: 'Activo', value: 'Activo' },
     { label: 'Suspendido', value: 'Suspendido' },
     { label: 'Cancelado', value: 'Cancelado' }
+]);
+
+const typeOptions = ref([
+    { label: 'Interno (Nosotros proveemos / Cobramos)', value: 'Interno' },
+    { label: 'Externo (Propio del cliente / Soporte)', value: 'Externo' }
 ]);
 
 const billingCycleOptions = ref([
@@ -37,11 +42,14 @@ const formatDateForInput = (dateString) => {
 
 const form = useForm({
     client_id: props.hostingClient.client_id,
+    hosting_type: props.hostingClient.hosting_type || 'Interno',
     service_provider: props.hostingClient.service_provider,
+    support_user: props.hostingClient.support_user || '',
+    support_password: props.hostingClient.support_password || '',
     start_date: formatDateForInput(props.hostingClient.start_date),
     next_payment_date: formatDateForInput(props.hostingClient.next_payment_date),
     payment_amount: props.hostingClient.payment_amount,
-    billing_cycle: props.hostingClient.billing_cycle,
+    billing_cycle: props.hostingClient.billing_cycle || 'Anual',
     hosted_urls: urlsForForm,
     status: props.hostingClient.status,
     notes: props.hostingClient.notes,
@@ -67,11 +75,16 @@ const submit = () => { form.put(route('hosting-clients.update', props.hostingCli
                             <h2 class="text-2xl font-bold text-gray-800 dark:text-zinc-100">Editar Servicio</h2>
                         </template>
                         <template #subtitle>
-                            <p class="text-gray-500 dark:text-zinc-500">Actualiza la información del plan.</p>
+                            <p class="text-gray-500 dark:text-zinc-500">Actualiza la información del plan o sistema.</p>
                         </template>
 
                         <template #content>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                <div class="flex flex-col gap-2 md:col-span-2">
+                                    <label for="hosting_type" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Tipo de Servicio <span class="text-red-500">*</span></label>
+                                    <Dropdown id="hosting_type" v-model="form.hosting_type" :options="typeOptions" optionLabel="label" optionValue="value" :class="{ 'p-invalid': form.errors.hosting_type }" />
+                                </div>
+
                                <div class="flex flex-col gap-2">
                                     <label for="client_id" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Cliente <span class="text-red-500">*</span></label>
                                     <Dropdown id="client_id" v-model="form.client_id" :options="props.clients" optionLabel="name" optionValue="id" placeholder="Selecciona un cliente" filter :class="{ 'p-invalid': form.errors.client_id }" />
@@ -83,30 +96,47 @@ const submit = () => { form.put(route('hosting-clients.update', props.hostingCli
                                     <small v-if="form.errors.service_provider" class="p-error">{{ form.errors.service_provider }}</small>
                                 </div>
                                  <div class="flex flex-col gap-2">
-                                    <label for="start_date" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Inicio <span class="text-red-500">*</span></label>
+                                    <label for="start_date" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Fecha de Inicio <span class="text-red-500">*</span></label>
                                     <Calendar id="start_date" v-model="form.start_date" dateFormat="yy-mm-dd" :class="{ 'p-invalid': form.errors.start_date }" showIcon />
                                     <small v-if="form.errors.start_date" class="p-error">{{ form.errors.start_date }}</small>
-                                </div>
-                                <div class="flex flex-col gap-2">
-                                    <label for="next_payment_date" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Próximo Pago</label>
-                                    <Calendar id="next_payment_date" v-model="form.next_payment_date" dateFormat="yy-mm-dd" :class="{ 'p-invalid': form.errors.next_payment_date }" showIcon />
-                                    <small v-if="form.errors.next_payment_date" class="p-error">{{ form.errors.next_payment_date }}</small>
-                                </div>
-                                <div class="flex flex-col gap-2">
-                                    <label for="payment_amount" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Monto <span class="text-red-500">*</span></label>
-                                    <InputNumber id="payment_amount" v-model="form.payment_amount" mode="currency" currency="MXN" locale="es-MX" :class="{ 'p-invalid': form.errors.payment_amount }" />
-                                    <small v-if="form.errors.payment_amount" class="p-error">{{ form.errors.payment_amount }}</small>
-                                </div>
-                                <div class="flex flex-col gap-2">
-                                    <label for="billing_cycle" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Ciclo <span class="text-red-500">*</span></label>
-                                    <Dropdown id="billing_cycle" v-model="form.billing_cycle" :options="billingCycleOptions" optionLabel="label" optionValue="value" :class="{ 'p-invalid': form.errors.billing_cycle }" />
                                 </div>
                                 <div class="flex flex-col gap-2">
                                     <label for="status" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Estado</label>
                                     <Dropdown id="status" v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :class="{ 'p-invalid': form.errors.status }" />
                                 </div>
-                                 <div class="flex flex-col gap-2 md:col-span-2">
-                                    <label for="notes" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Notas</label>
+
+                                <template v-if="form.hosting_type === 'Interno'">
+                                    <div class="flex flex-col gap-2">
+                                        <label for="next_payment_date" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Próximo Pago</label>
+                                        <Calendar id="next_payment_date" v-model="form.next_payment_date" dateFormat="yy-mm-dd" :class="{ 'p-invalid': form.errors.next_payment_date }" showIcon />
+                                        <small v-if="form.errors.next_payment_date" class="p-error">{{ form.errors.next_payment_date }}</small>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label for="payment_amount" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Monto <span class="text-red-500">*</span></label>
+                                        <InputNumber id="payment_amount" v-model="form.payment_amount" mode="currency" currency="MXN" locale="es-MX" :class="{ 'p-invalid': form.errors.payment_amount }" />
+                                        <small v-if="form.errors.payment_amount" class="p-error">{{ form.errors.payment_amount }}</small>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label for="billing_cycle" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Ciclo <span class="text-red-500">*</span></label>
+                                        <Dropdown id="billing_cycle" v-model="form.billing_cycle" :options="billingCycleOptions" optionLabel="label" optionValue="value" :class="{ 'p-invalid': form.errors.billing_cycle }" />
+                                    </div>
+                                </template>
+
+                                <Divider align="left" type="solid" class="my-4 md:col-span-2">
+                                    <span class="text-gray-500 dark:text-zinc-400 text-sm font-bold uppercase tracking-wider">Credenciales de Soporte</span>
+                                </Divider>
+
+                                <div class="flex flex-col gap-2">
+                                    <label for="support_user" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Usuario / Correo</label>
+                                    <InputText id="support_user" v-model="form.support_user" :class="{ 'p-invalid': form.errors.support_user }" />
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <label for="support_password" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Contraseña</label>
+                                    <InputText id="support_password" v-model="form.support_password" :class="{ 'p-invalid': form.errors.support_password }" />
+                                </div>
+
+                                 <div class="flex flex-col gap-2 md:col-span-2 mt-4">
+                                    <label for="notes" class="font-semibold text-sm text-gray-700 dark:text-zinc-300">Notas Adicionales</label>
                                     <Textarea id="notes" v-model="form.notes" rows="3" :class="{ 'p-invalid': form.errors.notes }" />
                                 </div>
                             </div>

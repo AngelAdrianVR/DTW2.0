@@ -81,7 +81,16 @@ function onWeekChange() {
 const productivityTableData = computed(() => {
     if (!productivityData.value?.week_data) return [];
     
-    const dayTranslations = { Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles', Thursday: 'Jueves', Friday: 'Viernes', Saturday: 'Sábado', Sunday: 'Domingo' };
+    // El controlador manda "Monday,", "Tuesday,", etc. Así que agregamos las comas al diccionario
+    const dayTranslations = { 
+        'Monday,': 'Lunes,', 
+        'Tuesday,': 'Martes,', 
+        'Wednesday,': 'Miércoles,', 
+        'Thursday,': 'Jueves,', 
+        'Friday,': 'Viernes,', 
+        'Saturday,': 'Sábado,', 
+        'Sunday,': 'Domingo,' 
+    };
     
     return productivityData.value.week_data.map(data => ({
         day: `${dayTranslations[data.day_name] || data.day_name} ${data.date}`,
@@ -119,7 +128,7 @@ const productivityTableData = computed(() => {
                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ user.stats.completed }}</span>
                         </div>
                         
-                        <!-- NUEVO: Dropdown de Tareas En Proceso -->
+                        <!-- Dropdown de Tareas En Proceso -->
                         <div class="relative group" @click.stop>
                             <div class="flex items-center space-x-1.5 cursor-pointer p-1 -m-1 rounded hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors" title="Ver tareas en curso">
                                <i class="pi pi-spin pi-spinner text-blue-500 text-sm"></i>

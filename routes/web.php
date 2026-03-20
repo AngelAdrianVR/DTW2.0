@@ -48,6 +48,8 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
+Route::get('/dashboard/projects-data', [DashboardController::class, 'getProjectsByStatus'])->name('dashboard.projects.data');
+
 Route::get('/dashboard/performance/{user}', [DashboardController::class, 'getWeeklyPerformance'])->middleware('auth')->name('dashboard.performance');
 Route::get('/dashboard/financials', [DashboardController::class, 'getFinancialsByYear'])->name('dashboard.financials.by-year');
 // Nueva ruta para obtener cotizaciones por estado en el KPI
