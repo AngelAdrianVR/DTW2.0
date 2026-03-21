@@ -321,59 +321,39 @@ const statuses = computed(() => [
 </template>
 
 <style scoped>
-/* ESTILOS DE TABLA MINIMALISTA Y LIMPIA */
 
-/* Header transparente, texto pequeño y mayúsculas */
-:deep(.zinc-table-clean .p-datatable-thead > tr > th) {
+</style>
+
+<style>
+/* Estilos globales para PrimeVue DataTable 
+  Al estar fuera de "scoped", Vue no altera las clases y el navegador lee la ruta exacta.
+*/
+.zinc-table .p-datatable-thead > tr > th {
     background-color: transparent !important;
-    color: #a1a1aa !important; /* zinc-400 */
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid #f4f4f5; /* zinc-100 */
-    padding: 1rem 0.5rem;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7 !important;
 }
 
-.dark :deep(.zinc-table-clean .p-datatable-thead > tr > th) {
-    color: #71717a !important; /* zinc-500 */
-    border-bottom: 1px solid #27272a;
+.zinc-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
 }
 
-/* Filas sin background explícito */
-:deep(.zinc-table-clean .p-datatable-tbody > tr) {
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .zinc-table .p-datatable-thead > tr > th,
+.dark .zinc-table .p-datatable-thead > tr > th {
     background-color: transparent !important;
-    transition: none !important; /* Quitar transición para evitar flashes */
+    color: #a1a1aa !important;
+    border-bottom: 1px solid #27272a !important;
 }
 
-/* ANULAR HOVER COMPLETAMENTE */
-:deep(.zinc-table-clean .p-datatable-tbody > tr:hover) {
-    background-color: transparent !important;
-    color: inherit !important;
-}
-
-/* Celdas con espaciado cómodo */
-:deep(.zinc-table-clean .p-datatable-tbody > tr > td) {
-    padding: 1.25rem 0.5rem;
-    border-bottom: 1px solid #f4f4f5;
-    vertical-align: middle;
-}
-
-.dark :deep(.zinc-table-clean .p-datatable-tbody > tr > td) {
-    border-color: #27272a; /* zinc-800 subtle border */
-}
-
-/* Paginador minimalista integrado */
-:deep(.p-paginator) {
-    background: transparent !important;
-    border: none !important;
-    padding-top: 1.5rem;
-    justify-content: flex-end;
-}
-.dark :deep(.p-paginator .p-paginator-page) { color: #52525b; }
-.dark :deep(.p-paginator .p-paginator-page.p-highlight) { 
-    color: #18181b; /* zinc-950 */
-    background-color: #f4f4f5; /* zinc-100 */
-    font-weight: bold;
+html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

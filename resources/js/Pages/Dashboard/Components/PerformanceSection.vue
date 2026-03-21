@@ -296,37 +296,38 @@ pre {
 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d4d4d8; border-radius: 10px; }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #52525b; }
 
-:deep(.zinc-table .p-datatable-thead > tr > th) {
+</style>
+
+<style>
+/* Estilos globales para PrimeVue DataTable 
+  Al estar fuera de "scoped", Vue no altera las clases y el navegador lee la ruta exacta.
+*/
+.zinc-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
+    color: #52525b !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.zinc-table .p-datatable-tbody > tr { 
     background-color: transparent !important; 
-    color: #71717a !important;
-    border-bottom: 2px solid #e4e4e7;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    padding-bottom: 1rem;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
+
+.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .zinc-table .p-datatable-thead > tr > th,
+.dark .zinc-table .p-datatable-thead > tr > th {
+    background-color: transparent !important;
     color: #a1a1aa !important;
-    border-bottom: 2px solid #3f3f46;
+    border-bottom: 1px solid #27272a !important;
 }
 
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-    transition: background-color 0.2s ease;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:hover) {
-    background-color: transparent !important;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:hover) {
-    background-color: #27272a !important;
-}
-
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

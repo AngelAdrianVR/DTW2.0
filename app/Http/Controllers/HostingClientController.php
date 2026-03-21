@@ -35,24 +35,32 @@ class HostingClientController extends Controller
             'client_id' => 'required|exists:clients,id',
             'hosting_type' => 'required|in:Interno,Externo',
             'service_provider' => 'required|string|max:255',
-            'support_user' => 'nullable|string|max:255',
-            'support_password' => 'nullable|string|max:255',
-            'start_date' => 'required|date',
-            'payment_amount' => 'nullable|numeric|min:0', // Nullable para Externos
+            'start_date' => $request->hosting_type === 'Interno' ? 'required|date' : 'nullable|date', // <-- Condicional
+            'payment_amount' => 'nullable|numeric|min:0',
             'billing_cycle' => 'nullable|in:Mensual,Anual',
             'hosted_urls' => 'nullable|array',
             'hosted_urls.*.url' => 'nullable|url|max:255',
+            'support_credentials' => 'nullable|array', // <-- Múltiples credenciales
+            'support_credentials.*.user' => 'nullable|string|max:255',
+            'support_credentials.*.password' => 'nullable|string|max:255',
+            'support_credentials.*.notes' => 'nullable|string|max:255',
             'status' => 'required|in:Activo,Suspendido,Cancelado',
             'notes' => 'nullable|string',
         ]);
         
-        $startDate = Carbon::parse($validated['start_date']);
-        
-        // Solo calculamos próximo pago si es Interno
-        if ($validated['hosting_type'] === 'Interno' && isset($validated['billing_cycle'])) {
-            $validated['next_payment_date'] = $validated['billing_cycle'] === 'Anual' 
-                ? $startDate->addYear() 
-                : $startDate->addMonth();
+        if (isset($validated['start_date'])) {
+            $startDate = Carbon::parse($validated['start_date']);
+            
+            // Solo calculamos próximo pago si es Interno
+            if ($validated['hosting_type'] === 'Interno' && isset($validated['billing_cycle'])) {
+                $validated['next_payment_date'] = $validated['billing_cycle'] === 'Anual' 
+                    ? $startDate->addYear() 
+                    : $startDate->addMonth();
+            } else {
+                $validated['next_payment_date'] = null;
+                $validated['payment_amount'] = null;
+                $validated['billing_cycle'] = null;
+            }
         } else {
             $validated['next_payment_date'] = null;
             $validated['payment_amount'] = null;
@@ -61,6 +69,13 @@ class HostingClientController extends Controller
 
         if (isset($validated['hosted_urls'])) {
             $validated['hosted_urls'] = array_column($validated['hosted_urls'], 'url');
+        }
+
+        // Limpiamos credenciales vacías
+        if (isset($validated['support_credentials'])) {
+            $validated['support_credentials'] = array_filter($validated['support_credentials'], function($cred) {
+                return !empty($cred['user']) || !empty($cred['password']) || !empty($cred['notes']);
+            });
         }
 
         HostingClient::create($validated);
@@ -93,14 +108,16 @@ class HostingClientController extends Controller
             'client_id' => 'required|exists:clients,id',
             'hosting_type' => 'required|in:Interno,Externo',
             'service_provider' => 'required|string|max:255',
-            'support_user' => 'nullable|string|max:255',
-            'support_password' => 'nullable|string|max:255',
-            'start_date' => 'required|date',
+            'start_date' => $request->hosting_type === 'Interno' ? 'required|date' : 'nullable|date', // <-- Condicional
             'next_payment_date' => 'nullable|date',
             'payment_amount' => 'nullable|numeric|min:0',
             'billing_cycle' => 'nullable|in:Mensual,Anual',
             'hosted_urls' => 'nullable|array',
             'hosted_urls.*.url' => 'nullable|url|max:255',
+            'support_credentials' => 'nullable|array', // <-- Múltiples credenciales
+            'support_credentials.*.user' => 'nullable|string|max:255',
+            'support_credentials.*.password' => 'nullable|string|max:255',
+            'support_credentials.*.notes' => 'nullable|string|max:255',
             'status' => 'required|in:Activo,Suspendido,Cancelado',
             'notes' => 'nullable|string',
         ]);
@@ -115,6 +132,15 @@ class HostingClientController extends Controller
             $validated['hosted_urls'] = array_column($validated['hosted_urls'], 'url');
         } else {
             $validated['hosted_urls'] = [];
+        }
+
+        if (isset($validated['support_credentials'])) {
+            // Re-index array tras el filtrado para evitar crear un objeto en JSON
+            $validated['support_credentials'] = array_values(array_filter($validated['support_credentials'], function($cred) {
+                return !empty($cred['user']) || !empty($cred['password']) || !empty($cred['notes']);
+            }));
+        } else {
+            $validated['support_credentials'] = [];
         }
 
         $hostingClient->update($validated);
@@ -150,7 +176,6 @@ class HostingClientController extends Controller
 
         $receiptPath = null;
         if ($request->hasFile('receipt')) {
-            // Guarda en storage/app/public/receipts
             $receiptPath = $request->file('receipt')->store('receipts', 'public');
         }
 
@@ -161,7 +186,6 @@ class HostingClientController extends Controller
             'receipt_path' => $receiptPath,
         ]);
 
-        // Si es un hosting interno, actualizamos la fecha del próximo pago
         if ($hostingClient->hosting_type === 'Interno' && $hostingClient->next_payment_date) {
             $currentNextPaymentDate = Carbon::parse($hostingClient->next_payment_date);
             $newNextPaymentDate = $hostingClient->billing_cycle === 'Anual'

@@ -22,9 +22,6 @@ import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 
-// CORRECCIÓN CRÍTICA DE REACTIVIDAD:
-// Obtener "page" completo asegura que cuando Inertia actualice "page.props"
-// las propiedades computadas escuchen el cambio y repinten sin recargar.
 const page = usePage();
 
 const confirm = useConfirm();
@@ -39,7 +36,6 @@ const currentTime = ref(new Date());
 let timerInterval;
 
 onMounted(() => {
-    // Actualiza el reloj interno cada 60 segundos para que avance el tiempo de las tareas en progreso
     timerInterval = setInterval(() => {
         currentTime.value = new Date();
     }, 60000); 
@@ -49,7 +45,6 @@ onUnmounted(() => {
     if (timerInterval) clearInterval(timerInterval);
 });
 
-// Función para calcular el tiempo en vivo en el Modal
 const getOngoingDuration = (startTimeStr) => {
     if (!startTimeStr) return '0 m';
     const start = new Date(startTimeStr);
@@ -210,7 +205,7 @@ const submitDeleteTask = () => {
     });
 };
 
-// --- Lógica Kanban ---
+// --- Lógica Kanban (Desktop & Mobile Touch) ---
 const statuses = ['Pendiente', 'En proceso', 'Completada'];
 
 const tasksByStatus = computed(() => {
@@ -260,6 +255,124 @@ const onDrop = (newStatus) => {
             draggedTask.value = null;
         }
     });
+};
+
+// --- Touch Events (Mobile Drag & Drop) ---
+const touchState = ref({
+    task: null,
+    clone: null,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+    timer: null,
+    isDragging: false,
+    originalElement: null
+});
+
+const onTouchStart = (e, task) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const target = e.currentTarget;
+    const rect = target.getBoundingClientRect();
+    
+    touchState.value = {
+        task: task,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        offsetX: touch.clientX - rect.left,
+        offsetY: touch.clientY - rect.top,
+        clone: null,
+        originalElement: target,
+        isDragging: false
+    };
+    
+    // Timer para diferenciar entre tap y drag
+    touchState.value.timer = setTimeout(() => {
+        touchState.value.isDragging = true;
+        const clone = target.cloneNode(true);
+        touchState.value.clone = clone;
+        
+        // Estilar clon visual
+        clone.style.position = 'fixed';
+        clone.style.left = `${touch.clientX - touchState.value.offsetX}px`;
+        clone.style.top = `${touch.clientY - touchState.value.offsetY}px`;
+        clone.style.width = `${rect.width}px`;
+        clone.style.zIndex = '9999';
+        clone.style.opacity = '0.9';
+        clone.style.pointerEvents = 'none'; // Clave para poder encontrar la columna debajo
+        clone.style.transform = 'scale(1.05) rotate(2deg)';
+        clone.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+        clone.style.transition = 'none';
+        
+        document.body.appendChild(clone);
+        target.style.opacity = '0.4';
+        
+        // Pequeña vibración en móviles si lo soportan
+        if (navigator.vibrate) navigator.vibrate(50);
+    }, 300); // 300ms de press para que inicie el drag
+};
+
+const onTouchMove = (e) => {
+    if (!touchState.value.task) return;
+    const touch = e.touches[0];
+    
+    // Si aún no está arrastrando formalmente, checamos si el usuario scrolleó
+    if (!touchState.value.isDragging) {
+        const dx = touch.clientX - touchState.value.startX;
+        const dy = touch.clientY - touchState.value.startY;
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            clearTimeout(touchState.value.timer); // Cancelar drag (fue un scroll normal)
+            touchState.value.task = null;
+        }
+        return;
+    }
+    
+    e.preventDefault(); // Evitar scroll de la página si estamos arrastrando
+    
+    if (touchState.value.clone) {
+        touchState.value.clone.style.left = `${touch.clientX - touchState.value.offsetX}px`;
+        touchState.value.clone.style.top = `${touch.clientY - touchState.value.offsetY}px`;
+    }
+};
+
+const onTouchEnd = (e) => {
+    if (!touchState.value.task) return;
+    clearTimeout(touchState.value.timer);
+    
+    if (touchState.value.isDragging) {
+        e.preventDefault(); // Evitar el trigger del clic tras soltar
+        
+        const touch = e.changedTouches[0];
+        
+        // Ocultar clon temporalmente para ver qué hay debajo
+        if (touchState.value.clone) {
+            touchState.value.clone.style.display = 'none';
+        }
+        
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        if (touchState.value.clone) {
+            document.body.removeChild(touchState.value.clone);
+        }
+        
+        if (touchState.value.originalElement) {
+            touchState.value.originalElement.style.opacity = '1';
+        }
+        
+        // Buscar la columna kanban y disparar la actualización
+        const column = elementBelow ? elementBelow.closest('.kanban-column') : null;
+        if (column) {
+            const newStatus = column.getAttribute('data-status');
+            if (newStatus && newStatus !== touchState.value.task.status) {
+                draggedTask.value = touchState.value.task;
+                onDrop(newStatus);
+            }
+        }
+    }
+    
+    // Reset estado
+    touchState.value = { task: null, clone: null, originalElement: null };
 };
 
 const getStatusSeverity = (status) => {
@@ -361,11 +474,13 @@ const getKanbanHeaderStyle = (status) => {
                     <TabView class="custom-tabview">
                         <TabPanel header="Tareas">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                                <!-- Clase kanban-column y data-status agregados para detectar el drop en móviles -->
                                 <div v-for="status in statuses" :key="status" 
-                                     class="flex flex-col bg-gray-50/50 dark:bg-zinc-800/30 rounded-3xl border border-gray-100 dark:border-zinc-800/50 h-full" 
+                                     class="flex flex-col bg-gray-50/50 dark:bg-zinc-800/30 rounded-3xl border border-gray-100 dark:border-zinc-800/50 h-full kanban-column" 
+                                     :data-status="status"
                                      @dragover.prevent @drop="onDrop(status)">
                                     
-                                    <div class="p-4 sticky top-0 bg-transparent z-10 flex justify-center">
+                                    <div class="p-4 sticky top-0 bg-transparent z-10 flex justify-center pointer-events-none">
                                         <div class="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm transition-all bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800" :class="getKanbanHeaderStyle(status).container">
                                             <div class="w-3.5 h-3.5 rounded-md shadow-sm" :class="getKanbanHeaderStyle(status).square"></div>
                                             <span class="text-lg font-bold font-mono tracking-tight" :class="getKanbanHeaderStyle(status).text">
@@ -381,10 +496,13 @@ const getKanbanHeaderStyle = (status) => {
                                         <div v-for="task in tasksByStatus[status]" :key="task.id"
                                              draggable="true"
                                              @dragstart="onDragStart(task)"
+                                             @touchstart="onTouchStart($event, task)"
+                                             @touchmove="onTouchMove($event)"
+                                             @touchend="onTouchEnd($event)"
                                              @click="openEditTaskModal(task)"
-                                             class="group bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-gray-200/50 dark:border-zinc-800 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 relative">
+                                             class="group bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-gray-200/50 dark:border-zinc-800 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 relative select-none touch-manipulation">
 
-                                            <div class="flex justify-between items-start mb-2">
+                                            <div class="flex justify-between items-start mb-2 pointer-events-none">
                                                  <div class="flex items-start gap-2 flex-1">
                                                     <i v-if="task.is_high_priority" class="pi pi-flag-fill text-red-500 mt-1 drop-shadow-sm" style="font-size: 0.95rem;" v-tooltip.top="'Prioridad Alta'"></i>
                                                     <p class="font-bold text-gray-800 dark:text-gray-100 text-sm leading-snug group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors" :class="{'line-through text-gray-400 dark:text-gray-500': task.status === 'Completada'}">
@@ -393,11 +511,11 @@ const getKanbanHeaderStyle = (status) => {
                                                 </div>
                                             </div>
 
-                                            <p v-if="task.description" class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 leading-relaxed">
+                                            <p v-if="task.description" class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 leading-relaxed pointer-events-none">
                                                 {{ cleanText(task.description) }}
                                             </p>
                                             
-                                            <div class="flex flex-col gap-3 pt-3 mt-3 border-t border-gray-50 dark:border-zinc-800/50">
+                                            <div class="flex flex-col gap-3 pt-3 mt-3 border-t border-gray-50 dark:border-zinc-800/50 pointer-events-none">
                                                 <div class="flex items-center justify-between text-[10px] font-semibold tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50/80 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-gray-100 dark:border-zinc-700/50">
                                                     <div class="flex items-center gap-1.5" v-tooltip.top="'Inicio'">
                                                         <i class="pi pi-play text-gray-500 text-[9px]"></i>
@@ -410,7 +528,7 @@ const getKanbanHeaderStyle = (status) => {
                                                     </div>
                                                 </div>
                                                 
-                                                <div class="flex items-center justify-between">
+                                                <div class="flex items-center justify-between pointer-events-none">
                                                     <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 text-xs font-bold border border-cyan-100 dark:border-cyan-800 shadow-sm" v-tooltip.top="'Tiempo Invertido'">
                                                         <i class="pi pi-clock" style="font-size: 0.7rem"></i>
                                                         <span>{{ task.total_hours_invested || '00:00' }} hrs</span>
@@ -435,7 +553,6 @@ const getKanbanHeaderStyle = (status) => {
                         
                         <TabPanel header="Detalles">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
-                                <!-- CLASES APLICADAS AQUÍ: overflow-hidden w-full y en el párrafo whitespace-pre-wrap break-words -->
                                 <Card class="col-span-1 md:col-span-2 shadow-none border border-gray-200 dark:border-zinc-800 !bg-transparent overflow-hidden w-full">
                                     <template #title>Descripción</template>
                                     <template #content>
@@ -485,7 +602,6 @@ const getKanbanHeaderStyle = (status) => {
             </div>
         </div>
 
-        <!-- Modales Apple-Style (rounded-[2rem], sombras prominentes, padding estilizado) -->
         <Dialog v-model:visible="isCreateTaskModalVisible" modal header=" " :style="{ width: '34rem' }" 
             :pt="{ 
                 root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0' },
@@ -544,7 +660,7 @@ const getKanbanHeaderStyle = (status) => {
                 content: { class: 'px-8 pb-8 pt-4 bg-transparent rounded-b-[2rem]' }
             }">
              <template #header>
-                <div class="flex items-center gap-3 w-full">
+                <div class="flex items-center gap-3 w-full mb-4">
                     <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-500/20 flex items-center justify-center">
                         <i class="pi pi-pencil text-gray-600 dark:text-gray-400 text-lg font-bold"></i>
                     </div>
@@ -588,7 +704,6 @@ const getKanbanHeaderStyle = (status) => {
                             <div class="flex flex-col">
                                 <span class="text-xs text-gray-600 dark:text-gray-300 font-semibold"><i class="pi pi-calendar mr-1.5 text-gray-400"></i>{{ formatDateTime(log.start_time) }}</span>
                                 <span class="text-[11px] font-medium text-gray-500 dark:text-gray-500 ml-4.5 mt-0.5" v-if="log.end_time">Terminó a las {{ formatDateTime(log.end_time).split(',')[1] }}</span>
-                                <!-- TIEMPO EN VIVO APLICADO AQUÍ -->
                                 <span class="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 ml-4 mt-0.5 animate-pulse" v-else>
                                     En progreso ({{ getOngoingDuration(log.start_time) }})...
                                 </span>
@@ -623,13 +738,6 @@ const getKanbanHeaderStyle = (status) => {
 </template>
 
 <style scoped>
-/* Scrollbar super fino tipo Apple */
-.custom-scrollbar::-webkit-scrollbar { width: 2px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #52525b; }
-.custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #94a3b8; }
-
 :deep(.p-tabview-nav-content) { background: transparent !important; }
 :deep(.p-tabview-nav) { background: transparent !important; border-bottom: 1px solid theme('colors.gray.100') !important; padding: 0 0.5rem !important; }
 .dark :deep(.p-tabview-nav) { border-bottom-color: theme('colors.zinc.800') !important; }
@@ -638,22 +746,54 @@ const getKanbanHeaderStyle = (status) => {
     background: transparent !important; border: none !important; border-bottom: 2px solid transparent !important;
     color: theme('colors.gray.500') !important; font-weight: 600; font-size: 0.95rem; padding: 1rem 1rem !important; transition: all 0.2s;
 }
-:deep(.p-tabview-nav-link:hover) { color: theme('colors.cyan.600') !important; }
-.dark :deep(.p-tabview-nav-link:hover) { color: theme('colors.cyan.400') !important; }
-
-:deep(.p-tabview-selected .p-tabview-nav-link) { color: theme('colors.cyan.700') !important; border-bottom-color: theme('colors.cyan.600') !important; }
-.dark :deep(.p-tabview-selected .p-tabview-nav-link) { color: theme('colors.cyan.400') !important; border-bottom-color: theme('colors.cyan.400') !important; }
-:deep(.p-tabview-ink-bar) { display: none !important; }
-:deep(.p-tabview-panels) { background: transparent !important; padding: 0 !important; }
-
-:deep(.p-dropdown), :deep(.p-calendar), :deep(.p-inputtext), :deep(.p-inputnumber-input) { border-radius: 0.75rem; border-color: theme('colors.gray.200'); }
-.dark :deep(.p-dropdown), .dark :deep(.p-calendar), .dark :deep(.p-inputtext), .dark :deep(.p-inputnumber-input) { border-color: theme('colors.zinc.700'); }
-:deep(.p-inputtext:focus) { box-shadow: 0 0 0 2px theme('colors.cyan.100'); border-color: theme('colors.cyan.500'); }
-.dark :deep(.p-inputtext:focus) { box-shadow: 0 0 0 2px theme('colors.cyan.900/40'); border-color: theme('colors.cyan.500'); }
 
 /* Modales diseño limpio/Apple */
 :deep(.p-dialog-header) { color: theme('colors.gray.800') !important; }
 .dark :deep(.p-dialog-header) { color: theme('colors.white') !important; }
 :deep(.p-dialog-content) { color: theme('colors.gray.600') !important; }
 .dark :deep(.p-dialog-content) { color: theme('colors.gray.300') !important; }
+</style>
+
+<style>
+.custom-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent; /* Firefox */
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+    border: 2px solid transparent; /* Crea un efecto de margen */
+    background-clip: content-box;
+    transition: background-color 0.3s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* Modo oscuro para el scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(82, 82, 91, 0.5); /* zinc-600 con opacidad */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(82, 82, 91, 0.8);
+}
+/* Ocultar flechas explícitamente */
+.custom-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
 </style>

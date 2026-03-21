@@ -242,7 +242,7 @@ const getStatusSeverity = (status) => {
                 <!-- Desktop Table View -->
                 <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                     <DataTable :value="hostingClients" stripedRows paginator :rows="15" tableStyle="min-width: 50rem;"
-                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="index-hosting-table">
                         <template #empty> <div class="p-4 text-center text-gray-500 dark:text-zinc-500">No se encontraron servicios de hosting.</div> </template>
 
                         <Column field="client.name" header="Cliente" sortable>
@@ -385,33 +385,31 @@ const getStatusSeverity = (status) => {
 </style>
 
 <style>
-/* Zinc Theme Overrides for PrimeVue DataTable */
-.zinc-table .p-datatable-thead > tr > th {
+/* Estilos globales para la tabla de INDEX */
+.index-hosting-table .p-datatable-thead > tr > th {
     background-color: #212121 !important;
     color: #d0d0d0 !important;
     border-bottom: 1px solid #e4e4e7 !important;
 }
 
-.zinc-table .p-datatable-tbody > tr { 
+.index-hosting-table .p-datatable-tbody > tr { 
     background-color: transparent !important; 
 }
 
-.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+.index-hosting-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #f4f4f5 !important; 
 }
 
-/* Reglas de Dark Mode 
-  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
-*/
-html.dark .zinc-table .p-datatable-thead > tr > th,
-.dark .zinc-table .p-datatable-thead > tr > th {
+/* Reglas de Dark Mode para INDEX (Con el fondo claro que querías) */
+html.dark .index-hosting-table .p-datatable-thead > tr > th,
+.dark .index-hosting-table .p-datatable-thead > tr > th {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
     border-bottom: 1px solid #27272a !important;
 }
 
-html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
-.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+html.dark .index-hosting-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-hosting-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #27272a !important; 
 }
 </style>

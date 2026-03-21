@@ -20,8 +20,7 @@ class HostingClient extends Model
         'client_id',
         'hosting_type', // 'Interno' (Cobramos), 'Externo' (Solo registro)
         'service_provider',
-        'support_user', // Usuario para soporte
-        'support_password', // Contraseña para soporte
+        'support_credentials', // <-- Nuevo campo JSON para múltiples credenciales
         'start_date',
         'next_payment_date',
         'payment_amount',
@@ -40,6 +39,7 @@ class HostingClient extends Model
         'start_date' => 'date',
         'next_payment_date' => 'date',
         'hosted_urls' => 'array',
+        'support_credentials' => 'array', // Convertimos el JSON a arreglo automáticamente
     ];
 
     /**

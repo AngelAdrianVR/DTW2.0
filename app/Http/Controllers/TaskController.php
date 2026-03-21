@@ -71,7 +71,8 @@ class TaskController extends Controller
             'is_high_priority' => 'boolean',
             'time_logs' => 'nullable|array',
             'time_logs.*.id' => 'required|exists:time_logs,id',
-            'time_logs.*.duration_minutes' => 'required|integer|min:0',
+            // FIX: Se permite que los minutos sean nulos, vital para guardar tareas que están "En proceso"
+            'time_logs.*.duration_minutes' => 'nullable|integer|min:0',
         ]);
 
         $task->update([
@@ -87,6 +88,11 @@ class TaskController extends Controller
 
         if (isset($validated['time_logs'])) {
             foreach ($validated['time_logs'] as $logData) {
+                // FIX: Omitimos los registros de tiempo que no tienen minutos (los que están en proceso activo)
+                if (!isset($logData['duration_minutes'])) {
+                    continue;
+                }
+
                 $timeLog = TimeLog::find($logData['id']);
                 if ($timeLog && $timeLog->duration_minutes !== $logData['duration_minutes']) {
                     $difference = $logData['duration_minutes'] - $timeLog->duration_minutes;
