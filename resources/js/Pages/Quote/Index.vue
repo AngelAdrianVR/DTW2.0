@@ -19,6 +19,11 @@ import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Card from 'primevue/card';
 
+// IMPORTACIONES FALTANTES PARA QUE LA PÁGINA NO FALLE AL CARGAR
+import Toast from 'primevue/toast';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+
 // --- DIRECTIVES ---
 const vTooltip = Tooltip;
 
@@ -71,7 +76,6 @@ watch(search, debounce((value) => {
         replace: true,
     });
 }, 300));
-
 
 // --- MENU ACTIONS ---
 const menuItems = computed(() => {
@@ -341,9 +345,9 @@ const getStatusIcon = (status) => {
                                     <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
                                 </template>
                             </Column>
-                             <Column field="project_id" header="Proyecto">
+                             <Column field="project.name" header="Proyecto">
                                 <template #body="{ data }">
-                                    <p class="text-blue-500 hover:text-blue-400 hover:underline cursor-pointer" @click.stop="$inertia.visit(route('projects.show', data.project_id))" v-if="data.project_id">{{ data.project.name }}</p>
+                                    <p class="text-blue-500 hover:text-blue-400 hover:underline cursor-pointer" @click.stop="$inertia.visit(route('projects.show', data.project.id))" v-if="data.project">{{ data.project.name }}</p>
                                     <p v-else class="text-gray-400">-</p>
                                 </template>
                             </Column>

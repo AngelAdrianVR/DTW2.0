@@ -83,7 +83,6 @@ class QuoteController extends Controller
             'origin' => 'Interno'
         ]);
 
-        // Redirigimos al Show
         return redirect()->route('quotes.show', $quote->id)->with('flash', [
             'message' => 'Cotización creada con éxito.',
             'type' => 'success'
@@ -135,7 +134,6 @@ class QuoteController extends Controller
         
         $quote->update($validated);
 
-        // Redirigimos al Show
         return redirect()->route('quotes.show', $quote->id)->with('flash', [
             'message' => 'Cotización actualizada con éxito.',
             'type' => 'success'

@@ -467,7 +467,7 @@ const getKanbanHeaderStyle = (status) => {
 
                         <div class="flex items-center gap-3 w-full md:w-auto">
                             <Button icon="pi pi-pencil" class="p-button-outlined p-button-secondary p-button-rounded" v-tooltip.top="'Editar Detalles'" @click="$inertia.visit(route('projects.edit', project.id))" />
-                            <Button label="Nueva Tarea" icon="pi pi-plus" class="p-button-rounded p-button-primary !text-[var(--primary-text-color)] flex-1 md:flex-none" @click="openCreateTaskModal" />
+                            <Button label="Nueva tarea" icon="pi pi-plus" class="p-button-rounded p-button-primary !text-[var(--primary-text-color)] flex-1 md:flex-none" @click="openCreateTaskModal" />
                         </div>
                     </div>
 
@@ -609,14 +609,14 @@ const getKanbanHeaderStyle = (status) => {
                 content: { class: 'px-8 pb-8 pt-4 bg-transparent rounded-b-[2rem]' }
             }">
             <template #header>
-                <div class="flex items-center gap-3 w-full">
+                <div class="flex items-center gap-3 w-full mb-3">
                     <div class="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
                         <i class="pi pi-plus text-cyan-600 dark:text-cyan-400 text-lg font-bold"></i>
                     </div>
-                    <span class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Nueva Tarea</span>
+                    <span class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Nueva tarea</span>
                 </div>
             </template>
-            <form @submit.prevent="submitCreateTask" class="flex flex-col gap-5 mt-4">
+            <form @submit.prevent="submitCreateTask" class="flex flex-col gap-2 mt-4">
                 <div class="flex flex-col gap-2">
                     <label for="title" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Título <span class="text-red-500">*</span></label>
                     <InputText id="title" v-model="createTaskForm.title" class="w-full !rounded-xl" :class="{'p-invalid': createTaskForm.errors.title }" placeholder="Ej: Diseñar mockup" required />
@@ -648,12 +648,12 @@ const getKanbanHeaderStyle = (status) => {
                 </div>
                 <div class="flex justify-end gap-3 mt-4">
                     <Button label="Cancelar" text severity="secondary" class="!rounded-xl font-medium" @click="isCreateTaskModalVisible = false" />
-                    <Button label="Crear Tarea" icon="pi pi-check" type="submit" :loading="createTaskForm.processing" class="!rounded-xl font-medium !text-[var(--primary-text-color)]" />
+                    <Button label="Crear tarea" icon="pi pi-check" type="submit" :loading="createTaskForm.processing" class="!rounded-xl font-medium !text-[var(--primary-text-color)]" />
                 </div>
             </form>
         </Dialog>
 
-        <Dialog v-model:visible="isEditTaskModalVisible" modal header=" " :style="{ width: '40rem' }" 
+        <Dialog v-model:visible="isEditTaskModalVisible" modal header=" " :style="{ width: '50rem' }" 
             :pt="{ 
                 root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0' },
                 header: { class: 'pt-8 px-8 pb-0 bg-transparent rounded-t-[2rem]' },
@@ -667,14 +667,14 @@ const getKanbanHeaderStyle = (status) => {
                     <span class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Editar Tarea</span>
                 </div>
             </template>
-            <form @submit.prevent="submitUpdateTask" class="flex flex-col gap-5 mt-4">
+            <form @submit.prevent="submitUpdateTask" class="flex flex-col gap-2 mt-1">
                 <div class="flex flex-col gap-2">
                     <label for="edit-title" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Título <span class="text-red-500">*</span></label>
                     <InputText id="edit-title" v-model="editTaskForm.title" class="w-full !rounded-xl" :class="{'p-invalid': editTaskForm.errors.title }" required />
                 </div>
                  <div class="flex flex-col gap-2">
                     <label for="edit-description" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Descripción</label>
-                    <Textarea id="edit-description" v-model="editTaskForm.description" rows="3" class="w-full !rounded-xl" />
+                    <Textarea id="edit-description" v-model="editTaskForm.description" rows="5" class="w-full !rounded-xl" />
                 </div>
                 <div class="flex flex-col gap-2">
                     <label for="edit-assignee" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Asignar a <span class="text-red-500">*</span></label>

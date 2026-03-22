@@ -32,11 +32,14 @@ class Quote extends Model implements HasMedia
         'show_process',
         'show_benefits',
         'show_bank_info',
-        // NUEVOS CAMPOS:
+        // NUEVOS CAMPOS AÑADIDOS AL FILLABLE
         'sent_at',
         'accepted_at',
         'rejected_at',
         'paid_at',
+        'client_name',
+        'client_email',
+        'client_phone',
     ];
 
     protected $casts = [
@@ -46,7 +49,6 @@ class Quote extends Model implements HasMedia
         'show_bank_info' => 'boolean',
         'amount' => 'float',
         'amount_usd' => 'float',
-        // NUEVOS CASTS DE FECHAS:
         'sent_at' => 'datetime',
         'accepted_at' => 'datetime',
         'rejected_at' => 'datetime',
@@ -70,11 +72,15 @@ class Quote extends Model implements HasMedia
 
     public function getFinalAmountAttribute(): float
     {
-        if ($this->percentage_discount > 0) {
-            $discountAmount = $this->amount * ($this->percentage_discount / 100);
-            return (float) ($this->amount - $discountAmount);
+        // Se previene error fatal en PHP si los datos llegan a estar null
+        $amount = (float) ($this->amount ?? 0);
+        $discount = (float) ($this->percentage_discount ?? 0);
+
+        if ($discount > 0) {
+            $discountAmount = $amount * ($discount / 100);
+            return (float) ($amount - $discountAmount);
         }
-        return (float) $this->amount;
+        return $amount;
     }
 
     public function client(): BelongsTo
@@ -92,7 +98,7 @@ class Quote extends Model implements HasMedia
         return $this->hasOne(Project::class);
     }
 
-     public function payments(): HasMany
+    public function payments(): HasMany
     {
         return $this->hasMany(ClientPayment::class);
     }
@@ -100,6 +106,6 @@ class Quote extends Model implements HasMedia
     public function getBalanceAttribute(): float
     {
         $totalPaid = $this->payments()->sum('amount');
-        return (float) $this->getFinalAmountAttribute() - $totalPaid;
+        return (float) $this->getFinalAmountAttribute() - (float) $totalPaid;
     }
 }
