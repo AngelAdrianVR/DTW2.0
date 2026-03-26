@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\tpspProduct;
-use App\Models\tpspInventoryMovement; // Importante para los movimientos
+use App\Models\tpspInventoryMovement; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log; 
-use Illuminate\Support\Facades\DB; // Importante para las transacciones
+use Illuminate\Support\Facades\DB; 
 use Illuminate\Validation\Rule;
 
 class TpspProductController extends Controller
@@ -40,11 +40,17 @@ class TpspProductController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'sku' => 'nullable|string|unique:tpsp_products,sku',
-            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Kit Terminado', 'Corte', 'Doblado'])],
+            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Producto Terminado'])],
             'unit_of_measure' => ['required', 'string', Rule::in(['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo','Metro','Rollo','Litro'])],
             'stock' => 'required|numeric',
             'is_kit' => 'required|boolean',
+            'is_public' => 'boolean', // NUEVO: Validación de visibilidad pública
         ]);
+
+        // Si no se envía is_public, forzamos a true por defecto
+        if (!isset($validatedData['is_public'])) {
+            $validatedData['is_public'] = true;
+        }
 
         $product = TpspProduct::create($validatedData);
 
@@ -68,12 +74,18 @@ class TpspProductController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'sku' => ['nullable', 'string', Rule::unique('tpsp_products', 'sku')->ignore($product->id)],
-            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Kit Terminado', 'Corte', 'Doblado'])],
+            'category' => ['required', 'string', Rule::in(['Material', 'Insumo', 'Empaque', 'Producto Terminado'])],
             'unit_of_measure' => ['required', 'string', Rule::in(['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo','Metro','Rollo','Litro'])],
             'stock' => 'required|numeric',
             'is_kit' => 'required|boolean',
+            'is_public' => 'boolean', // NUEVO: Validación de visibilidad pública
         ]);
         
+        // Prevención en caso de que is_public venga nulo por el frontend
+        if (!isset($validatedData['is_public'])) {
+            $validatedData['is_public'] = false;
+        }
+
         $product->update($validatedData);
 
         if ($request->hasFile('image')) {
@@ -103,9 +115,6 @@ class TpspProductController extends Controller
         return response()->noContent();
     }
 
-    /**
-     * NUEVO: Ajusta el stock del producto de forma segura creando su movimiento
-     */
     public function adjustStock(Request $request, TpspProduct $product)
     {
         $validatedData = $request->validate([
@@ -121,17 +130,14 @@ class TpspProductController extends Controller
         try {
             DB::beginTransaction();
 
-            // 1. Modificar el stock
             $product->stock += $validatedData['quantity'];
             
-            // Opcional: Evitar stock negativo general (puedes quitar esto si sí permites negativos)
             if ($product->stock < 0) {
                 return response()->json(['message' => 'El ajuste resultaría en un stock negativo inválido.'], 422);
             }
             
             $product->save();
 
-            // 2. Registrar el movimiento
             tpspInventoryMovement::create([
                 'product_id' => $product->id,
                 'quantity' => $validatedData['quantity'],
@@ -143,7 +149,6 @@ class TpspProductController extends Controller
 
             DB::commit();
 
-            // Devolver el producto actualizado
             $product->image_url = $product->getFirstMediaUrl('products', 'thumb') ?: null;
             return response()->json($product);
 
@@ -153,9 +158,6 @@ class TpspProductController extends Controller
         }
     }
 
-    /**
-     * NUEVO: Devuelve el historial de movimientos de un producto
-     */
     public function movements(TpspProduct $product)
     {
         $movements = tpspInventoryMovement::where('product_id', $product->id)

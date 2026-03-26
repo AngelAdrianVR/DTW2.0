@@ -24,6 +24,10 @@ const confirm = useConfirm();
 const products = ref([]);
 const loading = ref(true);
 
+// --- ESTADOS PARA FILTROS Y BÚSQUEDA ---
+const searchQuery = ref('');
+const selectedCategoryFilter = ref(null);
+
 // Estilos reutilizables tipo "Apple" para evitar fondos cuadrados en Modales
 const appleModalStyles = {
     root: { class: 'bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden border-0 w-full mx-2 sm:mx-0' }, 
@@ -34,7 +38,7 @@ const appleModalStyles = {
 };
 
 // Opciones
-const productCategories = ref(['Material', 'Insumo', 'Empaque', 'Kit Terminado', 'Corte', 'Doblado']);
+const productCategories = ref(['Material', 'Insumo', 'Empaque', 'Producto Terminado']);
 const unitsOfMeasure = ref(['Pieza', 'Mililitro', 'Gramo', 'Kit', 'Kilogramo','Metro','Rollo','Litro']);
 const movementTypes = ref(['Ajuste', 'Compra', 'Venta', 'Entrada_Produccion', 'Consumo_Produccion', 'Entrada de material']);
 
@@ -46,6 +50,7 @@ const getFreshProduct = () => ({
     unit_of_measure: 'Pieza',
     stock: 0,
     is_kit: false,
+    is_public: true, // NUEVO: Por defecto visible
     image: null,
     image_url: null,
 });
@@ -73,7 +78,7 @@ const newKitComponent = ref({ component_product_id: null, quantity_required: 1 }
 
 // Automarcar como compuesto si la categoría lo sugiere
 watch(() => product.value.category, (newVal) => {
-    if (newVal === 'Kit Terminado' || newVal === 'Corte' || newVal === 'Doblado') {
+    if (newVal === 'Producto Terminado') {
         product.value.is_kit = true;
     }
 });
@@ -120,9 +125,27 @@ const fetchProducts = async () => {
 
 onMounted(fetchProducts);
 
-// Computed: Inyectar el stock fabricable a la lista de productos
+// Computed: Filtrar e Inyectar el stock fabricable a la lista de productos
 const filteredProducts = computed(() => {
-    return products.value.map(p => {
+    // 1. Clonar array original
+    let result = products.value;
+
+    // 2. Aplicar filtro de Búsqueda (Texto)
+    if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        result = result.filter(p => 
+            p.name.toLowerCase().includes(q) || 
+            (p.sku && p.sku.toLowerCase().includes(q))
+        );
+    }
+
+    // 3. Aplicar filtro de Categoría
+    if (selectedCategoryFilter.value) {
+        result = result.filter(p => p.category === selectedCategoryFilter.value);
+    }
+
+    // 4. Mapear stock calculable
+    return result.map(p => {
         if (p.is_kit) {
             const components = kitComponentsMap.value[p.id];
             let calculable_stock = 0;
@@ -185,6 +208,7 @@ const saveProduct = async () => {
     formData.append('unit_of_measure', product.value.unit_of_measure);
     formData.append('stock', product.value.stock);
     formData.append('is_kit', product.value.is_kit ? 1 : 0);
+    formData.append('is_public', product.value.is_public ? 1 : 0); // NUEVO
 
     if (fileUploadRef.value && fileUploadRef.value.files.length > 0) {
         formData.append('image', fileUploadRef.value.files[0]);
@@ -438,7 +462,7 @@ const deleteKitComponent = (component) => {
         <div class="grid">
             <div class="col-12">
                 <!-- Header de Sección -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 px-2">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3 px-2">
                     <div>
                         <h2 class="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                             Catálogo de Productos y Recetas
@@ -450,6 +474,28 @@ const deleteKitComponent = (component) => {
                         icon="pi pi-plus" 
                         @click="openNew" 
                         class="!rounded-xl !bg-zinc-900 dark:!bg-zinc-100 !text-white dark:!text-zinc-900 hover:!bg-zinc-800 dark:hover:!bg-white !border-0 shadow-md shadow-zinc-900/10 w-full sm:w-auto px-5 py-2.5 font-medium transition-all"
+                    />
+                </div>
+
+                <!-- SECCIÓN DE BÚSQUEDA Y FILTROS -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-4 px-2">
+                    <!-- Buscador -->
+                    <div class="relative flex-1 sm:max-w-md">
+                        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10"></i>
+                        <InputText 
+                            v-model="searchQuery" 
+                            placeholder="Buscar por nombre o SKU..." 
+                            class="w-full pl-10 !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm !h-[42px]" 
+                        />
+                    </div>
+                    
+                    <!-- Filtro por Categoría -->
+                    <Dropdown 
+                        v-model="selectedCategoryFilter" 
+                        :options="productCategories" 
+                        placeholder="Todas las categorías" 
+                        :showClear="true"
+                        class="w-full sm:w-56 !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm !h-[42px] flex items-center" 
                     />
                 </div>
 
@@ -473,7 +519,11 @@ const deleteKitComponent = (component) => {
                         <Column field="name" header="Nombre" :sortable="true" style="min-width: 200px">
                             <template #body="{ data }">
                                 <div class="flex flex-col">
-                                    <span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ data.name }}</span>
+                                    <span class="font-semibold text-zinc-800 dark:text-zinc-200">
+                                        {{ data.name }}
+                                        <i v-if="data.is_public" class="pi pi-eye ml-1 text-emerald-500" v-tooltip.top="'Visible en Público'" style="font-size: 0.8rem;"></i>
+                                        <i v-else class="pi pi-eye-slash ml-1 text-zinc-400" v-tooltip.top="'Oculto en Público'" style="font-size: 0.8rem;"></i>
+                                    </span>
                                     <div class="flex items-center gap-2 mt-1">
                                         <span class="text-xs text-zinc-400">{{ data.sku || 'Sin SKU' }}</span>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[0.65rem] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
@@ -545,6 +595,12 @@ const deleteKitComponent = (component) => {
                                 </div>
                             </template>
                         </Column>
+                        <template #empty>
+                            <div class="text-center p-6 text-zinc-500">
+                                <i class="pi pi-search text-3xl mb-3 block"></i>
+                                <span class="text-sm">No se encontraron productos que coincidan con la búsqueda.</span>
+                            </div>
+                        </template>
                     </DataTable>
                 </div>
 
@@ -555,8 +611,8 @@ const deleteKitComponent = (component) => {
                         <p>Cargando productos...</p>
                     </div>
                     <div v-else-if="filteredProducts.length === 0" class="text-center p-8 text-zinc-400 flex flex-col items-center gap-2">
-                        <i class="pi pi-inbox text-3xl"></i>
-                        <p>No se encontraron productos.</p>
+                        <i class="pi pi-search text-3xl"></i>
+                        <p>No se encontraron resultados.</p>
                     </div>
                     <div v-else class="flex flex-col gap-4">
                         <div v-for="product in filteredProducts" :key="product.id" class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex flex-col gap-4">
@@ -572,7 +628,11 @@ const deleteKitComponent = (component) => {
                                     imageClass="rounded-xl object-cover w-16 h-16 shadow-sm border border-zinc-100 dark:border-zinc-800"
                                 />
                                 <div class="flex-1">
-                                    <h3 class="font-semibold text-zinc-900 dark:text-zinc-100 text-lg leading-tight">{{ product.name }}</h3>
+                                    <h3 class="font-semibold text-zinc-900 dark:text-zinc-100 text-lg leading-tight">
+                                        {{ product.name }}
+                                        <i v-if="product.is_public" class="pi pi-eye ml-1 text-emerald-500" style="font-size: 0.8rem;"></i>
+                                        <i v-else class="pi pi-eye-slash ml-1 text-zinc-400" style="font-size: 0.8rem;"></i>
+                                    </h3>
                                     <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                                         <span class="text-xs font-medium text-zinc-500">{{ product.sku || 'S/N' }}</span>
                                         <span class="text-[0.65rem] uppercase tracking-wider font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-700/50">{{ product.category }}</span>
@@ -649,8 +709,7 @@ const deleteKitComponent = (component) => {
             :pt="appleModalStyles"
             :dismissableMask="true"
         >
-            <!-- Ajuste de la altura de los inputs a !h-[48px] para que todos midan lo mismo -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div class="flex flex-col gap-2 md:col-span-2">
                     <label for="productName" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
                         Nombre del Producto <span class="text-red-500">*</span>
@@ -679,16 +738,24 @@ const deleteKitComponent = (component) => {
                     <AppleInputNumber v-model="product.stock" :allowDecimals="true" class="!border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm"  />
                 </div>
 
-                <div class="flex flex-col gap-2 md:col-span-2 mt-2 bg-purple-50/50 dark:bg-purple-900/10 p-4 rounded-2xl border border-purple-100 dark:border-purple-800/30">
+                <!-- SWITCH DE COMPUESTO / KIT -->
+                <div class="flex flex-col gap-2 md:col-span-2 mt-0 bg-purple-50/50 dark:bg-purple-900/10 p-4 rounded-2xl border border-purple-100 dark:border-purple-800/30">
                     <div class="flex items-center gap-3">
                         <InputSwitch v-model="product.is_kit" inputId="productIsKit" />
                         <label for="productIsKit" class="text-sm font-bold text-purple-900 dark:text-purple-100 cursor-pointer">
                             Producto Compuesto / Fabricable
                         </label>
                     </div>
-                    <p class="text-xs text-purple-700/80 dark:text-purple-300/70 ml-11 mt-1 leading-snug">
-                        Activa esto si el producto es un Kit, Tela Cortada, Doblada o requiere insumos para fabricarse. Podrás definir su receta al guardar.
-                    </p>
+                </div>
+
+                <!-- NUEVO: SWITCH DE VISIBILIDAD PÚBLICA -->
+                <div class="flex flex-col gap-2 md:col-span-2 mt-0 bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-800/30">
+                    <div class="flex items-center gap-3">
+                        <InputSwitch v-model="product.is_public" inputId="productIsPublic" />
+                        <label for="productIsPublic" class="text-sm font-bold text-blue-900 dark:text-blue-100 cursor-pointer">
+                            Visible en Catálogo Público
+                        </label>
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-3 md:col-span-2 mt-2">

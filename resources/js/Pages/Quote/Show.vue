@@ -225,7 +225,7 @@ const getReceiptUrl = (payment) => {
         <Toast />
 
         <div class="py-6 sm:py-12">
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 sm:mb-6">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 sm:mb-6">
                  <Link :href="route('quotes.index')" class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-300">
                     <i class="pi pi-arrow-left text-gray-500 dark:text-gray-300"></i>
                 </Link>
@@ -260,9 +260,9 @@ const getReceiptUrl = (payment) => {
                 <div class="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-zinc-800 p-6 sm:p-8 pt-8 sm:pt-10 relative overflow-hidden">
                     <h3 class="text-xs sm:text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-6 sm:mb-10 text-center">Progreso de la Cotización</h3>
                     
-                    <!-- Contenedor con Scroll Horizontal en Móviles para evitar que los nodos se junten -->
-                    <div class="overflow-x-auto custom-scrollbar pb-6 -mx-6 px-6 sm:mx-0 sm:px-0">
-                        <div class="relative flex items-center justify-between z-10 mx-auto min-w-[600px] mb-8 sm:mb-10">
+                    <!-- Contenedor ajustado para caber perfectamente sin scroll -->
+                    <div class="pb-6 w-full px-2 sm:px-0">
+                        <div class="relative flex items-center justify-between z-10 mx-auto w-full mb-8 sm:mb-10">
                             <!-- Barra de fondo -->
                             <div class="absolute left-0 right-0 top-1/2 h-1.5 bg-gray-100 dark:bg-zinc-800 -translate-y-1/2 rounded-full z-0"></div>
                             <!-- Barra de progreso con animación -->
@@ -287,7 +287,7 @@ const getReceiptUrl = (payment) => {
                                 </button>
 
                                 <!-- Etiqueta y Fecha Interactiva -->
-                                <div class="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 flex flex-col items-center w-32 transition-colors duration-300">
+                                <div class="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 flex flex-col items-center w-24 sm:w-32 transition-colors duration-300">
                                     <span class="whitespace-nowrap text-[10px] sm:text-xs font-bold"
                                         :class="index <= currentStageIndex ? 'text-gray-800 dark:text-zinc-200' : 'text-gray-400 dark:text-zinc-600'">
                                         {{ stage.label }}

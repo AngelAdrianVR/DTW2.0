@@ -94,14 +94,14 @@ onMounted(fetchKitProducts);
         >
             <div class="flex flex-col gap-5 mt-2">
                 <div class="flex flex-col gap-2">
-                    <label for="orderProduct" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Producto (Kit)</label>
+                    <label for="orderProduct" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Producto Terminado</label>
                     <Dropdown 
                         id="orderProduct" 
                         v-model="newOrder.product_id" 
                         :options="kitProducts" 
                         optionLabel="name" 
                         optionValue="id" 
-                        placeholder="Selecciona un kit" 
+                        placeholder="Selecciona un producto" 
                         class="w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm"
                         :pt="{ input: { class: 'dark:text-zinc-200' }, panel: { class: 'rounded-xl shadow-lg border-0 dark:bg-zinc-800' } }"
                     />

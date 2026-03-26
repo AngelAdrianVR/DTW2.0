@@ -42,7 +42,7 @@ const printQuote = () => {
         </div>
 
         <!-- Contenedor estricto para impresión -->
-        <div class="print-container w-full max-w-[21cm] bg-white shadow-xl sm:rounded-none print:shadow-none print:max-w-none print:w-full">
+        <div class="print-container text-left w-full max-w-[21cm] bg-white shadow-xl sm:rounded-none print:shadow-none print:max-w-none print:w-full">
             <QuotePreview 
                 :data="quote" 
                 :client="quote.client" 
@@ -56,6 +56,21 @@ const printQuote = () => {
 </template>
 
 <style scoped>
+/* Solución forzada para evitar que las palabras se rompan a la mitad.
+  Usamos :deep(*) para que aplique a todo el contenido dentro de QuotePreview.vue 
+*/
+.print-container :deep(p),
+.print-container :deep(span),
+.print-container :deep(div),
+.print-container :deep(td),
+.print-container :deep(th),
+.print-container :deep(li) {
+    word-break: normal !important; /* Evita romper a mitad de la palabra */
+    overflow-wrap: break-word !important; /* Salta de línea la palabra completa si no cabe */
+    white-space: normal !important;
+    hyphens: none !important; /* Desactiva los guiones automáticos por si el navegador los pone */
+}
+
 @media print {
     /* Forzamos a Chrome/Edge a quitar los márgenes de fábrica */
     @page { 
