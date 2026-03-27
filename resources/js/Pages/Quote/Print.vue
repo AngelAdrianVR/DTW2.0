@@ -21,7 +21,7 @@ const printQuote = () => {
 </script>
 
 <template>
-    <Head :title="`COT-${quote.id} - ${quote.client?.name || 'Cliente'}`" />
+    <Head :title="`COT-${quote.id} - ${(quote.client?.name || 'Cliente').replace('DTW2', 'DTW')}`" />
     
     <div class="min-h-screen bg-gray-100 dark:bg-zinc-950 py-6 print:bg-white print:p-0 print:py-0 font-sans text-gray-800 flex flex-col items-center">
         

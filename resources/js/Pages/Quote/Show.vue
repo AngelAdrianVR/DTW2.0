@@ -11,6 +11,9 @@ import InputNumber from 'primevue/inputnumber';
 import Calendar from 'primevue/calendar';
 import Textarea from 'primevue/textarea';
 import Toast from 'primevue/toast';
+import Menu from 'primevue/menu';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from "primevue/useconfirm";
 
 // --- PROPS ---
 const props = defineProps({
@@ -19,10 +22,15 @@ const props = defineProps({
 
 // --- STATE MANAGEMENT ---
 const toast = useToast();
+const confirm = useConfirm();
 const isUpdatingStatus = ref(false);
 const isPaymentDialogVisible = ref(false);
 const isDateDialogVisible = ref(false);
 const selectedStageLabel = ref('');
+const isEditingPayment = ref(false);
+const selectedPaymentId = ref(null);
+const paymentMenu = ref();
+const selectedPaymentForMenu = ref(null);
 
 // --- FORMS ---
 const invoiceForm = useForm({ invoice_file: null });
@@ -34,6 +42,7 @@ const paymentForm = useForm({
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
     receipt: null,
+    _method: 'post', // Necesario para Laravel cuando enviamos archivos en PUT/PATCH
 });
 
 const dateForm = useForm({
@@ -66,6 +75,8 @@ const canUpdateTo = (targetStatus) => {
     if (isUpdatingStatus.value) return false;
     if (props.quote.status === 'Pendiente' && targetStatus === 'Enviado') return true;
     if (props.quote.status === 'Enviado' && (targetStatus === 'Aceptado' || targetStatus === 'Rechazado')) return true;
+    if (props.quote.status === 'Rechazado' && (targetStatus === 'Aceptado' || targetStatus === 'Enviado')) return true;
+    if (props.quote.status === 'Aceptado' && (targetStatus === 'Enviado' || targetStatus === 'Rechazado')) return true;
     return false;
 };
 
@@ -148,30 +159,112 @@ const remainingBalance = computed(() => {
 });
 
 const openPaymentDialog = () => {
+    isEditingPayment.value = false;
     paymentForm.reset();
+    paymentForm.clearErrors();
     paymentForm.quote_id = props.quote.id;
     paymentForm.client_id = props.quote.client_id;
     paymentForm.amount = remainingBalance.value > 0 ? remainingBalance.value : null;
+    paymentForm._method = 'post';
+    isPaymentDialogVisible.value = true;
+};
+
+const openEditPaymentDialog = (payment) => {
+    isEditingPayment.value = true;
+    selectedPaymentId.value = payment.id;
+    paymentForm.clearErrors();
+    
+    paymentForm.amount = parseFloat(payment.amount);
+    paymentForm.payment_date = new Date(payment.payment_date);
+    paymentForm.notes = payment.notes || '';
+    paymentForm.receipt = null; // No precargamos el archivo por seguridad/limitación del navegador
+    paymentForm._method = 'put'; // Usamos PUT para la actualización
+
     isPaymentDialogVisible.value = true;
 };
 
 const closePaymentDialog = () => {
     isPaymentDialogVisible.value = false;
+    setTimeout(() => {
+        paymentForm.reset();
+        isEditingPayment.value = false;
+        selectedPaymentId.value = null;
+    }, 200);
 };
 
 const submitPayment = () => {
-    paymentForm.post(route('client-payments.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            closePaymentDialog();
-            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago registrado correctamente', life: 3000 });
-        },
-        onError: (errors) => {
-            const errorMessages = Object.values(errors).join(' ');
-            toast.add({ severity: 'error', summary: 'Error', detail: errorMessages || 'No se pudo registrar el pago.', life: 3000 });
+    if (isEditingPayment.value) {
+        // Al enviar archivos por PUT/PATCH en Laravel, a menudo es mejor enviar un POST con _method='put'
+        paymentForm.post(route('client-payments.update', selectedPaymentId.value), {
+            preserveScroll: true,
+            onSuccess: () => {
+                closePaymentDialog();
+                toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago actualizado correctamente', life: 3000 });
+            },
+            onError: (errors) => {
+                const errorMessages = Object.values(errors).join(' ');
+                toast.add({ severity: 'error', summary: 'Error', detail: errorMessages || 'No se pudo actualizar el pago.', life: 3000 });
+            }
+        });
+    } else {
+        paymentForm.post(route('client-payments.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                closePaymentDialog();
+                toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago registrado correctamente', life: 3000 });
+            },
+            onError: (errors) => {
+                const errorMessages = Object.values(errors).join(' ');
+                toast.add({ severity: 'error', summary: 'Error', detail: errorMessages || 'No se pudo registrar el pago.', life: 3000 });
+            }
+        });
+    }
+};
+
+const confirmDeletePayment = (payment) => {
+    confirm.require({
+        message: '¿Estás seguro de que quieres eliminar este pago? Esta acción actualizará el saldo y el estado de la cotización si es necesario.',
+        header: 'Confirmar Eliminación',
+        icon: 'pi pi-exclamation-triangle',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
+        acceptLabel: 'Sí, eliminar',
+        rejectLabel: 'Cancelar',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        accept: () => {
+            router.delete(route('client-payments.destroy', payment.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago eliminado correctamente', life: 3000 });
+                },
+                onError: () => {
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Hubo un problema al eliminar el pago.', life: 3000 });
+                }
+            });
         }
     });
 };
+
+const togglePaymentMenu = (event, payment) => {
+    selectedPaymentForMenu.value = payment;
+    paymentMenu.value.toggle(event);
+};
+
+const paymentMenuItems = computed(() => {
+    if (!selectedPaymentForMenu.value) return [];
+    
+    return [
+        {
+            label: 'Editar',
+            icon: 'pi pi-pencil',
+            command: () => openEditPaymentDialog(selectedPaymentForMenu.value)
+        },
+        {
+            label: 'Eliminar',
+            icon: 'pi pi-trash',
+            command: () => confirmDeletePayment(selectedPaymentForMenu.value)
+        }
+    ];
+});
 
 // --- HELPERS ---
 const getStatusClasses = (status) => {
@@ -189,12 +282,16 @@ const getStatusClasses = (status) => {
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
+    // Ajustar a la zona horaria local para evitar que se muestre un día antes
+    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
     return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 const formatDateShort = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
+    // Ajustar a la zona horaria local para evitar que se muestre un día antes
+    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
 };
 
@@ -205,9 +302,17 @@ const formatCurrency = (value) => {
 };
 
 const deleteFile = (fileId) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este archivo?')) {
-        router.delete(route('quotes.invoices.destroy', { quote: props.quote.id, media: fileId }), { preserveScroll: true });
-    }
+    confirm.require({
+        message: '¿Estás seguro de que quieres eliminar este archivo adjunto?',
+        header: 'Confirmar Eliminación',
+        icon: 'pi pi-info-circle',
+        acceptClass: 'p-button-danger',
+        acceptLabel: 'Eliminar',
+        rejectLabel: 'Cancelar',
+        accept: () => {
+            router.delete(route('quotes.invoices.destroy', { quote: props.quote.id, media: fileId }), { preserveScroll: true });
+        }
+    });
 };
 
 const getReceiptUrl = (payment) => {
@@ -223,6 +328,7 @@ const getReceiptUrl = (payment) => {
     
     <AppLayout title="Detalle de Cotización">
         <Toast />
+        <ConfirmDialog />
 
         <div class="py-6 sm:py-12">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 sm:mb-6">
@@ -321,6 +427,16 @@ const getReceiptUrl = (payment) => {
 
                     <!-- Botón alternativo de rechazo -->
                     <div v-if="quote.status === 'Enviado'" class="text-center mt-2 sm:mt-6 animate-fade-in-up">
+                        <button @click="changeQuoteStatus('Rechazado')" :disabled="isUpdatingStatus" class="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors underline decoration-dotted underline-offset-4">
+                            O marcar cotización como Rechazada
+                        </button>
+                    </div>
+                    <div v-if="quote.status === 'Rechazado'" class="text-center mt-2 sm:mt-6 animate-fade-in-up">
+                        <button @click="changeQuoteStatus('Aceptado')" :disabled="isUpdatingStatus" class="text-xs font-bold text-gray-400 hover:text-emerald-500 transition-colors underline decoration-dotted underline-offset-4">
+                            O marcar cotización como Aceptada
+                        </button>
+                    </div>
+                    <div v-if="quote.status === 'Aceptado'" class="text-center mt-2 sm:mt-6 animate-fade-in-up">
                         <button @click="changeQuoteStatus('Rechazado')" :disabled="isUpdatingStatus" class="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors underline decoration-dotted underline-offset-4">
                             O marcar cotización como Rechazada
                         </button>
@@ -428,7 +544,7 @@ const getReceiptUrl = (payment) => {
                                 <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-zinc-100 flex items-center">
                                     <i class="pi pi-history mr-2 text-emerald-500"></i> Historial de Pagos
                                 </h3>
-                                <Button v-if="['Aceptado', 'Pagado'].includes(quote.status) && remainingBalance > 0" 
+                                <Button v-if="['Aceptado', 'Pagado'].includes(quote.status)" 
                                     @click="openPaymentDialog" 
                                     icon="pi pi-plus" 
                                     class="!w-8 !h-8 !p-0 !bg-emerald-50 dark:!bg-emerald-900/30 !text-emerald-600 dark:!text-emerald-400 !border-none hover:!bg-emerald-100 dark:hover:!bg-emerald-900/50" 
@@ -438,7 +554,13 @@ const getReceiptUrl = (payment) => {
 
                             <div v-if="quote.payments && quote.payments.length > 0" class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 <div v-for="payment in quote.payments" :key="payment.id" class="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700 relative group">
-                                    <div class="flex justify-between items-start mb-1">
+                                    
+                                    <!-- Botón de Opciones del Pago -->
+                                    <div class="absolute top-2 right-2">
+                                        <Button icon="pi pi-ellipsis-v" @click="(e) => togglePaymentMenu(e, payment)" class="!w-6 !h-6 !p-0 !text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-300 !bg-transparent !border-none" rounded text />
+                                    </div>
+
+                                    <div class="flex justify-between items-start mb-1 pr-6">
                                         <span class="font-bold text-base sm:text-lg text-gray-800 dark:text-zinc-200">{{ formatCurrency(payment.amount) }}</span>
                                         <span class="text-[10px] sm:text-xs font-semibold text-gray-500 bg-white dark:bg-zinc-800 px-2 py-1 rounded-full shadow-sm">{{ formatDate(payment.payment_date) }}</span>
                                     </div>
@@ -457,6 +579,9 @@ const getReceiptUrl = (payment) => {
                                 <p class="text-xs sm:text-sm text-gray-500 dark:text-zinc-400">Aún no hay pagos registrados.</p>
                                 <Button v-if="['Aceptado', 'Pagado'].includes(quote.status)" @click="openPaymentDialog" label="Registrar Primer Pago" text size="small" class="mt-2 !text-emerald-600" />
                             </div>
+                            
+                            <!-- Menú contextual para las opciones del pago -->
+                            <Menu ref="paymentMenu" id="payment_menu" :model="paymentMenuItems" :popup="true" />
                         </div>
 
                         <!-- Tarjeta de Archivos / Facturas -->
@@ -515,8 +640,8 @@ const getReceiptUrl = (payment) => {
             </div>
         </div>
 
-        <!-- Diálogo Modal para Agregar Pago ajustado al móvil -->
-        <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }" :style="{ width: '28rem', maxWidth: '100%' }"
+        <!-- Diálogo Modal para Registrar/Editar Pago ajustado al móvil -->
+        <Dialog v-model:visible="isPaymentDialogVisible" modal :header="isEditingPayment ? 'Editar Pago' : 'Registrar Pago'" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }" :style="{ width: '28rem', maxWidth: '100%' }"
             :pt="{ 
                 root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0 m-4 sm:m-0' }, 
                 header: { class: 'pt-6 sm:pt-8 px-6 sm:px-8 pb-0 bg-transparent rounded-t-[2rem] dark:text-zinc-100' }, 
@@ -525,10 +650,10 @@ const getReceiptUrl = (payment) => {
             <template #header>
                 <div class="flex items-center gap-3 w-full">
                     <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
-                        <i class="pi pi-dollar text-emerald-600 dark:text-emerald-400 text-lg font-bold"></i>
+                        <i :class="isEditingPayment ? 'pi pi-pencil' : 'pi pi-dollar'" class="text-emerald-600 dark:text-emerald-400 text-lg font-bold"></i>
                     </div>
                     <div class="flex flex-col min-w-0">
-                        <span class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white tracking-tight truncate">Registrar Pago</span>
+                        <span class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white tracking-tight truncate">{{ isEditingPayment ? 'Editar Pago' : 'Registrar Pago' }}</span>
                         <span class="text-[10px] sm:text-xs text-gray-500 dark:text-zinc-400">Cot-{{ quote.id }}</span>
                     </div>
                 </div>
@@ -552,7 +677,10 @@ const getReceiptUrl = (payment) => {
                         <Textarea id="notes" v-model="paymentForm.notes" rows="2" class="!rounded-xl w-full" />
                     </div>
                     <div class="flex flex-col gap-1 sm:gap-2">
-                        <label for="receipt" class="text-xs sm:text-sm font-semibold text-gray-700 dark:text-zinc-300">Comprobante (Opcional)</label>
+                        <label for="receipt" class="text-xs sm:text-sm font-semibold text-gray-700 dark:text-zinc-300">
+                            Comprobante (Opcional)
+                            <span v-if="isEditingPayment" class="text-gray-400 font-normal ml-1">- Selecciona un archivo sólo si deseas reemplazar el actual.</span>
+                        </label>
                         <input type="file" id="receipt" @input="paymentForm.receipt = $event.target.files[0]" 
                             class="block w-full text-xs sm:text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-zinc-800 dark:file:text-emerald-400 transition-colors cursor-pointer" 
                             accept=".pdf,.jpg,.jpeg,.png" />
@@ -562,7 +690,7 @@ const getReceiptUrl = (payment) => {
             <template #footer>
                 <div class="flex justify-end gap-2 sm:gap-3 mt-4 w-full">
                     <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" class="!rounded-xl font-medium w-full sm:w-auto" />
-                    <Button label="Guardar" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)] w-full sm:w-auto" />
+                    <Button :label="isEditingPayment ? 'Actualizar' : 'Guardar'" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)] w-full sm:w-auto" />
                 </div>
             </template>
         </Dialog>

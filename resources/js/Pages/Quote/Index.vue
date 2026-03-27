@@ -91,15 +91,27 @@ const menuItems = computed(() => {
             command: () => changeQuoteStatus(quote, 'Enviado')
         });
     } else if (quote.status === 'Enviado' || quote.status === 'Aceptado' || quote.status === 'Rechazado') {
-        statusActions.push({
-            label: 'Marcar como Aceptado',
-            icon: 'pi pi-check',
-            command: () => changeQuoteStatus(quote, 'Aceptado')
-        }, {
-            label: 'Marcar como Rechazado',
-            icon: 'pi pi-times',
-            command: () => changeQuoteStatus(quote, 'Rechazado')
-        });
+        if (quote.status !== 'Enviado') {
+            statusActions.push({
+                label: 'Regresar a Enviado',
+                icon: 'pi pi-send',
+                command: () => changeQuoteStatus(quote, 'Enviado')
+            });
+        }
+        if (quote.status !== 'Aceptado') {
+            statusActions.push({
+                label: 'Marcar como Aceptado',
+                icon: 'pi pi-check',
+                command: () => changeQuoteStatus(quote, 'Aceptado')
+            });
+        }
+        if (quote.status !== 'Rechazado') {
+            statusActions.push({
+                label: 'Marcar como Rechazado',
+                icon: 'pi pi-times',
+                command: () => changeQuoteStatus(quote, 'Rechazado')
+            });
+        }
     }
 
     return [

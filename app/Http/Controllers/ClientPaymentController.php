@@ -70,11 +70,64 @@ class ClientPaymentController extends Controller
 
     public function update(Request $request, ClientPayment $clientPayment)
     {
-        //
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date',
+            'notes' => 'nullable|string',
+            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        if ($request->hasFile('receipt')) {
+            // Eliminar archivo anterior si existe
+            if ($clientPayment->receipt) {
+                Storage::disk('public')->delete($clientPayment->receipt);
+            }
+            $validated['receipt'] = $request->file('receipt')->store('receipts', 'public');
+        }
+
+        $clientPayment->update($validated);
+
+        // Actualizar el estado de la cotización si es necesario
+        if ($clientPayment->quote_id) {
+            $quote = Quote::find($clientPayment->quote_id);
+            if ($quote) {
+                $totalPaidForQuote = ClientPayment::where('quote_id', $quote->id)->sum('amount');
+                
+                if ($totalPaidForQuote >= $quote->amount && $quote->status !== 'Pagado') {
+                    $quote->status = 'Pagado';
+                    $quote->save();
+                } elseif ($totalPaidForQuote < $quote->amount && $quote->status === 'Pagado') {
+                    $quote->status = 'Aceptado'; // O el estado previo correspondiente
+                    $quote->save();
+                }
+            }
+        }
+
+        return Redirect::back()->with('success', 'Pago actualizado con éxito.');
     }
 
     public function destroy(ClientPayment $clientPayment)
     {
-        //
+        $quoteId = $clientPayment->quote_id;
+
+        if ($clientPayment->receipt) {
+            Storage::disk('public')->delete($clientPayment->receipt);
+        }
+
+        $clientPayment->delete();
+
+        // Actualizar el estado de la cotización si es necesario
+        if ($quoteId) {
+            $quote = Quote::find($quoteId);
+            if ($quote && $quote->status === 'Pagado') {
+                $totalPaidForQuote = ClientPayment::where('quote_id', $quote->id)->sum('amount');
+                if ($totalPaidForQuote < $quote->amount) {
+                    $quote->status = 'Aceptado'; // O el estado previo correspondiente
+                    $quote->save();
+                }
+            }
+        }
+
+        return Redirect::back()->with('success', 'Pago eliminado con éxito.');
     }
 }

@@ -181,6 +181,22 @@ class QuoteController extends Controller
                     }
                 }
                 break;
+            case 'Rechazado':
+                if (in_array($validated['status'], ['Aceptado', 'Enviado'])) {
+                    $canUpdate = true;
+                    if ($validated['status'] === 'Aceptado' && !$quote->accepted_at) {
+                        $quote->accepted_at = now();
+                    }
+                }
+                break;
+            case 'Aceptado':
+                if (in_array($validated['status'], ['Enviado', 'Rechazado'])) {
+                    $canUpdate = true;
+                    if ($validated['status'] === 'Rechazado' && !$quote->rejected_at) {
+                        $quote->rejected_at = now();
+                    }
+                }
+                break;
         }
 
         if (!$canUpdate) {
