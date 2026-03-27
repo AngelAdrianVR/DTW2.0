@@ -231,7 +231,7 @@ const rowClass = () => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/5
 
                     <!-- Desktop Table View -->
                     <div class="hidden md:block">
-                        <DataTable :value="projects.data" stripedRows dataKey="id" @row-click="onRowClick" class="zinc-table" :row-class="rowClass" paginator :rows="10">
+                        <DataTable :value="projects.data" stripedRows dataKey="id" @row-click="onRowClick" class="zinc-table" :row-class="rowClass" :rows="10">
                             <template #empty> <div class="p-6 text-center text-gray-500">No se encontraron proyectos.</div> </template>
 
                             <Column header="ID" style="width: 5%">
