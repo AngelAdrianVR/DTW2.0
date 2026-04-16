@@ -131,7 +131,7 @@ const switchToTeam = (team) => {
         
         <PomodoroTimer />
 
-        <div class="flex min-h-screen bg-gray-50 dark:bg-zinc-950">
+        <div class="flex min-h-screen bg-[#ececec] dark:bg-zinc-950">
             <Sidebar :navigation="navigationMenu" />
             <MobileSideBar v-model:isOpen="isMobileMenuOpen" :navigation="navigationMenu" />
 

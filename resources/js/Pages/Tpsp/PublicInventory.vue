@@ -5,10 +5,12 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Calendar from 'primevue/calendar';
-import Paginator from 'primevue/paginator';
+import Tag from 'primevue/tag';
+import axios from 'axios';
 
 // --- Props ---
+// Se asume que el backend (ver instrucciones) enviará la variable 'products' 
+// inyectando 'required_quantity' y 'requiring_orders' dinámicamente.
 const props = defineProps({
     products: {
         type: Array,
@@ -25,11 +27,11 @@ const finishedKits = computed(() => {
     return props.products.filter(p => p.category === 'Kit Terminado');
 });
 
-// --- Estado ---
-const movements = ref([]);
-const loading = ref(true);
-const filterStartDate = ref(null);
-const filterEndDate = ref(null);
+// --- Estado para Historial de Órdenes de Producción ---
+const productionOrders = ref([]);
+const loadingOrders = ref(true);
+const expandedRows = ref({});
+const orderDeliveries = ref({});
 const imageErrorState = ref({});
 
 // --- Helpers de Formato ---
@@ -43,12 +45,15 @@ function formatDisplayDate(dateString) {
     }).replace('.', ''); 
 }
 
-function formatDateForAPI(date) {
-    if (!date) return null;
-    let d = new Date(date);
-    d = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-    return d.toISOString().split('T')[0];
-}
+const getStatusSeverity = (status) => {
+    switch (status) {
+        case 'Pendiente': return 'warning';
+        case 'En Progreso': return 'info';
+        case 'Completado': return 'success';
+        case 'Cancelado': return 'danger';
+        default: return 'secondary';
+    }
+};
 
 const onImageError = (productId) => {
     if (productId) {
@@ -56,234 +61,245 @@ const onImageError = (productId) => {
     }
 };
 
-// --- Lógica de Datos ---
-const fetchMovements = async () => {
-    loading.value = true;
-    const params = {};
-    
-    const apiStartDate = formatDateForAPI(filterStartDate.value);
-    if (apiStartDate) {
-        params.date_start = apiStartDate;
-    }
-    const apiEndDate = formatDateForAPI(filterEndDate.value);
-    if (apiEndDate) {
-        params.date_end = apiEndDate;
-    }
-
+// --- Lógica de Órdenes (Historial Expansible) ---
+const fetchProductionOrders = async () => {
+    loadingOrders.value = true;
     try {
-        const response = await axios.get(route('tpsp.public.sales-history', params));
-        movements.value = response.data.data; 
+        // Asumiendo que esta ruta es accesible para ver el historial general de las órdenes
+        const response = await axios.get('/tpsp/production-orders');
+        // Filtramos si no queremos ver los cancelados
+        productionOrders.value = response.data.filter(o => o.status !== 'Cancelado'); 
     } catch (error) {
-        console.error("Error fetching sales movements:", error);
+        console.error("Error fetching production orders:", error);
     } finally {
-        loading.value = false;
+        loadingOrders.value = false;
     }
 };
 
-const groupedMovements = computed(() => {
-    const groups = new Map();
-    
-    for (const movement of movements.value) {
-        const dateKey = formatDisplayDate(movement.created_at);
-        
-        if (!groups.has(dateKey)) {
-            groups.set(dateKey, {
-                date: dateKey,
-                originalDate: new Date(movement.created_at), 
-                items: [] 
-            });
+const onRowExpand = async (event) => {
+    const orderId = event.data.id;
+    // Evitar consultar repetidas veces si ya se tiene la info
+    if (!orderDeliveries.value[orderId]) {
+        try {
+            const response = await axios.get(`/tpsp/production-orders/${orderId}/deliveries`);
+            orderDeliveries.value[orderId] = response.data;
+        } catch (error) {
+            console.error("Error fetching order deliveries:", error);
+            orderDeliveries.value[orderId] = [];
         }
-        
-        groups.get(dateKey).items.push({
-            product: movement.product,
-            quantity: movement.quantity,
-            id: movement.id 
-        });
     }
-    
-    return Array.from(groups.values())
-        .sort((a, b) => b.originalDate.getTime() - a.originalDate.getTime());
-});
-
-const clearFilters = () => {
-    filterStartDate.value = null;
-    filterEndDate.value = null;
-    fetchMovements();
 };
 
 onMounted(() => {
-    fetchMovements();
+    fetchProductionOrders();
 });
 </script>
 
 <template>
-    <Head title="Inventario y entregas" />
+    <Head title="Inventario y Entregas" />
     
-    <div class="container mx-auto p-6 max-w-7xl min-h-screen bg-gray-50 dark:bg-black">
+    <div class="container mx-auto p-4 sm:p-6 max-w-7xl min-h-screen bg-gray-50 dark:bg-black">
 
         <!-- TÍTULO PRINCIPAL -->
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-8">Inventario y Entregas</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-6 sm:mb-8">Inventario Público</h1>
 
-        <!-- SECCIÓN DE PRODUCTOS (GENERALES) -->
-        <div v-if="otherProducts.length > 0">
-            <h2 class="text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">Productos en Existencia</h2>
+        <!-- SECCIÓN DE PRODUCTOS GENERALES (Grid hacia abajo) -->
+        <div v-if="otherProducts.length > 0" class="mb-10">
+            <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">
+                Insumos, Materiales y Empaques
+            </h2>
             
-            <div class="flex overflow-x-auto space-x-4 py-4 mb-8">
-                <Card v-for="product in otherProducts" :key="product.id" class="overflow-hidden rounded-xl shadow-sm flex-shrink-0 w-52 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
-                    <template #header>
-                        <div class="w-full h-48 bg-gray-100 dark:bg-zinc-950">
-                            <img 
-                                v-if="product.media[0]?.original_url && !imageErrorState[product.id]"
-                                draggable="false"
-                                :src="product.media[0]?.original_url" 
-                                @error="onImageError(product.id)"
-                                :alt="product.name" 
-                                class="w-full h-full object-cover"
-                            />
-                            <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600">
-                                <i class="pi pi-image" style="font-size: 2.5rem;"></i>
-                                <span class="mt-2 text-sm font-medium">Sin imagen</span>
-                            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
+                <div v-for="product in otherProducts" :key="product.id" class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden">
+                    <!-- Imagen cuadrada compacta -->
+                    <div class="w-full aspect-square bg-gray-100 dark:bg-zinc-950 relative">
+                        <img 
+                            v-if="product.media && product.media[0]?.original_url && !imageErrorState[product.id]"
+                            draggable="false"
+                            :src="product.media[0]?.original_url" 
+                            @error="onImageError(product.id)"
+                            :alt="product.name" 
+                            class="w-full h-full object-cover"
+                        />
+                        <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600">
+                            <i class="pi pi-image" style="font-size: 1.5rem;"></i>
                         </div>
-                    </template>
-                    <template #title>
-                        <span class="text-lg font-bold text-gray-900 dark:text-zinc-100 block truncate" :title="product.name">{{ product.name }}</span>
-                    </template>
-                    <template #content>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-gray-600 dark:text-zinc-400 text-sm">Existencia:</span>
-                            <span class="text-lg font-bold text-gray-800 dark:text-zinc-200">{{ product.stock.toLocaleString() }}</span>
+                    </div>
+                    
+                    <!-- Información y Lógica de Faltantes/Requeridos -->
+                    <div class="p-3 flex flex-col flex-1">
+                        <h3 class="font-bold text-sm text-gray-900 dark:text-zinc-100 leading-tight mb-2 line-clamp-2" :title="product.name">{{ product.name }}</h3>
+                        
+                        <div class="flex justify-between items-center mb-2 mt-auto">
+                            <span class="text-xs text-gray-500 dark:text-zinc-400 font-medium">Existencia:</span>
+                            <span class="font-bold text-gray-800 dark:text-zinc-200">{{ product.stock.toLocaleString() }}</span>
                         </div>
-                    </template>
-                </Card>
+
+                        <!-- Indicadores visuales Destinado / Faltante -->
+                        <div class="pt-2 border-t border-gray-100 dark:border-zinc-800 text-[10px] sm:text-[11px] leading-tight">
+                            <template v-if="product.required_quantity > 0">
+                                <div v-if="product.stock >= product.required_quantity" class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-start gap-1">
+                                    <i class="pi pi-check-circle mt-0.5 text-[10px]"></i>
+                                    <span>Hay suficientes (Piden {{ product.required_quantity }})</span>
+                                </div>
+                                <div v-else class="text-red-500 dark:text-red-400 font-semibold flex items-start gap-1">
+                                    <i class="pi pi-exclamation-circle mt-0.5 text-[10px]"></i>
+                                    <span>Faltan {{ product.required_quantity - product.stock }} (Piden {{ product.required_quantity }})</span>
+                                </div>
+                                <div class="text-gray-400 dark:text-zinc-500 mt-1" v-if="product.requiring_orders?.length">
+                                    En uso para órdenes: 
+                                    <span v-for="ord in product.requiring_orders" :key="ord.order_number" class="mr-1 font-medium text-gray-500 dark:text-zinc-400">#{{ ord.order_number }}</span>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <span class="text-gray-400 dark:text-zinc-500 italic flex items-center gap-1">
+                                    <i class="pi pi-info-circle text-[10px]"></i> Disponible, sin reservas
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- ***** SECCIÓN DE KITS TERMINADOS ***** -->
-        <div v-if="finishedKits.length > 0">
-            <h2 class="text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">Existencias de kits terminados</h2>
+        <!-- SECCIÓN DE KITS TERMINADOS (Grid hacia abajo) -->
+        <div v-if="finishedKits.length > 0" class="mb-10">
+            <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">
+                Kits Terminados
+            </h2>
             
-            <div class="flex overflow-x-auto space-x-4 py-4 mb-8">
-                <Card v-for="product in finishedKits" :key="product.id" class="overflow-hidden rounded-xl shadow-sm flex-shrink-0 w-52 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
-                    <template #header>
-                        <div class="w-full h-48 bg-gray-100 dark:bg-zinc-950">
-                            <img 
-                                v-if="product.media[0]?.original_url && !imageErrorState[product.id]"
-                                draggable="false"
-                                :src="product.media[0]?.original_url" 
-                                @error="onImageError(product.id)"
-                                :alt="product.name" 
-                                class="w-full h-full object-cover"
-                            />
-                            <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600">
-                                <i class="pi pi-image" style="font-size: 2.5rem;"></i>
-                                <span class="mt-2 text-sm font-medium">Sin imagen</span>
-                            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
+                <div v-for="product in finishedKits" :key="product.id" class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden">
+                    <div class="w-full aspect-square bg-gray-100 dark:bg-zinc-950 relative">
+                        <img 
+                            v-if="product.media && product.media[0]?.original_url && !imageErrorState[product.id]"
+                            draggable="false"
+                            :src="product.media[0]?.original_url" 
+                            @error="onImageError(product.id)"
+                            :alt="product.name" 
+                            class="w-full h-full object-cover"
+                        />
+                        <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600">
+                            <i class="pi pi-image" style="font-size: 1.5rem;"></i>
                         </div>
-                    </template>
-                    <template #title>
-                        <span class="text-lg font-bold text-gray-900 dark:text-zinc-100 block truncate" :title="product.name">{{ product.name }}</span>
-                    </template>
-                    <template #content>
-                        <!-- Existencia -->
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-gray-600 dark:text-zinc-400 text-sm">Existencia:</span>
-                            <span class="text-lg font-bold text-gray-800 dark:text-zinc-200">{{ product.stock.toLocaleString() }}</span>
+                    </div>
+                    
+                    <div class="p-3 flex flex-col flex-1">
+                        <h3 class="font-bold text-sm text-gray-900 dark:text-zinc-100 leading-tight mb-2 line-clamp-2" :title="product.name">{{ product.name }}</h3>
+                        
+                        <div class="flex justify-between items-center mb-2 mt-auto">
+                            <span class="text-xs text-gray-500 dark:text-zinc-400 font-medium">Existencia:</span>
+                            <span class="font-bold text-gray-800 dark:text-zinc-200">{{ product.stock.toLocaleString() }}</span>
                         </div>
 
-                        <!-- Pedidos en Curso -->
-                        <div v-if="product.production_orders && product.production_orders.length > 0" 
-                             class="border-t border-gray-100 dark:border-zinc-800 pt-3 mt-3 space-y-3">
-                            
+                        <!-- Lógica de En Curso para Kits terminados (Lo que se está fabricando ahora mismo) -->
+                        <div v-if="product.production_orders && product.production_orders.length > 0" class="border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2 space-y-2">
                             <div v-for="order in product.production_orders" :key="order.id">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                                        <i class="pi pi-spin pi-cog mr-1" style="font-size: 0.8rem; vertical-align: middle;"></i>
-                                        En curso
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                        <i class="pi pi-spin pi-cog mr-0.5"></i> Fab #{{ order.order_number.replace('TPSP-', '') }}
+                                    </span>
+                                    <span class="text-[9px] text-gray-500 dark:text-zinc-400 font-medium">
+                                        {{ order.quantity_produced }} / {{ order.quantity_requested }}
                                     </span>
                                 </div>
-                                
-                                <div class="text-xs text-gray-500 dark:text-zinc-500 my-1">
-                                    {{ order.quantity_produced.toLocaleString() }} / {{ order.quantity_requested.toLocaleString() }}
-                                </div>
-                                
-                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
-                                    <div class="bg-blue-500 h-1.5 rounded-full" 
-                                         :style="{ width: (order.quantity_requested > 0 ? (order.quantity_produced / order.quantity_requested * 100) : 0) + '%' }">
-                                    </div>
+                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-1 overflow-hidden">
+                                    <div class="bg-blue-500 h-1 rounded-full" :style="{ width: (order.quantity_requested > 0 ? (order.quantity_produced / order.quantity_requested * 100) : 0) + '%' }"></div>
                                 </div>
                             </div>
                         </div>
-                    </template>
-                </Card>
+                    </div>
+                </div>
             </div>
         </div>
 
 
-        <!-- SECCIÓN DE MOVIMIENTOS -->
-        <h2 class="text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">Historial de Entregas</h2>
-
-        <!-- Filtros -->
-        <div class="flex flex-wrap gap-4 mb-6 items-end">
-            <div class="flex flex-col gap-2">
-                <label for="filterStart" class="font-bold text-sm text-gray-700 dark:text-zinc-300">Fecha Inicio</label>
-                <Calendar id="filterStart" v-model="filterStartDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Desde" inputClass="dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100" />
-            </div>
-            <div class="flex flex-col gap-2">
-                <label for="filterEnd" class="font-bold text-sm text-gray-700 dark:text-zinc-300">Fecha Fin</label>
-                <Calendar id="filterEnd" v-model="filterEndDate" dateFormat="dd/mm/yy" :showIcon="true" placeholder="Hasta" inputClass="dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100" />
-            </div>
-            <div class="flex items-end gap-2">
-                <Button label="Filtrar" icon="pi pi-filter" @click="fetchMovements" />
-                <Button label="Limpiar" icon="pi pi-filter-slash" @click="clearFilters" class="p-button-outlined" />
-            </div>
-        </div>
+        <!-- SECCIÓN HISTORIAL EXPANDIBLE (Órdenes -> Entregas) -->
+        <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-zinc-200 mb-4 pb-2 border-b border-gray-200 dark:border-zinc-800">
+            Progreso y Entregas por Orden
+        </h2>
 
         <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-zinc-900">
-            <DataTable :value="groupedMovements" :loading="loading" 
-                responsiveLayout="scroll" :rows="10" :paginator="true"
-                dataKey="date"
-                class="zinc-table">
+            <DataTable 
+                :value="productionOrders" 
+                v-model:expandedRows="expandedRows" 
+                @rowExpand="onRowExpand" 
+                :loading="loadingOrders" 
+                dataKey="id"
+                responsiveLayout="scroll" 
+                :rows="10" 
+                :paginator="true"
+                class="zinc-table"
+            >
+                <Column expander style="width: 3rem" />
                 
-                <!-- Columna de Fecha (Agrupada) -->
-                <Column header="Fecha de entrega" :sortable="true" sortField="originalDate" style="width: 12rem">
-                    <template #body="slotProps">
-                        <span class="font-bold text-base text-gray-800 dark:text-zinc-200">{{ slotProps.data.date }}</span>
-                    </template>
+                <Column field="order_number" header="Folio" style="min-width: 100px;">
+                     <template #body="{ data }"><span class="text-gray-500 dark:text-zinc-400 font-medium">#{{ data.order_number }}</span></template>
                 </Column>
 
-                <!-- Columna de Productos (Agrupados) -->
-                <Column header="Productos Entregados">
-                    <template #body="slotProps">
-                        <div class="flex flex-col gap-4 py-2">
-                            <div v-for="item in slotProps.data.items" :key="item.id" 
-                                 class="flex items-center gap-3 flex-wrap">
-                                
-                                <!-- Imagen del Producto -->
-                                <div class="size-10 rounded-lg flex-shrink-0 bg-gray-100 dark:bg-zinc-950 overflow-hidden">
-                                    <img v-if="item.product?.media[0]?.original_url && !imageErrorState[item.product?.id]"
-                                        draggable="false"
-                                        :src="item.product?.media[0]?.original_url"
-                                        @error="onImageError(item.product?.id)"
-                                        :alt="item.product?.name"
-                                        class="w-full h-full object-cover"
-                                    />
-                                    <div v-else class="w-full h-full flex items-center justify-center text-gray-400 dark:text-zinc-600">
-                                        <i class="pi pi-image" style="font-size: 1rem;"></i>
-                                    </div>
-                                </div>
-                                
-                                <!-- Nombre del Producto -->
-                                <span class="font-medium text-gray-700 dark:text-zinc-300 flex-1 min-w-[150px]">{{ item.product?.name || 'Producto no encontrado' }}</span>
-                                
-                                <!-- Cantidad Entregada -->
-                                <span class="font-bold text-emerald-600 dark:text-emerald-400 ml-auto pl-4">
-                                    {{ Math.abs(item.quantity).toLocaleString() }}
-                                </span>
-                            </div>
+                <Column field="product.name" header="Producto" style="min-width: 150px;">
+                     <template #body="{ data }"><span class="font-semibold text-gray-800 dark:text-zinc-200">{{ data.product?.name || 'Desconocido' }}</span></template>
+                </Column>
+
+                <Column header="Progreso" style="min-width: 150px;">
+                    <template #body="{ data }">
+                        <div class="flex flex-col text-sm">
+                            <span class="text-gray-600 dark:text-zinc-400">
+                                <strong class="text-gray-800 dark:text-zinc-200">{{ data.quantity_delivered || 0 }}</strong> entregados de <strong>{{ data.quantity_requested }}</strong>
+                            </span>
                         </div>
                     </template>
                 </Column>
+
+                <Column header="Falta Entregar" style="min-width: 130px;">
+                    <template #body="{ data }">
+                        <span class="font-bold" :class="(data.quantity_requested - (data.quantity_delivered || 0)) > 0 ? 'text-red-500' : 'text-emerald-500'">
+                            {{ Math.max(0, data.quantity_requested - (data.quantity_delivered || 0)) }}
+                        </span>
+                    </template>
+                </Column>
+
+                <Column field="status" header="Estado" style="min-width: 120px;">
+                    <template #body="{ data }">
+                        <Tag :value="data.status" :severity="getStatusSeverity(data.status)" class="!rounded-md text-[10px] sm:text-xs font-bold tracking-wide" />
+                    </template>
+                </Column>
+
+                <!-- Expansión: Historial de Entregas Individuales -->
+                <template #expansion="{ data }">
+                    <div class="p-4 sm:p-6 bg-gray-50 dark:bg-zinc-950 border-t border-b border-gray-100 dark:border-zinc-800">
+                        <h5 class="font-bold mb-3 text-sm text-gray-800 dark:text-zinc-200">
+                            Historial de Entregas para la Orden #{{ data.order_number }}
+                        </h5>
+                        
+                        <div v-if="!orderDeliveries[data.id]" class="text-gray-500 text-sm flex items-center gap-2">
+                            <i class="pi pi-spin pi-spinner"></i> Cargando entregas...
+                        </div>
+                        
+                        <DataTable 
+                            v-else-if="orderDeliveries[data.id].length > 0" 
+                            :value="orderDeliveries[data.id]" 
+                            class="zinc-table-mini bg-white dark:bg-zinc-900 rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-800 shadow-sm"
+                        >
+                            <Column field="created_at" header="Fecha de Entrega">
+                                <template #body="slotProps">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300">{{ formatDisplayDate(slotProps.data.created_at) }}</span>
+                                </template>
+                            </Column>
+                            <Column field="quantity" header="Cantidad Entregada">
+                                <template #body="slotProps">
+                                    <span class="font-bold text-emerald-600 dark:text-emerald-400">
+                                        +{{ Math.abs(slotProps.data.quantity).toLocaleString() }}
+                                    </span>
+                                </template>
+                            </Column>
+                        </DataTable>
+                        
+                        <div v-else class="text-gray-500 dark:text-zinc-400 text-sm italic bg-white dark:bg-zinc-900 p-3 rounded-lg border border-gray-200 dark:border-zinc-800">
+                            No se han registrado entregas todavía para esta orden de producción.
+                        </div>
+                    </div>
+                </template>
             </DataTable>
         </div>
     </div>
@@ -291,24 +307,31 @@ onMounted(() => {
 
 <style scoped>
 /* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
+:deep(.zinc-table .p-datatable-thead > tr > th),
+:deep(.zinc-table-mini .p-datatable-thead > tr > th) {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
     border-bottom: 1px solid #e4e4e7;
+    font-size: 0.8rem;
+    text-transform: uppercase;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
+.dark :deep(.zinc-table .p-datatable-thead > tr > th),
+.dark :deep(.zinc-table-mini .p-datatable-thead > tr > th) {
     background-color: #18181b !important; /* zinc-950 */
     color: #a1a1aa !important; /* zinc-400 */
     border-bottom: 1px solid #27272a; /* zinc-800 */
 }
-:deep(.zinc-table .p-datatable-tbody > tr) {
+:deep(.zinc-table .p-datatable-tbody > tr),
+:deep(.zinc-table-mini .p-datatable-tbody > tr) {
     background-color: transparent !important;
     color: inherit;
 }
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td),
+:deep(.zinc-table-mini .p-datatable-tbody > tr:not(:last-child) > td) {
     border-bottom: 1px solid #f4f4f5;
 }
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
+.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td),
+.dark :deep(.zinc-table-mini .p-datatable-tbody > tr:not(:last-child) > td) {
     border-bottom: 1px solid #27272a;
 }
 </style>

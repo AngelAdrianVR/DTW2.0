@@ -53,6 +53,11 @@ createInertiaApp({
                     options: {
                         // Conecta el modo oscuro de PrimeVue con el de Tailwind CSS
                         darkModeSelector: '.dark',
+                        // AGREGAR ESTO: Define el orden de prioridad de los estilos
+                        cssLayer: {
+                            name: 'primevue',
+                            order: 'tailwind-base, primevue, tailwind-utilities'
+                        }
                     }
                 }
             })

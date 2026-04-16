@@ -23,6 +23,7 @@ class ClientPayment extends Model implements HasMedia
         'amount',
         'payment_date',
         'notes',
+        'receipt',
     ];
 
     /**
@@ -49,5 +50,5 @@ class ClientPayment extends Model implements HasMedia
     public function quote(): BelongsTo
     {
         return $this->belongsTo(Quote::class);
-    }
+    }    
 }

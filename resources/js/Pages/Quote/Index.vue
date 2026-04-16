@@ -19,6 +19,11 @@ import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Card from 'primevue/card';
 
+// IMPORTACIONES FALTANTES PARA QUE LA PÁGINA NO FALLE AL CARGAR
+import Toast from 'primevue/toast';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+
 // --- DIRECTIVES ---
 const vTooltip = Tooltip;
 
@@ -72,7 +77,6 @@ watch(search, debounce((value) => {
     });
 }, 300));
 
-
 // --- MENU ACTIONS ---
 const menuItems = computed(() => {
     if (!selectedQuoteForMenu.value) return [];
@@ -87,15 +91,27 @@ const menuItems = computed(() => {
             command: () => changeQuoteStatus(quote, 'Enviado')
         });
     } else if (quote.status === 'Enviado' || quote.status === 'Aceptado' || quote.status === 'Rechazado') {
-        statusActions.push({
-            label: 'Marcar como Aceptado',
-            icon: 'pi pi-check',
-            command: () => changeQuoteStatus(quote, 'Aceptado')
-        }, {
-            label: 'Marcar como Rechazado',
-            icon: 'pi pi-times',
-            command: () => changeQuoteStatus(quote, 'Rechazado')
-        });
+        if (quote.status !== 'Enviado') {
+            statusActions.push({
+                label: 'Regresar a Enviado',
+                icon: 'pi pi-send',
+                command: () => changeQuoteStatus(quote, 'Enviado')
+            });
+        }
+        if (quote.status !== 'Aceptado') {
+            statusActions.push({
+                label: 'Marcar como Aceptado',
+                icon: 'pi pi-check',
+                command: () => changeQuoteStatus(quote, 'Aceptado')
+            });
+        }
+        if (quote.status !== 'Rechazado') {
+            statusActions.push({
+                label: 'Marcar como Rechazado',
+                icon: 'pi pi-times',
+                command: () => changeQuoteStatus(quote, 'Rechazado')
+            });
+        }
     }
 
     return [
@@ -266,7 +282,7 @@ const getStatusIcon = (status) => {
 
                 <header class="mb-8">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Cotizaciones</h1>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Cotizaciones</h1>
                         <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona todas tus cotizaciones y su estado.</p>
                     </div>
                 </header>
@@ -289,7 +305,7 @@ const getStatusIcon = (status) => {
                     <!-- Vista de Tabla para Escritorio -->
                     <div class="hidden md:block">
                         <DataTable :value="quotes.data" paginator :rows="15" stripedRows tableStyle="min-width: 50rem;"
-                            @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                            @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="index-quotes-table">
                             <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron cotizaciones.</div> </template>
 
                             <Column header="Folio" style="width: 10%">
@@ -341,9 +357,9 @@ const getStatusIcon = (status) => {
                                     <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
                                 </template>
                             </Column>
-                             <Column field="project_id" header="Proyecto">
+                             <Column field="project.name" header="Proyecto">
                                 <template #body="{ data }">
-                                    <p class="text-blue-500 hover:text-blue-400 hover:underline cursor-pointer" @click.stop="$inertia.visit(route('projects.show', data.project_id))" v-if="data.project_id">{{ data.project.name }}</p>
+                                    <p class="text-blue-500 hover:text-blue-400 hover:underline cursor-pointer" @click.stop="$inertia.visit(route('projects.show', data.project.id))" v-if="data.project">{{ data.project.name }}</p>
                                     <p v-else class="text-gray-400">-</p>
                                 </template>
                             </Column>
@@ -450,7 +466,7 @@ const getStatusIcon = (status) => {
             <template #footer>
                 <div class="flex justify-end gap-3 mt-4 w-full">
                     <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" class="!rounded-xl font-medium" />
-                    <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700" />
+                    <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)]" />
                 </div>
             </template>
         </Dialog>
@@ -469,36 +485,27 @@ const getStatusIcon = (status) => {
   text-align: left;
   white-space: pre-wrap;
 }
+.index-quotes-table {
+    color:#212121 !important
+}
 
-/* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #f4f4f5 !important;
+</style>
+
+<style>
+/* Estilos globales para la tabla de INDEX */
+.index-quotes-table .p-datatable-thead > tr > th {
+    background-color: transparent!important;
     color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
-}
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+    
 }
 
-/* Input overrides for dark mode */
-:deep(.p-inputtext), :deep(.p-dropdown), :deep(.p-textarea) {
-    width: 100%;
+.index-quotes-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
 }
-.dark :deep(.p-inputtext), .dark :deep(.p-dropdown), .dark :deep(.p-textarea) {
-    background-color: #27272a; /* zinc-800 */
-    color: #f4f4f5; /* zinc-100 */
-    border-color: #3f3f46; /* zinc-700 */
+
+
+html.dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

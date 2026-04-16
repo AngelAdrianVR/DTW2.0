@@ -162,7 +162,7 @@ onMounted(() => {
 <template>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="md:col-span-1">
-            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6 h-full">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6 h-[460px]">
                 <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-zinc-100">Registrar Movimiento</h3>
                 
                 <div class="flex flex-col gap-4">
@@ -225,9 +225,9 @@ onMounted(() => {
             <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
             <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                 <DataTable :value="movements" :loading="loading" 
-                    responsiveLayout="scroll" :rows="20" :paginator="true"
+                    responsiveLayout="scroll" :rows="10" :paginator="true"
                     dataKey="id"
-                    class="zinc-table">
+                    class="movements-table">
                     
                     <Column field="created_at" header="Fecha" :sortable="true">
                         <template #body="slotProps">
@@ -249,12 +249,12 @@ onMounted(() => {
                         </template>
                     </Column>
                     
-                    <Column field="unit_price" header="Precio Unit.">
+                    <Column field="unit_price" header="Precio">
                         <template #body="slotProps">
                             <span class="dark:text-zinc-400 text-sm">{{ formatCurrency(slotProps.data.unit_price) }}</span>
                         </template>
                     </Column>
-                    <Column field="total_price" header="Monto Total">
+                    <Column field="total_price" header="Total">
                         <template #body="slotProps">
                             <span class="dark:text-zinc-200 font-medium">{{ formatCurrency(slotProps.data.total_price) }}</span>
                         </template>
@@ -317,26 +317,34 @@ onMounted(() => {
     </div>
 </template>
 
-<style scoped>
+<style>
 /* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
+.movements-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.movements-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.movements-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode 
+  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
+*/
+html.dark .movements-table .p-datatable-thead > tr > th,
+.dark .movements-table .p-datatable-thead > tr > th {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
+    border-bottom: 1px solid #27272a !important;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+
+html.dark .movements-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .movements-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

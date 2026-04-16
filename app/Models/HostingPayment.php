@@ -15,6 +15,7 @@ class HostingPayment extends Model
         'amount',
         'payment_date',
         'notes',
+        'receipt_path', // Ruta del comprobante guardado
     ];
 
     protected $casts = [

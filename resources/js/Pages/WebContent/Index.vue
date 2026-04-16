@@ -139,9 +139,11 @@ const deleteContent = (id) => {
     confirm.require({
         message: '¿Estás seguro de que quieres eliminar este elemento?',
         header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
+        acceptLabel:'Sí, Eliminar',
+        rejectLabel:'Cancelar',
         accept: () => {
              useForm({}).delete(route('admin.webcontents.destroy', id), {
                 preserveScroll: true,
@@ -155,9 +157,11 @@ const confirmDeleteImage = (mediaId) => {
      confirm.require({
         message: '¿Estás seguro de que quieres eliminar esta imagen?',
         header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
+        rejectLabel:'Cancelar',
+        acceptLabel:'Sí, Eliminar',
         accept: () => {
              useForm({}).delete(route('admin.media.destroy', mediaId), {
                 preserveScroll: true,
@@ -169,6 +173,7 @@ const confirmDeleteImage = (mediaId) => {
         },
     });
 };
+
 // --- FIN: Nueva función para confirmar y eliminar una imagen ---
 
 // Devuelve el nombre legible de la seccion
@@ -265,9 +270,10 @@ const formatDate = (value) => {
                                 :showCancelButton="false"
                                 accept="image/*"
                                 chooseLabel="Seleccionar Imágenes"
+                                class="!text-[var(--primary-text-color)]"
                             >
                                 <template #empty>
-                                    <p class="text-gray-500 dark:text-zinc-400">Arrastra y suelta las imágenes aquí.</p>
+                                    <p class="text-gray-500 dark:text-zinc-400 ">Arrastra y suelta las imágenes aquí.</p>
                                 </template>
                             </FileUpload>
                             <small v-if="editForm.errors.new_images" class="p-error">{{ editForm.errors.new_images }}</small>
@@ -283,7 +289,7 @@ const formatDate = (value) => {
 
                 <!-- Header Principal -->
                 <header class="mb-8">
-                    <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Gestor de Contenido</h1>
+                    <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Gestor de Contenido</h1>
                     <p class="text-gray-400 dark:text-zinc-400 mt-1">Administra tu portafolio, logos y banners publicitarios.</p>
                 </header>
 
@@ -332,7 +338,7 @@ const formatDate = (value) => {
 
                             <div class="md:col-span-2">
                                 <label for="images" class="block font-medium text-sm text-gray-700 dark:text-zinc-300 mb-2">Imágenes</label>
-                                <FileUpload ref="fileUploadRef" name="images[]" :multiple="true" :showUploadButton="false" :showCancelButton="false" accept="image/*" chooseLabel="Seleccionar Imágenes">
+                                <FileUpload ref="fileUploadRef" name="images[]" :multiple="true" :showUploadButton="false" :showCancelButton="false" accept="image/*" chooseLabel="Seleccionar Imágenes" class="!text-[var(--primary-text-color)]">
                                     <template #empty>
                                         <p class="text-gray-500 dark:text-zinc-400">Arrastra y suelta las imágenes aquí.</p>
                                     </template>

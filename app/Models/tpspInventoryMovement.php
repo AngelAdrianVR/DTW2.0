@@ -22,10 +22,12 @@ class tpspInventoryMovement extends Model
     protected $guarded = [];
 
     /**
-     * Casts para el campo enum.
+     * Casts para los campos enum, fechas y decimales.
      */
     protected $casts = [
         'type' => 'string',
+        'amount_paid' => 'decimal:2', // Asegura que se maneje como un número decimal con 2 decimales
+        'payment_date' => 'date',     // Asegura que se maneje como un objeto de fecha (Carbon)
     ];
 
     /**

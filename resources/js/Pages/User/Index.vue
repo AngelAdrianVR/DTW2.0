@@ -71,9 +71,9 @@ const confirmDeleteUser = (user) => {
     confirm.require({
         message: `¿Estás seguro de que quieres eliminar a "${user.name}"? Esta acción no se puede deshacer.`,
         header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
         acceptLabel: 'Eliminar',
         rejectLabel: 'Cancelar',
         accept: () => {
@@ -126,7 +126,7 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
 
                 <header class="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Usuarios</h1>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Usuarios</h1>
                         <p class="text-gray-400 dark:text-zinc-400 mt-1">Administra los miembros de tu equipo y sus accesos.</p>
                     </div>
                     <Link :href="route('users.create')">
@@ -136,8 +136,8 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
 
                 <!-- Vista de Tabla para Escritorio -->
                 <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
-                    <DataTable @row-click="onRowClick" :rowClass="rowClass" :value="users.data" stripedRows paginator :rows="10" :totalRecords="users.total"
-                               tableStyle="min-width: 50rem;" dataKey="id" class="zinc-table">
+                    <DataTable @row-click="onRowClick" selectionMode="single" :rowClass="rowClass" :value="users.data" stripedRows paginator :rows="10" :totalRecords="users.total"
+                               tableStyle="min-width: 50rem;" dataKey="id" class="index-user-table">
                         <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron usuarios.</div> </template>
 
                         <Column field="id" header="ID" sortable style="width: 5%">
@@ -210,26 +210,33 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
     </AppLayout>
 </template>
 
-<style scoped>
-/* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
+
+<style>
+/* Estilos globales para la tabla de INDEX */
+.index-user-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.index-user-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.index-user-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode para INDEX (Con el fondo claro que querías) */
+html.dark .index-user-table .p-datatable-thead > tr > th,
+.dark .index-user-table .p-datatable-thead > tr > th {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
+    border-bottom: 1px solid #27272a !important;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+
+html.dark .index-user-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-user-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

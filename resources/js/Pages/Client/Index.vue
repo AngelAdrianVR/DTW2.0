@@ -40,6 +40,7 @@ const paymentForm = useForm({
     amount: null,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
+    receipt: null, // Agregado para soportar adjuntos
 });
 
 // --- COMPUTED PROPERTIES ---
@@ -86,13 +87,13 @@ const toggleMenu = (event, client) => {
 // --- METHODS ---
 const confirmDeleteClient = (client) => {
     confirm.require({
-        message: `¿Estás seguro de que quieres eliminar a "${client.name}"? Esta acción no se puede deshacer.`,
-        header: 'Confirmación de eliminación',
-        icon: 'pi pi-info-circle',
-        rejectClass: 'p-button-text p-button-text',
-        acceptClass: 'p-button-danger p-button-text',
-        acceptLabel: 'Eliminar',
+        message: `¿Estás seguro de que quieres eliminar "${client.name}"? Esta acción no se puede desahacer.`,
+        header: 'Confirmar Eliminación',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, Eliminar',
         rejectLabel: 'Cancelar',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]' ,
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
         accept: () => { deleteClient(client); }
     });
 };
@@ -151,7 +152,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 
                 <header class="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-gray-800">Módulo de Clientes</h1>
+                        <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Módulo de Clientes</h1>
                         <p class="text-gray-400 dark:text-zinc-400 mt-1">Gestiona la información y finanzas de tus clientes.</p>
                     </div>
                     <Link href="/clients/create">
@@ -162,7 +163,7 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                 <!-- Vista de Tabla para Escritorio -->
                 <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                     <DataTable :value="clientsWithBalance" paginator :rows="15" tableStyle="min-width: 50rem;"
-                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="index-client-table">
                         <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron clientes.</div> </template>
 
                         <Column field="id" header="ID" sortable style="width: 5%">
@@ -179,24 +180,29 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                                 <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
                             </template>
                         </Column>
-                        <Column field="total_billed" header="Total Facturado" sortable class="text-right">
+                        <!-- Alineación corregida: headerStyle="text-align: right" -->
+                        <Column field="total_billed" header="Total Facturado" sortable headerStyle="text-align: right">
                             <template #body="{ data }">
-                                <span class="text-blue-600 dark:text-blue-400">{{ formatCurrency(data.total_billed) }}</span>
+                                <div class="w-full text-right text-blue-600 dark:text-blue-400 font-medium">
+                                    {{ formatCurrency(data.total_billed) }}
+                                </div>
                             </template>
                         </Column>
-                        <Column field="total_paid" header="Total Pagado" sortable class="text-right">
+                        <Column field="total_paid" header="Total Pagado" sortable headerStyle="text-align: right">
                             <template #body="{ data }">
-                                <span class="text-emerald-600 dark:text-emerald-400">{{ formatCurrency(data.total_paid) }}</span>
+                                <div class="w-full text-right text-emerald-600 dark:text-emerald-400 font-medium">
+                                    {{ formatCurrency(data.total_paid) }}
+                                </div>
                             </template>
                         </Column>
-                        <Column field="balance" header="Balance" sortable class="text-right">
+                        <Column field="balance" header="Balance" sortable headerStyle="text-align: right">
                             <template #body="{ data }">
-                                <span class="font-bold" :class="[data.balance > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-zinc-400']">
+                                <div class="w-full text-right font-bold" :class="[data.balance > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-zinc-400']">
                                     {{ formatCurrency(data.balance) }}
-                                </span>
+                                </div>
                             </template>
                         </Column>
-                        <Column header="Acciones" style="width: 10%" bodyClass="text-center">
+                        <Column header="Acciones" style="width: 10%" headerStyle="text-align: center" bodyStyle="text-align: center">
                             <template #body="{ data }">
                                 <Button icon="pi pi-ellipsis-v" text rounded aria-haspopup="true"
                                     aria-controls="overlay_menu" @click.stop="toggleMenu($event, data)" class="!text-gray-500 dark:!text-zinc-400 hover:!bg-gray-100 dark:hover:!bg-zinc-800"/>
@@ -242,45 +248,63 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
                     </div>
                 </div>
 
-                <!-- Diálogo Modal para Agregar Pago -->
-                <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }" 
-                    :pt="{ root: { class: 'dark:bg-zinc-900 dark:border-zinc-700' }, header: { class: 'dark:bg-zinc-900 dark:text-zinc-200' }, content: { class: 'dark:bg-zinc-900' }, footer: { class: 'dark:bg-zinc-900' } }">
+                <!-- Diálogo Modal para Agregar Pago (Apple Style) -->
+                <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '28rem' }"
+                    :pt="{ 
+                        root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0' }, 
+                        header: { class: 'pt-8 px-8 pb-0 bg-transparent rounded-t-[2rem] dark:text-zinc-100' }, 
+                        content: { class: 'px-8 pb-8 pt-4 bg-transparent rounded-b-[2rem]' } 
+                    }">
                     <template #header>
-                        <div class="flex flex-col">
-                            <h3 class="text-lg font-semibold dark:text-zinc-100">Registrar Pago</h3>
-                            <p class="text-sm text-gray-500 dark:text-zinc-500">Para: {{ selectedClient?.name }}</p>
+                        <div class="flex items-center gap-3 w-full">
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                                <i class="pi pi-dollar text-emerald-600 dark:text-emerald-400 text-lg font-bold"></i>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xl font-bold text-gray-800 dark:text-white tracking-tight">Registrar Pago</span>
+                                <span class="text-xs text-gray-500 dark:text-zinc-400">Para: {{ selectedClient?.name }}</span>
+                            </div>
                         </div>
                     </template>
                     <form @submit.prevent="submitPayment">
-                        <div class="flex flex-col gap-4 p-4">
-                             <div class="flex flex-col gap-2">
-                                <label for="quote" class="dark:text-zinc-300">Asociar a Cotización (Opcional)</label>
+                        <div class="flex flex-col gap-5 mt-2">
+                            <div class="flex flex-col gap-2">
+                                <label for="quote" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Asociar a Cotización (Opcional)</label>
                                 <Dropdown id="quote" v-model="paymentForm.quote_id" :options="quoteOptions"
-                                    optionLabel="label" optionValue="id" placeholder="Selecciona una cotización" class="w-full"
+                                    optionLabel="label" optionValue="id" placeholder="Selecciona una cotización" class="!rounded-xl w-full"
                                     :class="{ 'p-invalid': paymentForm.errors.quote_id }" showClear />
                                 <small v-if="paymentForm.errors.quote_id" class="p-error">{{ paymentForm.errors.quote_id }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="amount" class="dark:text-zinc-300">Monto del Pago</label>
+                                <label for="amount" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Monto del Pago <span class="text-red-500">*</span></label>
                                 <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN"
-                                    locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
+                                    locale="es-MX" class="!rounded-xl w-full" :class="{ 'p-invalid': paymentForm.errors.amount }" required />
                                 <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="payment_date" class="dark:text-zinc-300">Fecha del Pago</label>
-                                <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd"
-                                    :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
+                                <label for="payment_date" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Fecha del Pago <span class="text-red-500">*</span></label>
+                                <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" class="!rounded-xl w-full"
+                                    :class="{ 'p-invalid': paymentForm.errors.payment_date }" required />
                                 <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="notes" class="dark:text-zinc-300">Notas (Opcional)</label>
-                                <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
+                                <label for="notes" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Notas (Opcional)</label>
+                                <Textarea id="notes" v-model="paymentForm.notes" rows="2" class="!rounded-xl w-full" />
+                            </div>
+                            <!-- Nuevo input de Comprobante -->
+                            <div class="flex flex-col gap-2">
+                                <label for="receipt" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Comprobante (Opcional)</label>
+                                <input type="file" id="receipt" @input="paymentForm.receipt = $event.target.files[0]" 
+                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-zinc-800 dark:file:text-emerald-400 transition-colors cursor-pointer" 
+                                    accept=".pdf,.jpg,.jpeg,.png" />
                             </div>
                         </div>
                     </form>
                     <template #footer>
-                        <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" />
-                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" />
+                        <div class="flex justify-end gap-3 mt-4 w-full">
+                            <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" class="!rounded-xl font-medium" />
+                            <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)]" />
+                        </div>
                     </template>
                 </Dialog>
             </div>
@@ -293,26 +317,34 @@ const getStatusSeverity = (status) => (status === 'Cliente' ? 'success' : 'info'
 .p-inputtext, .p-inputnumber-input {
     width: 100% !important;
 }
+</style>
 
-/* Zinc Theme Overrides for PrimeVue DataTable */
-:deep(.zinc-table .p-datatable-thead > tr > th) {
+<style>
+/* Estilos globales para la tabla de INDEX */
+.index-client-table .p-datatable-thead > tr > th {
+    background-color: #212121 !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.index-client-table .p-datatable-tbody > tr { 
+    background-color: transparent !important; 
+}
+
+.index-client-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #f4f4f5 !important; 
+}
+
+/* Reglas de Dark Mode para INDEX (Con el fondo claro que querías) */
+html.dark .index-client-table .p-datatable-thead > tr > th,
+.dark .index-client-table .p-datatable-thead > tr > th {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
-    border-bottom: 1px solid #e4e4e7;
+    border-bottom: 1px solid #27272a !important;
 }
-.dark :deep(.zinc-table .p-datatable-thead > tr > th) {
-    background-color: #18181b !important; /* zinc-950 */
-    color: #a1a1aa !important; /* zinc-400 */
-    border-bottom: 1px solid #27272a; /* zinc-800 */
-}
-:deep(.zinc-table .p-datatable-tbody > tr) {
-    background-color: transparent !important;
-    color: inherit;
-}
-:deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #f4f4f5;
-}
-.dark :deep(.zinc-table .p-datatable-tbody > tr:not(:last-child) > td) {
-    border-bottom: 1px solid #27272a;
+
+html.dark .index-client-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-client-table .p-datatable-tbody > tr:not(:last-child) > td { 
+    border-bottom: 1px solid #27272a !important; 
 }
 </style>

@@ -201,20 +201,20 @@ onMounted(() => {
                     <div v-if="item.children" class="relative">
                         <button @click="isExpanded ? toggleGroup(item.name) : toggleCollapsedGroup(item.name, $event)" class="flex items-center justify-between w-full p-2 rounded-lg transition-colors duration-200"
                             :class="{ 
-                                'bg-purple-50 text-purple-700 shadow-sm dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': isGroupActive(item), 
+                                'bg-[#212121] text-[#d0d0d0] shadow-sm dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': isGroupActive(item), 
                                 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400': !isGroupActive(item) 
                             }">
                             <div class="flex items-center" :class="{'mx-auto': !isExpanded }">
                                 <div v-html="item.icon" class="size-6" 
                                      :class="{
                                         'mx-auto': !isExpanded,
-                                        'text-purple-700 dark:text-gray-600': isGroupActive(item),
-                                        'text-gray-500 dark:text-zinc-400': !isGroupActive(item)
+                                        'text-[#d0d0d0] dark:text-gray-600': isGroupActive(item),
+                                        'text-gray-600 dark:text-zinc-400': !isGroupActive(item)
                                      }">
                                 </div>
                                 <span v-if="isExpanded" class="ml-4 font-medium">{{ item.name }}</span>
                             </div>
-                            <svg v-if="isExpanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" :class="{'rotate-90': openGroups[item.name], 'text-purple-400 dark:text-gray-400': isGroupActive(item), 'text-gray-400': !isGroupActive(item)}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                            <svg v-if="isExpanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" :class="{'rotate-90': openGroups[item.name], 'text-[#d0d0d0] dark:text-gray-400': isGroupActive(item), 'text-gray-400': !isGroupActive(item)}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
                         </button>
 
                          <!-- Expanded Dropdown -->
@@ -222,7 +222,7 @@ onMounted(() => {
                             <div v-show="openGroups[item.name] && isExpanded" class="overflow-hidden pl-6 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-zinc-700 ml-3">
                                 <Link v-for="child in item.children" :key="child.name" :href="child.route ? route(child.route) : '#'" class="flex items-center p-2 rounded-lg transition-colors duration-200" 
                                     :class="{
-                                        'bg-purple-50 text-purple-700 font-medium dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': child.active, 
+                                        'bg-[#212121] text-[#d0d0d0] font-medium dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': child.active, 
                                         'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800': !child.active 
                                     }">
                                     <span class="font-medium text-sm">{{ child.name }}</span>
@@ -235,12 +235,12 @@ onMounted(() => {
                             <div v-if="!isExpanded && openCollapsedGroup === item.name" 
                                  class="fixed w-52 bg-white dark:bg-zinc-900 rounded-lg shadow-xl p-2 z-[9999] border border-gray-100 dark:border-zinc-700"
                                  :style="{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }">
-                                <h4 class="font-semibold text-sm px-2 py-2 text-gray-500 dark:text-zinc-400 border-b border-gray-100 dark:border-zinc-700 mb-1 flex items-center">
+                                <h4 class="font-semibold text-sm px-2 py-2 text-gray-600 dark:text-zinc-400 border-b border-gray-100 dark:border-zinc-700 mb-1 flex items-center">
                                     {{ item.name }}
                                 </h4>
                                 <Link v-for="child in item.children" :key="child.name" :href="child.route ? route(child.route) : '#'" class="flex items-center p-2 rounded-lg transition-colors duration-200 text-sm" 
                                     :class="{
-                                        'bg-purple-50 text-purple-700 font-medium dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': child.active, 
+                                        'bg-[#212121] text-[#d0d0d0] font-medium dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': child.active, 
                                         'text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800': !child.active 
                                     }">
                                     <span>{{ child.name }}</span>
@@ -252,15 +252,15 @@ onMounted(() => {
                     <!-- Single Navigation Item -->
                     <Link v-else :href="item.route ? route(item.route) : '#'" class="flex items-center p-2 rounded-lg transition-colors duration-200" 
                         :class="{ 
-                            'bg-purple-50 text-purple-700 shadow-sm dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': item.active, 
+                            'bg-[#212121] text-[#d0d0d0] shadow-sm dark:bg-white dark:text-gray-600 dark:border dark:border-gray-200': item.active, 
                             'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400': !item.active 
                         }">
                         <div class="flex items-center" :class="{'mx-auto': !isExpanded }">
                             <div v-html="item.icon" class="size-6" 
                                  :class="{
                                     'mx-auto': !isExpanded,
-                                    'text-purple-700 dark:text-gray-600': item.active,
-                                    'text-gray-500 dark:text-zinc-400': !item.active
+                                    'text-[#d0d0d0] dark:text-gray-600': item.active,
+                                    'text-gray-600 dark:text-zinc-400': !item.active
                                  }">
                             </div>
                             <span v-if="isExpanded" class="ml-4 font-medium">{{ item.name }}</span>
@@ -271,7 +271,7 @@ onMounted(() => {
             
              <div class="px-4 mt-4">
                 <button @click="toggleModal(true)" class="flex items-center p-2 rounded-lg transition-colors duration-200 w-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400">
-                    <div class="size-6 text-gray-500 dark:text-zinc-400" :class="{'mx-auto': !isExpanded }">
+                    <div class="size-6 text-gray-600 dark:text-zinc-400" :class="{'mx-auto': !isExpanded }">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                     <span v-if="isExpanded" class="ml-4 font-medium">Pomodoro</span>
@@ -285,7 +285,7 @@ onMounted(() => {
                 <button @click="toggleSettingsCard" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 focus:outline-none transition-colors text-gray-500 dark:text-zinc-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 </button>
-                <button @click="toggleProfileCard" class="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-900 transition-all hover:opacity-80">
+                <button @click="toggleProfileCard" class="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 dark:focus:ring-offset-zinc-900 transition-all hover:opacity-80">
                     <img class="size-10 rounded-full object-cover shadow-sm" :src="$page.props.auth.user.profile_photo_url" :alt="$page.props.auth.user.name">
                 </button>
             </div>
@@ -309,7 +309,7 @@ onMounted(() => {
              class="fixed bottom-4 z-[9999] border border-gray-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl text-gray-800 dark:text-zinc-100 rounded-3xl w-80 p-0 shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5"
              :class="isExpanded ? 'left-[18rem]' : 'left-[6.5rem]'">
             
-            <div class="relative h-24 bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-zinc-800 dark:to-zinc-900">
+            <div class="relative h-24 bg-gradient-to-r to-[#252525] dark:from-zinc-800 dark:to-zinc-900">
                 <div class="absolute top-2 right-2">
                     <button @click="toggleProfileCard" class="p-1 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>

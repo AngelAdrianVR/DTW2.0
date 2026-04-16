@@ -18,7 +18,9 @@ class HostingClient extends Model
      */
     protected $fillable = [
         'client_id',
+        'hosting_type', // 'Interno' (Cobramos), 'Externo' (Solo registro)
         'service_provider',
+        'support_credentials', // <-- Nuevo campo JSON para múltiples credenciales
         'start_date',
         'next_payment_date',
         'payment_amount',
@@ -37,11 +39,11 @@ class HostingClient extends Model
         'start_date' => 'date',
         'next_payment_date' => 'date',
         'hosted_urls' => 'array',
+        'support_credentials' => 'array', // Convertimos el JSON a arreglo automáticamente
     ];
 
     /**
      * Define la relación con el modelo Client.
-     * Un registro de hosting pertenece a un cliente.
      */
     public function client(): BelongsTo
     {
@@ -50,11 +52,9 @@ class HostingClient extends Model
 
     /**
      * Define la relación con los pagos de hosting.
-     * Un registro de hosting puede tener muchos pagos.
      */
     public function payments(): HasMany
     {
         return $this->hasMany(HostingPayment::class);
     }
 }
-

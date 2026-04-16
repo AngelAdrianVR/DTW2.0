@@ -66,8 +66,7 @@ const submit = () => {
                                     <label for="quote_id" class="font-semibold text-sm dark:text-zinc-300">Cotización Vinculada (Opcional)</label>
                                     <Dropdown id="quote_id" v-model="form.quote_id" :options="props.quotes" filter
                                         optionValue="id" placeholder="Selecciona una cotización aceptada"
-                                        :class="{ 'p-invalid': form.errors.quote_id }" showClear
-                                        :disabled="!!props.project.quote_id">
+                                        :class="{ 'p-invalid': form.errors.quote_id }" showClear>
                                         <template #option="{ option }">
                                             <span>{{ option.title }} (Folio: {{ option.id }})</span>
                                         </template>
@@ -76,7 +75,6 @@ const submit = () => {
                                             <span v-else>{{ placeholder }}</span>
                                         </template>
                                     </Dropdown>
-                                    <small class="text-amber-500 text-xs mt-1" v-if="props.project.quote_id">Para cambiar la cotización, primero debes desvincularla.</small>
                                     <small v-if="form.errors.quote_id" class="p-error">{{ form.errors.quote_id }}</small>
                                 </div>
 
