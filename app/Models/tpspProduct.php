@@ -30,11 +30,12 @@ class tpspProduct extends Model implements HasMedia
     protected $guarded = [];
 
     /**
-     * Casts para los campos enum.
+     * Casts para los campos enum y booleanos.
      */
     protected $casts = [
         'is_kit' => 'boolean',
-        'category' => 'string', // Puedes crear un Enum Cast en Laravel si lo prefieres
+        'is_public' => 'boolean', // NUEVO: Permite saber si es visible en el inventario público
+        'category' => 'string',
         'unit_of_measure' => 'string',
     ];
 

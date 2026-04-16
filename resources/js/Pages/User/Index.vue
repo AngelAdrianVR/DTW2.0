@@ -136,7 +136,7 @@ const getStatusSeverity = (isVerified) => (isVerified ? 'success' : 'warn');
 
                 <!-- Vista de Tabla para Escritorio -->
                 <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
-                    <DataTable @row-click="onRowClick" :rowClass="rowClass" :value="users.data" stripedRows paginator :rows="10" :totalRecords="users.total"
+                    <DataTable @row-click="onRowClick" selectionMode="single" :rowClass="rowClass" :value="users.data" stripedRows paginator :rows="10" :totalRecords="users.total"
                                tableStyle="min-width: 50rem;" dataKey="id" class="index-user-table">
                         <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron usuarios.</div> </template>
 

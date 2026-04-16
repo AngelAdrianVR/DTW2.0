@@ -9,9 +9,9 @@ import InputNumber from 'primevue/inputnumber';
 import Calendar from 'primevue/calendar';
 import Dropdown from 'primevue/dropdown';
 import Toast from 'primevue/toast';
-import ConfirmDialog from 'primevue/confirmdialog'; // Importar confirmación
+import ConfirmDialog from 'primevue/confirmdialog'; 
 import { useToast } from 'primevue/usetoast';
-import { useConfirm } from 'primevue/useconfirm'; // Importar composable de confirmación
+import { useConfirm } from 'primevue/useconfirm'; 
 import ProgressBar from 'primevue/progressbar';
 import axios from 'axios';
 
@@ -23,11 +23,16 @@ const confirm = useConfirm();
 // --- Estado para Modales ---
 const progressModalVisible = ref(false);
 const deliverModalVisible = ref(false);
-const historyModalVisible = ref(false); // Modal de historial de entregas
+const historyModalVisible = ref(false); 
+const paymentModalVisible = ref(false); // Novedad: Modal para el pago
 
 const selectedOrder = ref(null);
+const selectedDelivery = ref(null); // Entrega seleccionada para pagar
+
 const progressData = ref({ quantity: null });
 const deliverData = ref({ quantity: null, delivery_date: null, unit_price: null });
+const paymentData = ref({ amount_paid: null, payment_date: null }); // Novedad
+
 const deliveryHistory = ref([]);
 const loadingHistory = ref(false);
 const isSubmitting = ref(false);
@@ -38,7 +43,6 @@ const statusOptions = ref([
     { label: 'Cancelado', value: 'Cancelado' },
 ]);
 
-// Este objeto es el que da el estilo "Apple" evitando el fondo cuadrado de los modales
 const appleModalStyles = {
     root: { class: 'bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden border-0' }, 
     header: { class: 'px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md text-xl font-semibold text-zinc-900 dark:text-zinc-100' },
@@ -60,11 +64,11 @@ const fetchOrders = async () => {
     }
 };
 
-// --- Formateo de Fechas y Moneda ---
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
         const date = new Date(dateString);
+        // Ajuste para evitar desfaces en visualización local
         const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
         
         return utcDate.toLocaleDateString('es-MX', {
@@ -83,7 +87,6 @@ const formatCurrency = (value) => {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
 };
 
-// --- Cálculos ---
 const getProductionProgress = (produced, requested) => {
     if (!requested || requested === 0) return 0;
     return parseFloat(((produced / requested) * 100).toFixed(2));
@@ -94,7 +97,6 @@ const getDeliveryProgress = (delivered, requested) => {
     return parseFloat((((delivered || 0) / requested) * 100).toFixed(2));
 };
 
-// Mapeo de estados a colores de Tag
 const getStatusSeverity = (status) => {
     switch (status) {
         case 'Pendiente': return 'warning';
@@ -105,9 +107,17 @@ const getStatusSeverity = (status) => {
     }
 };
 
-// --- Manejadores de Modales y Acciones ---
+// Determinar el estado visual del pago en el historial
+const getPaymentStatus = (delivery) => {
+    const total = parseFloat(delivery.total_price) || 0;
+    const paid = parseFloat(delivery.amount_paid) || 0;
+    
+    if (total === 0) return { label: 'Sin Costo', severity: 'info' };
+    if (paid >= total) return { label: 'Pagado', severity: 'success' };
+    if (paid > 0) return { label: 'Parcial', severity: 'warning' };
+    return { label: 'Pendiente', severity: 'danger' };
+};
 
-// ELIMINAR ORDEN
 const confirmDeleteOrder = (order) => {
     confirm.require({
         message: `¿Estás seguro de que deseas eliminar la orden #${order.order_number}? Esto no se puede deshacer.`,
@@ -129,7 +139,6 @@ const confirmDeleteOrder = (order) => {
     });
 };
 
-// PROGRESO
 const openProgressModal = (order) => {
     selectedOrder.value = order;
     progressData.value = { quantity: 1 };
@@ -147,9 +156,10 @@ const submitAddProgress = async () => {
         const url = `/tpsp/production-orders/${selectedOrder.value.id}/add-progress`;
         const response = await axios.post(url, progressData.value);
 
+        // Actualizar la orden y mantener los sum de pagos anteriores
         const index = orders.value.findIndex(o => o.id === selectedOrder.value.id);
         if (index !== -1) {
-            orders.value[index] = response.data;
+            orders.value[index] = { ...orders.value[index], ...response.data };
         }
         
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Progreso agregado correctamente.', life: 3000 });
@@ -162,7 +172,6 @@ const submitAddProgress = async () => {
     }
 };
 
-// ENTREGA (Parcial o Total)
 const openDeliverModal = (order) => {
     const availableToDeliver = order.quantity_produced - (order.quantity_delivered || 0);
     
@@ -173,7 +182,7 @@ const openDeliverModal = (order) => {
     
     selectedOrder.value = order;
     deliverData.value = { 
-        quantity: availableToDeliver, // Por defecto sugiere entregar todo lo disponible
+        quantity: availableToDeliver,
         delivery_date: new Date(), 
         unit_price: null 
     };
@@ -197,12 +206,10 @@ const submitDeliverOrder = async () => {
     isSubmitting.value = true;
     try {
         const url = `/tpsp/production-orders/${selectedOrder.value.id}/deliver`;
-        const response = await axios.post(url, deliverData.value);
+        await axios.post(url, deliverData.value);
 
-        const index = orders.value.findIndex(o => o.id === selectedOrder.value.id);
-        if (index !== -1) {
-            orders.value[index] = response.data;
-        }
+        // Recargamos todo para recalcular total_price_sum con la nueva entrega
+        await fetchOrders(); 
 
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Entrega registrada correctamente.', life: 3000 });
         deliverModalVisible.value = false;
@@ -214,7 +221,6 @@ const submitDeliverOrder = async () => {
     }
 };
 
-// HISTORIAL DE ENTREGAS
 const openHistoryModal = async (order) => {
     selectedOrder.value = order;
     historyModalVisible.value = true;
@@ -230,7 +236,52 @@ const openHistoryModal = async (order) => {
     }
 };
 
-// --- Manejador de Dropdown de Estado ---
+// --- Novedad: Modales y Lógica de Pago por Entrega ---
+const openPaymentModal = (delivery) => {
+    selectedDelivery.value = delivery;
+    paymentData.value = {
+        amount_paid: delivery.amount_paid !== null ? parseFloat(delivery.amount_paid) : 0,
+        payment_date: delivery.payment_date ? new Date(delivery.payment_date) : new Date()
+    };
+    paymentModalVisible.value = true;
+};
+
+const setFullPayment = () => {
+    if (selectedDelivery.value) {
+        paymentData.value.amount_paid = parseFloat(selectedDelivery.value.total_price);
+    }
+};
+
+const submitPayment = async () => {
+    if (paymentData.value.amount_paid === null || paymentData.value.amount_paid < 0) {
+        toast.add({ severity: 'warn', summary: 'Datos inválidos', detail: 'Ingrese un monto válido.', life: 3000 });
+        return;
+    }
+
+    isSubmitting.value = true;
+    try {
+        const url = `/tpsp/production-orders/deliveries/${selectedDelivery.value.id}/pay`;
+        const response = await axios.put(url, paymentData.value);
+        
+        // Actualizamos la fila del historial sin cerrar el modal principal
+        const index = deliveryHistory.value.findIndex(d => d.id === selectedDelivery.value.id);
+        if (index !== -1) {
+            deliveryHistory.value[index] = response.data;
+        }
+        
+        toast.add({ severity: 'success', summary: 'Pago registrado', detail: 'Se actualizó el pago de la entrega correctamente.', life: 3000 });
+        paymentModalVisible.value = false;
+        
+        // Recargamos las ordenes principales en el fondo para que "Cerrada / Pagada" se aplique
+        fetchOrders();
+
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo registrar el pago.', life: 4000 });
+    } finally {
+        isSubmitting.value = false;
+    }
+};
+
 const onStatusChange = async (event, order) => {
     const newStatus = event.value;
     if (!newStatus || newStatus === order.status) return;
@@ -284,17 +335,14 @@ onMounted(fetchOrders);
                     </template>
                 </Column>
 
-                <!-- Columna de Progreso (Producido vs Entregado) -->
                 <Column header="Avance" style="min-width: 180px;">
                     <template #body="slotProps">
                         <div class="flex flex-col gap-2 w-full">
-                            <!-- Barra de Producido -->
                             <div class="flex items-center gap-2">
                                 <span class="text-[0.65rem] uppercase tracking-wider font-bold text-blue-600 dark:text-blue-400 w-12">Prod.</span>
                                 <ProgressBar :value="getProductionProgress(slotProps.data.quantity_produced, slotProps.data.quantity_requested)" class="custom-progress flex-1 h-1.5" :showValue="false" />
                                 <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300 w-8 text-right">{{ slotProps.data.quantity_produced }}</span>
                             </div>
-                            <!-- Barra de Entregado -->
                             <div class="flex items-center gap-2">
                                 <span class="text-[0.65rem] uppercase tracking-wider font-bold text-emerald-600 dark:text-emerald-400 w-12">Entr.</span>
                                 <ProgressBar :value="getDeliveryProgress(slotProps.data.quantity_delivered, slotProps.data.quantity_requested)" class="custom-progress delivery flex-1 h-1.5" :showValue="false" />
@@ -322,8 +370,12 @@ onMounted(fetchOrders);
                             class="!rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:bg-zinc-950 p-inputtext-sm w-full shadow-sm"
                             @change="onStatusChange($event, slotProps.data)"
                         />
-                        <span v-else class="text-zinc-400 dark:text-zinc-600 text-sm flex items-center gap-1.5 font-medium">
-                            <i class="pi pi-lock text-[0.7rem]"></i> Cerrada
+                        <span v-else class="text-zinc-400 dark:text-zinc-500 text-sm flex items-center gap-1.5 font-medium">
+                            <i :class="slotProps.data.status === 'Cancelado' ? 'pi pi-times-circle' : 'pi pi-lock'" class="text-[0.7rem]"></i>
+                            <template v-if="slotProps.data.status === 'Cancelado'">Cancelada</template>
+                            <template v-else-if="slotProps.data.status === 'Completado'">
+                                {{ (slotProps.data.total_price_sum > 0 && Number(slotProps.data.amount_paid_sum) >= Number(slotProps.data.total_price_sum)) ? 'Cerrada / Pagada' : 'Cerrada' }}
+                            </template>
                         </span>
                     </template>
                 </Column>
@@ -349,7 +401,7 @@ onMounted(fetchOrders);
                             <Button 
                                 icon="pi pi-list" 
                                 class="!rounded-xl !w-8 !h-8 !p-0 !bg-indigo-50 dark:!bg-indigo-900/30 !text-indigo-600 dark:!text-indigo-400 hover:!bg-indigo-100 dark:hover:!bg-indigo-900/50 !border-0 transition-colors" 
-                                v-tooltip.top="'Historial Entregas'"
+                                v-tooltip.top="'Historial Entregas / Pagos'"
                                 @click="openHistoryModal(slotProps.data)"
                                 :disabled="!slotProps.data.quantity_delivered"
                             />
@@ -392,7 +444,6 @@ onMounted(fetchOrders);
                         <Tag :value="order.status" :severity="getStatusSeverity(order.status)" class="!rounded-md text-[0.65rem] font-bold tracking-wide" />
                     </div>
 
-                    <!-- Progreso Móvil -->
                     <div class="mb-4 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
                         <div class="flex items-center justify-between text-xs mb-1">
                             <span class="font-semibold text-zinc-500">Solicitado:</span>
@@ -432,6 +483,13 @@ onMounted(fetchOrders);
                             class="!rounded-xl p-inputtext-sm w-full mb-3 dark:bg-zinc-950 dark:border-zinc-700 shadow-sm"
                             @change="onStatusChange($event, order)"
                         />
+                        <div v-else class="mb-3 px-3 py-2 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800 text-sm font-medium text-zinc-500 flex items-center justify-center gap-2">
+                            <i :class="order.status === 'Cancelado' ? 'pi pi-times-circle' : 'pi pi-lock'"></i>
+                            <span v-if="order.status === 'Cancelado'">Cancelada</span>
+                            <span v-else-if="order.status === 'Completado'">
+                                {{ (order.total_price_sum > 0 && Number(order.amount_paid_sum) >= Number(order.total_price_sum)) ? 'Cerrada / Pagada' : 'Cerrada' }}
+                            </span>
+                        </div>
                         
                         <div class="flex gap-2">
                             <Button icon="pi pi-plus" class="!rounded-xl !bg-blue-50 dark:!bg-blue-900/30 !text-blue-700 dark:!text-blue-400 hover:!bg-blue-100 !border-0 flex-1 h-10" @click="openProgressModal(order)" :disabled="order.status === 'Completado' || order.status === 'Cancelado'" />
@@ -483,7 +541,7 @@ onMounted(fetchOrders);
             </template>
         </Dialog>
 
-        <!-- MODAL: REGISTRAR ENTREGA (Parcial o Total) -->
+        <!-- MODAL: REGISTRAR ENTREGA -->
         <Dialog 
             v-model:visible="deliverModalVisible" 
             modal 
@@ -546,12 +604,12 @@ onMounted(fetchOrders);
             </template>
         </Dialog>
 
-        <!-- MODAL: HISTORIAL DE ENTREGAS -->
+        <!-- MODAL: HISTORIAL DE ENTREGAS Y PAGOS -->
         <Dialog 
             v-model:visible="historyModalVisible" 
             modal 
-            header="Historial de Entregas" 
-            :style="{ width: '100%', maxWidth: '40rem', margin: '1rem' }"
+            header="Historial de Entregas y Pagos" 
+            :style="{ width: '100%', maxWidth: '55rem', margin: '1rem' }"
             :pt="appleModalStyles"
             :dismissableMask="true"
         >
@@ -568,26 +626,54 @@ onMounted(fetchOrders);
 
                 <div class="border border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden">
                     <DataTable :value="deliveryHistory" :loading="loadingHistory" class="zinc-table" responsiveLayout="scroll">
-                        <Column field="created_at" header="Fecha de Entrega">
+                        <Column field="created_at" header="Fecha Entrega" style="min-width: 100px;">
                             <template #body="{ data }">
                                 <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ formatDate(data.created_at) }}</span>
                             </template>
                         </Column>
-                        <Column field="quantity" header="Cantidad">
+                        <Column field="quantity" header="Unid." style="min-width: 60px;">
                             <template #body="{ data }">
-                                <span class="font-bold text-emerald-600 dark:text-emerald-400">+{{ Math.abs(data.quantity) }}</span>
+                                <span class="font-bold text-indigo-600 dark:text-indigo-400">+{{ Math.abs(data.quantity) }}</span>
                             </template>
                         </Column>
-                        <Column field="unit_price" header="Precio Unit.">
+                        
+                        <!-- Sección Total Costo -->
+                        <Column header="Total Venta" style="min-width: 100px;">
                             <template #body="{ data }">
-                                <span class="text-sm text-zinc-500">{{ formatCurrency(data.unit_price) }}</span>
+                                <span class="font-bold text-zinc-800 dark:text-zinc-200 block">{{ formatCurrency(data.total_price) }}</span>
+                                <span class="text-[0.65rem] text-zinc-500">{{ formatCurrency(data.unit_price) }} c/u</span>
                             </template>
                         </Column>
-                        <Column field="total_price" header="Total" style="text-align: right;">
+
+                        <!-- Novedad: Sección Pagos -->
+                        <Column header="Abonado" style="min-width: 100px;">
                             <template #body="{ data }">
-                                <span class="font-bold text-zinc-800 dark:text-zinc-200">{{ formatCurrency(data.total_price) }}</span>
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(data.amount_paid || 0) }}</span>
                             </template>
                         </Column>
+                        <Column header="Est. Pago" style="min-width: 90px;">
+                            <template #body="{ data }">
+                                <Tag :value="getPaymentStatus(data).label" :severity="getPaymentStatus(data).severity" class="!rounded-md text-[0.65rem] font-bold" />
+                            </template>
+                        </Column>
+                        <Column field="payment_date" header="Fecha Pago" style="min-width: 100px;">
+                            <template #body="{ data }">
+                                <span class="text-sm text-zinc-600 dark:text-zinc-400">{{ data.payment_date ? formatDate(data.payment_date) : '-' }}</span>
+                            </template>
+                        </Column>
+                        
+                        <!-- Novedad: Botón para pagar -->
+                        <Column header="Acciones" bodyStyle="text-align: right;" style="min-width: 60px;">
+                            <template #body="{ data }">
+                                <Button 
+                                    icon="pi pi-dollar" 
+                                    class="!rounded-xl !w-8 !h-8 !p-0 !bg-amber-50 dark:!bg-amber-900/30 !text-amber-600 dark:!text-amber-400 hover:!bg-amber-100 dark:hover:!bg-amber-900/50 !border-0" 
+                                    v-tooltip.top="'Registrar Pago'"
+                                    @click="openPaymentModal(data)"
+                                />
+                            </template>
+                        </Column>
+
                         <template #empty>
                             <div class="text-center p-6 text-zinc-500 text-sm">No hay entregas registradas aún.</div>
                         </template>
@@ -600,6 +686,55 @@ onMounted(fetchOrders);
             </template>
         </Dialog>
 
+        <!-- NOVEDAD - MODAL: REGISTRAR PAGO POR ENTREGA -->
+        <Dialog 
+            v-model:visible="paymentModalVisible" 
+            modal 
+            header="Registrar Pago" 
+            :style="{ width: '100%', maxWidth: '24rem', margin: '1rem' }"
+            :pt="appleModalStyles"
+            :dismissableMask="true"
+        >
+            <div class="flex flex-col gap-4 mt-2" v-if="selectedDelivery">
+                <div class="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-2xl border border-amber-100 dark:border-amber-800/30 text-sm">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-amber-700 dark:text-amber-400 font-medium">Total de la Entrega:</span>
+                        <span class="font-bold text-amber-900 dark:text-amber-200">{{ formatCurrency(selectedDelivery.total_price) }}</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-end">
+                        <label for="amountPaid" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Monto Pagado / Abonado</label>
+                        <button @click="setFullPayment" class="text-[0.65rem] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">Liquidar todo</button>
+                    </div>
+                    <InputNumber 
+                        id="amountPaid" 
+                        v-model="paymentData.amount_paid" 
+                        mode="currency" currency="MXN" locale="es-MX" 
+                        class="w-full"
+                        inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3 font-bold text-center text-lg" 
+                    />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="paymentDate" class="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Fecha del Pago</label>
+                    <Calendar 
+                        id="paymentDate" 
+                        v-model="paymentData.payment_date" 
+                        dateFormat="dd/mm/yy" 
+                        class="w-full"
+                        inputClass="!w-full !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 dark:!text-zinc-100 shadow-sm p-3" 
+                    />
+                </div>
+            </div>
+
+            <template #footer>
+                <Button label="Cancelar" @click="paymentModalVisible = false" class="!px-5 !py-3 w-full sm:w-auto !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium" />
+                <Button label="Guardar Pago" @click="submitPayment" :loading="isSubmitting" class="!px-5 !py-3 w-full sm:w-auto !rounded-xl !bg-[var(--primary-color)] !text-[var(--primary-text-color)]" />
+            </template>
+        </Dialog>
+
     </div>
 </template>
 
@@ -608,7 +743,6 @@ onMounted(fetchOrders);
     overflow: visible;
 }
 
-/* Estilo para barras de progreso */
 :deep(.custom-progress .p-progressbar) {
     background-color: #f4f4f5;
     border-radius: 9999px;
@@ -618,16 +752,15 @@ onMounted(fetchOrders);
     background-color: #27272a;
 }
 :deep(.custom-progress .p-progressbar-value) {
-    background: #3b82f6; /* Azul para producción */
+    background: #3b82f6; 
     border-radius: 9999px;
 }
 :deep(.custom-progress.delivery .p-progressbar-value) {
-    background: #10b981; /* Esmeralda para entregas */
+    background: #10b981; 
 }
 </style>
 
 <style>
-/* Estilos globales para PrimeVue DataTable */
 .apple-table .p-datatable-thead > tr > th {
     background-color: transparent !important;
     color: #52525b !important;
@@ -651,7 +784,6 @@ html.dark .apple-table .p-datatable-tbody > tr:not(:last-child) > td,
     border-bottom: 1px solid #27272a !important; 
 }
 
-/* Estilos Minimalistas adicionales para tabla interna */
 .zinc-table .p-datatable-thead > tr > th {
     background-color: transparent !important;
     color: #71717a !important;

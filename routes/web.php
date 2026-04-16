@@ -48,6 +48,8 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
+Route::get('/dashboard/projects-data', [DashboardController::class, 'getProjectsByStatus'])->name('dashboard.projects.data');
+
 Route::get('/dashboard/performance/{user}', [DashboardController::class, 'getWeeklyPerformance'])->middleware('auth')->name('dashboard.performance');
 Route::get('/dashboard/financials', [DashboardController::class, 'getFinancialsByYear'])->name('dashboard.financials.by-year');
 // Nueva ruta para obtener cotizaciones por estado en el KPI
@@ -73,6 +75,7 @@ Route::post('/quotes/{quote}/invoices', [QuoteController::class, 'storeInvoice']
 Route::delete('/quotes/{quote}/invoices/{media}', [QuoteController::class, 'destroyInvoice'])->name('quotes.invoices.destroy')->middleware(['auth']);
 // Cotizaciones desde la web
 Route::post('/quote-request', [QuoteController::class, 'handleWebRequest'])->name('quote.web.request');
+Route::put('/quotes/{quote}/dates', [QuoteController::class, 'updateDates'])->name('quotes.updateDates');
 
 
 // Rutas de Proyectos --------------------------------------------------------------------------------------
@@ -180,6 +183,7 @@ Route::get('/public/inventario', [TpspDashboardController::class, 'publicInvento
 // Ruta para que el componente Vue filtre y cargue los movimientos de venta
 Route::get('/public-sales-movements', [TpspInventoryMovementController::class, 'publicSalesHistory'])
      ->name('tpsp.public.sales-history');
+Route::put('/tpsp/production-orders/deliveries/{deliveryId}/pay', [TpspProductionOrderController::class, 'updateDeliveryPayment']);
 
 // En tu archivo routes/web.php 
 Route::post('/tpsp/products/{product}/adjust-stock', [TpspProductController::class, 'adjustStock']);

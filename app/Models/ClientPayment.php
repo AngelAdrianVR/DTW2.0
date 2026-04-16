@@ -23,6 +23,7 @@ class ClientPayment extends Model implements HasMedia
         'amount',
         'payment_date',
         'notes',
+        'receipt',
     ];
 
     /**
@@ -49,28 +50,5 @@ class ClientPayment extends Model implements HasMedia
     public function quote(): BelongsTo
     {
         return $this->belongsTo(Quote::class);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Client $client)
-    {
-        // 1. AQUÍ ES DONDE DEBES PEGAR LA LÍNEA
-        // Asegúrate de ponerlo DESPUÉS de que $client se recibe en la función, 
-        // y ANTES del return Inertia::render
-        $client->load('contacts', 'quotes', 'payments.quote', 'payments.media');
-
-        // 2. Probablemente ya tienes lógica aquí para calcular totales
-        $total_billed = $client->quotes()->whereIn('status', ['Aceptado', 'Pagado'])->sum('final_amount');
-        $total_paid = $client->payments()->sum('amount');
-
-        // 3. Finalmente se envía a la vista Vue
-        return Inertia::render('Clientes/ShowClient', [
-            'client' => $client,
-            'total_billed' => $total_billed,
-            'total_paid' => $total_paid,
-        ]);
-    }
-    
+    }    
 }

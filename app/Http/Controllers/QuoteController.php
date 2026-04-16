@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Client;
@@ -10,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;        
 
 class QuoteController extends Controller
 {
@@ -19,16 +18,16 @@ class QuoteController extends Controller
         $filters = $request->only('search');
         
         $quotes = Quote::query()
-            ->with(['client:id,name', 'project:id,name,quote_id']) // Carga la relación con cliente para eficiencia
-            ->withSum('payments as total_paid', 'amount') // Calcula el total pagado por cotización
+            ->with(['client:id,name', 'project:id,name,quote_id'])
+            ->withSum('payments as total_paid', 'amount')
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('id', 'like', "%{$search}%")
-                      ->orWhere('status', 'like', "%{$search}%")
-                      ->orWhereHas('client', function ($clientQuery) use ($search) {
-                          $clientQuery->where('name', 'like', "%{$search}%");
-                      })
-                      ->orWhere('client_name', 'like', "%{$search}%"); // Para clientes de origen 'Web'
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhereHas('client', function ($clientQuery) use ($search) {
+                        $clientQuery->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('client_name', 'like', "%{$search}%");
                 });
             })
             ->latest('id')
@@ -50,30 +49,32 @@ class QuoteController extends Controller
 
     public function store(Request $request)
     {
-        // --- Validación actualizada ---
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'amount' => 'required|numeric|min:0',
+            'amount_usd' => 'nullable|numeric|min:0',
             'valid_until' => 'required|date',
             'payment_type' => 'required|string|max:255',
             'work_days' => 'required|integer|min:1',
+            'percentage_discount' => 'nullable|numeric|min:0|max:100',
             'show_process' => 'required|boolean',
             'show_benefits' => 'required|boolean',
             'show_bank_info' => 'required|boolean',
         ]);
 
-        // --- Creación de la cotización actualizada ---
-        Quote::create([
+        $quote = Quote::create([
             'client_id' => $validated['client_id'],
             'user_id' => auth()->id(),
             'title' => $validated['title'],
             'description' => $validated['description'],
             'amount' => $validated['amount'],
+            'amount_usd' => $validated['amount_usd'] ?? null,
             'valid_until' => $validated['valid_until'],
             'payment_type' => $validated['payment_type'],
             'work_days' => $validated['work_days'],
+            'percentage_discount' => $validated['percentage_discount'] ?? 0,
             'show_process' => $validated['show_process'],
             'show_benefits' => $validated['show_benefits'],
             'show_bank_info' => $validated['show_bank_info'],
@@ -82,7 +83,7 @@ class QuoteController extends Controller
             'origin' => 'Interno'
         ]);
 
-        return redirect()->route('quotes.index')->with('flash', [
+        return redirect()->route('quotes.show', $quote->id)->with('flash', [
             'message' => 'Cotización creada con éxito.',
             'type' => 'success'
         ]);
@@ -90,7 +91,6 @@ class QuoteController extends Controller
 
     public function print(Quote $quote)
     {
-        // Carga la relación con el cliente para tener todos sus datos disponibles en la vista
         $quote->load('client');
 
         return Inertia::render('Quote/Print', [
@@ -100,7 +100,6 @@ class QuoteController extends Controller
 
     public function show(Quote $quote)
     {
-        // Carga la relación con el cliente, los archivos multimedia y los pagos con sus comprobantes
         $quote->load('client', 'media', 'payments.media');
 
         return Inertia::render('Quote/Show', [
@@ -110,7 +109,6 @@ class QuoteController extends Controller
 
     public function edit(Quote $quote)
     {
-        // Carga la cotización que se va a editar y la lista de todos los clientes
         return Inertia::render('Quote/Edit', [
             'quote' => $quote,
             'clients' => Client::select('id', 'name', 'tax_id', 'address')->get()
@@ -119,12 +117,12 @@ class QuoteController extends Controller
 
     public function update(Request $request, Quote $quote)
     {
-        // Validación de los datos de entrada
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'amount' => 'required|numeric|min:0',
+            'amount_usd' => 'nullable|numeric|min:0',
             'valid_until' => 'required|date',
             'payment_type' => 'required|string|max:255',
             'work_days' => 'required|integer|min:1',
@@ -134,11 +132,9 @@ class QuoteController extends Controller
             'show_bank_info' => 'required|boolean',
         ]);
         
-        // Actualiza la cotización con los datos validados
         $quote->update($validated);
 
-        // Redirige al índice con un mensaje de éxito
-        return redirect()->route('quotes.index')->with('flash', [
+        return redirect()->route('quotes.show', $quote->id)->with('flash', [
             'message' => 'Cotización actualizada con éxito.',
             'type' => 'success'
         ]);
@@ -146,9 +142,8 @@ class QuoteController extends Controller
 
     public function destroy(Quote $quote)
     {
-        // Opcional: Agregar lógica para no permitir eliminar cotizaciones aceptadas o pagadas
         if (in_array($quote->status, ['Aceptado', 'Pagado'])) {
-             return back()->with('flash', [
+            return back()->with('flash', [
                 'message' => 'No se puede eliminar una cotización aceptada o pagada.', 
                 'type' => 'error'
             ]);
@@ -168,14 +163,39 @@ class QuoteController extends Controller
             'status' => ['required', Rule::in(['Enviado', 'Aceptado', 'Rechazado'])],
         ]);
 
-        // Lógica de transición de estados
         $canUpdate = false;
         switch ($quote->status) {
             case 'Pendiente':
-                if ($validated['status'] === 'Enviado') $canUpdate = true;
+                if ($validated['status'] === 'Enviado') {
+                    $canUpdate = true;
+                    if (!$quote->sent_at) $quote->sent_at = now();
+                }
                 break;
             case 'Enviado':
-                if (in_array($validated['status'], ['Aceptado', 'Rechazado'])) $canUpdate = true;
+                if (in_array($validated['status'], ['Aceptado', 'Rechazado'])) {
+                    $canUpdate = true;
+                    if ($validated['status'] === 'Aceptado' && !$quote->accepted_at) {
+                        $quote->accepted_at = now();
+                    } elseif ($validated['status'] === 'Rechazado' && !$quote->rejected_at) {
+                        $quote->rejected_at = now();
+                    }
+                }
+                break;
+            case 'Rechazado':
+                if (in_array($validated['status'], ['Aceptado', 'Enviado'])) {
+                    $canUpdate = true;
+                    if ($validated['status'] === 'Aceptado' && !$quote->accepted_at) {
+                        $quote->accepted_at = now();
+                    }
+                }
+                break;
+            case 'Aceptado':
+                if (in_array($validated['status'], ['Enviado', 'Rechazado'])) {
+                    $canUpdate = true;
+                    if ($validated['status'] === 'Rechazado' && !$quote->rejected_at) {
+                        $quote->rejected_at = now();
+                    }
+                }
                 break;
         }
 
@@ -195,15 +215,27 @@ class QuoteController extends Controller
         ]);
     }
 
-    /**
-     * Maneja la solicitud de cotización desde el formulario web público.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
+    public function updateDates(Request $request, Quote $quote)
+    {
+        $validated = $request->validate([
+            'field' => ['required', Rule::in(['created_at', 'sent_at', 'accepted_at', 'rejected_at', 'paid_at'])],
+            'date' => 'required|date',
+        ]);
+
+        $field = $validated['field'];
+        $quote->$field = $validated['date'];
+        
+        $quote->timestamps = false;
+        $quote->save();
+
+        return back()->with('flash', [
+            'message' => 'Fecha actualizada correctamente.',
+            'type' => 'success'
+        ]);
+    }
+
     public function handleWebRequest(Request $request)
     {
-        // 1. Validación de los datos
         $validator = Validator::make($request->all(), [
             'client_name' => 'required|string|max:255',
             'client_email' => 'required|email|max:255',
@@ -213,12 +245,9 @@ class QuoteController extends Controller
         ]);
 
         if ($validator->fails()) {
-            // Si la validación falla, regresamos con los errores y los datos enviados.
-            // Laravel e Inertia se encargarán de mostrar los errores automáticamente.
             return back()->withErrors($validator)->withInput();
         }
 
-        // 2. Creación de la cotización
         try {
             Quote::create([
                 'user_id' => null,
@@ -234,31 +263,19 @@ class QuoteController extends Controller
                 'valid_until' => now()->addDays(30),
             ]);
         } catch (\Exception $e) {
-            // Es una buena práctica registrar el error para depuración.
             Log::error('Error al crear la cotización: ' . $e->getMessage());
-
-            // En caso de un error en la base de datos, enviamos un mensaje flash de error.
             return back()->with('flash', [
                 'message' => 'Hubo un problema al enviar tu solicitud. Por favor, intenta de nuevo más tarde.',
                 'type' => 'error'
             ]);
         }
 
-        // 3. Redirección con mensaje de éxito
-        // Si todo sale bien, enviamos el mensaje flash de éxito.
-        // El layout de Vue escuchará este evento y lo mostrará en el notch.
         return back()->with('flash', [
             'message' => '¡Tu solicitud ha sido enviada con éxito!',
             'type' => 'success'
         ]);
     }
 
-    /**
-     * Genera un código único para la cotización.
-     * Ejemplo: COT-2024-XXXX
-     *
-     * @return string
-     */
     private function generateQuoteCode()
     {
         $year = date('Y');
@@ -268,18 +285,15 @@ class QuoteController extends Controller
         return 'COT-' . $year . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
-    /**
-     * NEW: Adjunta un archivo de factura a una cotización.
-     */
     public function storeInvoice(Request $request, Quote $quote)
     {
         $request->validate([
-            'invoice_file' => 'required|file|mimes:pdf,jpg,jpeg,png,xml|max:5120', // Max 5MB
+            'invoice_file' => 'required|file|mimes:pdf,jpg,jpeg,png,xml|max:5120',
         ]);
 
         try {
             $quote->addMediaFromRequest('invoice_file')
-                  ->toMediaCollection('invoices');
+                ->toMediaCollection('invoices');
         } catch (\Exception $e) {
             Log::error('Error al subir archivo de factura: ' . $e->getMessage());
             return back()->with('flash', [
@@ -294,17 +308,12 @@ class QuoteController extends Controller
         ]);
     }
 
-    /**
-     * NEW: Elimina un archivo de factura de la cotización.
-     */
     public function destroyInvoice(Quote $quote, Media $media)
     {
         if ($media->model_id !== $quote->id || $media->model_type !== Quote::class) {
             return back()->with('flash', ['message' => 'Acción no autorizada.', 'type' => 'error']);
         }
-
         $media->delete();
-
         return back()->with('flash', ['message' => 'Archivo eliminado correctamente.', 'type' => 'success']);
     }
 }

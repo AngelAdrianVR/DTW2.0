@@ -38,6 +38,7 @@ const paymentForm = useForm({
     amount: null,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
+    receipt: null,
 });
 
 
@@ -166,6 +167,11 @@ const openPaymentDialog = (hostingClient) => {
 const closePaymentDialog = () => {
     isPaymentDialogVisible.value = false;
     selectedHostingClientForPayment.value = null;
+    paymentForm.reset();
+};
+
+const handleFileChange = (event) => {
+    paymentForm.receipt = event.target.files[0];
 };
 
 const submitPayment = () => {
@@ -173,6 +179,7 @@ const submitPayment = () => {
     
     paymentForm.post(route('hosting-clients.payments.store', selectedHostingClientForPayment.value.id), {
         preserveScroll: true,
+        forceFormData: true,
         onSuccess: () => {
             closePaymentDialog();
             toast.add({
@@ -235,7 +242,7 @@ const getStatusSeverity = (status) => {
                 <!-- Desktop Table View -->
                 <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                     <DataTable :value="hostingClients" stripedRows paginator :rows="15" tableStyle="min-width: 50rem;"
-                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="zinc-table">
+                        @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="index-hosting-table">
                         <template #empty> <div class="p-4 text-center text-gray-500 dark:text-zinc-500">No se encontraron servicios de hosting.</div> </template>
 
                         <Column field="client.name" header="Cliente" sortable>
@@ -313,36 +320,56 @@ const getStatusSeverity = (status) => {
                 </div>
 
 
-                <!-- Payment Dialog -->
-                 <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '25rem' }"
-                    :pt="{ root: { class: 'dark:bg-zinc-900 dark:border-zinc-700' }, header: { class: 'dark:bg-zinc-900 dark:text-zinc-200' }, content: { class: 'dark:bg-zinc-900' }, footer: { class: 'dark:bg-zinc-900' } }">
+                <!-- Payment Dialog (Apple Style) -->
+                <Dialog v-model:visible="isPaymentDialogVisible" modal header="Registrar Pago" :style="{ width: '28rem' }"
+                    :pt="{ 
+                        root: { class: 'dark:bg-zinc-900 rounded-[2rem] shadow-2xl border-0' }, 
+                        header: { class: 'pt-8 px-8 pb-0 bg-transparent rounded-t-[2rem] dark:text-zinc-100' }, 
+                        content: { class: 'px-8 pb-8 pt-4 bg-transparent rounded-b-[2rem]' } 
+                    }">
                     <template #header>
-                        <div class="flex flex-col">
-                            <h3 class="text-lg font-semibold dark:text-zinc-100">Registrar Pago de Hosting</h3>
-                            <p class="text-sm text-gray-500 dark:text-zinc-500">Para: {{ selectedHostingClientForPayment?.client?.name }}</p>
+                        <div class="flex items-center gap-3 w-full">
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                                <i class="pi pi-dollar text-emerald-600 dark:text-emerald-400 text-lg font-bold"></i>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xl font-bold text-gray-800 dark:text-white tracking-tight">Registrar Pago</span>
+                                <span class="text-xs text-gray-500 dark:text-zinc-400">Para: {{ selectedHostingClientForPayment?.client?.name }}</span>
+                            </div>
                         </div>
                     </template>
                     <form @submit.prevent="submitPayment">
-                        <div class="flex flex-col gap-4 p-4">
+                        <div class="flex flex-col gap-5 mt-2">
                             <div class="flex flex-col gap-2">
-                                <label for="amount" class="dark:text-zinc-300">Monto del Pago</label>
-                                <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN" locale="es-MX" :class="{ 'p-invalid': paymentForm.errors.amount }" />
+                                <label for="amount" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Monto del Pago <span class="text-red-500">*</span></label>
+                                <InputNumber id="amount" v-model="paymentForm.amount" mode="currency" currency="MXN" locale="es-MX" class="!rounded-xl w-full" :class="{ 'p-invalid': paymentForm.errors.amount }" required />
                                 <small v-if="paymentForm.errors.amount" class="p-error">{{ paymentForm.errors.amount }}</small>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label for="payment_date" class="dark:text-zinc-300">Fecha del Pago</label>
-                                <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" :class="{ 'p-invalid': paymentForm.errors.payment_date }" />
+                                <label for="payment_date" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Fecha del Pago <span class="text-red-500">*</span></label>
+                                <Calendar id="payment_date" v-model="paymentForm.payment_date" dateFormat="yy-mm-dd" class="!rounded-xl w-full" :class="{ 'p-invalid': paymentForm.errors.payment_date }" required />
                                 <small v-if="paymentForm.errors.payment_date" class="p-error">{{ paymentForm.errors.payment_date }}</small>
                             </div>
+                            
+                            <!-- Campo de Archivo (Comprobante) -->
                             <div class="flex flex-col gap-2">
-                                <label for="notes" class="dark:text-zinc-300">Notas (Opcional)</label>
-                                <Textarea id="notes" v-model="paymentForm.notes" rows="3" />
+                                <label class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Subir Comprobante (Opcional)</label>
+                                <input type="file" @change="handleFileChange" accept=".pdf,.jpg,.jpeg,.png"
+                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-zinc-800 dark:file:text-emerald-400 transition-colors cursor-pointer" />
+                                <small v-if="paymentForm.errors.receipt" class="p-error">{{ paymentForm.errors.receipt }}</small>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <label for="notes" class="text-sm font-semibold text-gray-700 dark:text-zinc-300">Notas Adicionales</label>
+                                <Textarea id="notes" v-model="paymentForm.notes" rows="2" class="!rounded-xl w-full" />
                             </div>
                         </div>
                     </form>
                     <template #footer>
-                        <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" />
-                        <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!text-[var(--primary-text-color)]" />
+                        <div class="flex justify-end gap-3 mt-4 w-full">
+                            <Button label="Cancelar" text severity="secondary" @click="closePaymentDialog" class="!rounded-xl font-medium" />
+                            <Button label="Guardar Pago" icon="pi pi-check" @click="submitPayment" :loading="paymentForm.processing" class="!rounded-xl font-medium bg-emerald-600 border-emerald-600 hover:bg-emerald-700 !text-[var(--primary-text-color)]" />
+                        </div>
                     </template>
                 </Dialog>
             </div>
@@ -350,34 +377,39 @@ const getStatusSeverity = (status) => {
     </AppLayout>
 </template>
 
+<style scoped>
+/* Estilos para asegurar que el autocompletado del navegador no altere el diseño */
+.p-inputtext, .p-inputnumber-input {
+    width: 100% !important;
+}
+</style>
+
 <style>
-/* Zinc Theme Overrides for PrimeVue DataTable */
-.zinc-table .p-datatable-thead > tr > th {
+/* Estilos globales para la tabla de INDEX */
+.index-hosting-table .p-datatable-thead > tr > th {
     background-color: #212121 !important;
     color: #d0d0d0 !important;
     border-bottom: 1px solid #e4e4e7 !important;
 }
 
-.zinc-table .p-datatable-tbody > tr { 
+.index-hosting-table .p-datatable-tbody > tr { 
     background-color: transparent !important; 
 }
 
-.zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+.index-hosting-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #f4f4f5 !important; 
 }
 
-/* Reglas de Dark Mode 
-  Agregamos html.dark para darle un "extra" de especificidad y ganarle a PrimeVue
-*/
-html.dark .zinc-table .p-datatable-thead > tr > th,
-.dark .zinc-table .p-datatable-thead > tr > th {
+/* Reglas de Dark Mode para INDEX (Con el fondo claro que querías) */
+html.dark .index-hosting-table .p-datatable-thead > tr > th,
+.dark .index-hosting-table .p-datatable-thead > tr > th {
     background-color: #f4f4f5 !important;
     color: #52525b !important;
     border-bottom: 1px solid #27272a !important;
 }
 
-html.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td,
-.dark .zinc-table .p-datatable-tbody > tr:not(:last-child) > td { 
+html.dark .index-hosting-table .p-datatable-tbody > tr:not(:last-child) > td,
+.dark .index-hosting-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #27272a !important; 
 }
 </style>

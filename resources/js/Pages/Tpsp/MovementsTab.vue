@@ -162,7 +162,7 @@ onMounted(() => {
 <template>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="md:col-span-1">
-            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6 h-full">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6 h-[460px]">
                 <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-zinc-100">Registrar Movimiento</h3>
                 
                 <div class="flex flex-col gap-4">
@@ -225,7 +225,7 @@ onMounted(() => {
             <!-- Vista de Tabla (Escritorio) - Oculta en pantallas pequeñas -->
             <div class="hidden md:block bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden">
                 <DataTable :value="movements" :loading="loading" 
-                    responsiveLayout="scroll" :rows="20" :paginator="true"
+                    responsiveLayout="scroll" :rows="10" :paginator="true"
                     dataKey="id"
                     class="movements-table">
                     
@@ -249,12 +249,12 @@ onMounted(() => {
                         </template>
                     </Column>
                     
-                    <Column field="unit_price" header="Precio Unit.">
+                    <Column field="unit_price" header="Precio">
                         <template #body="slotProps">
                             <span class="dark:text-zinc-400 text-sm">{{ formatCurrency(slotProps.data.unit_price) }}</span>
                         </template>
                     </Column>
-                    <Column field="total_price" header="Monto Total">
+                    <Column field="total_price" header="Total">
                         <template #body="slotProps">
                             <span class="dark:text-zinc-200 font-medium">{{ formatCurrency(slotProps.data.total_price) }}</span>
                         </template>
