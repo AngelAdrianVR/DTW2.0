@@ -31,6 +31,7 @@ const form = useForm({
     start_date: null,
     end_date: null,
     budget: null,
+    budgeted_hours: null,
     member_ids: [],
 });
 
@@ -57,10 +58,11 @@ watch(() => form.quote_id, (newQuoteId) => {
             form.name = selectedQuote.title || `Proyecto para Cotización #${selectedQuote.id}`;
             form.client_id = selectedQuote.client_id;
             form.budget = selectedQuote.final_amount;
+            form.budgeted_hours = selectedQuote.budgeted_hours; // <-- AUTO RELLENAR
             form.description = cleanText(selectedQuote.description);
         }
     } else {
-        form.reset('name', 'client_id', 'budget', 'description');
+        form.reset('name', 'client_id', 'budget', 'budgeted_hours', 'description'); // <-- LIMPIAR AL QUITAR COTA
     }
 }, {
     immediate: true
@@ -125,10 +127,16 @@ const submit = () => {
                                     <small v-if="form.errors.client_id" class="p-error">{{ form.errors.client_id }}</small>
                                 </div>
 
-                                <div class="flex flex-col gap-2">
+                               <div class="flex flex-col gap-2">
                                      <label for="budget" class="font-semibold text-sm dark:text-zinc-300">Presupuesto</label>
                                      <InputNumber id="budget" v-model="form.budget" mode="currency" currency="MXN" locale="es-MX" class="!rounded-xl" :class="{ 'p-invalid': form.errors.budget }" :disabled="!!form.quote_id" />
                                      <small v-if="form.errors.budget" class="p-error">{{ form.errors.budget }}</small>
+                                </div>
+
+                                <div class="flex flex-col gap-2">
+                                     <label for="budgeted_hours" class="font-semibold text-sm dark:text-zinc-300">Horas Presupuestadas</label>
+                                     <InputNumber id="budgeted_hours" v-model="form.budgeted_hours" suffix=" hrs" class="!rounded-xl" :class="{ 'p-invalid': form.errors.budgeted_hours }" />
+                                     <small v-if="form.errors.budgeted_hours" class="p-error">{{ form.errors.budgeted_hours }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2 md:col-span-2">

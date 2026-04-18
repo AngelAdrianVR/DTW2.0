@@ -147,11 +147,21 @@ const totalPaid = computed(() => {
     return props.quote.payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 });
 
+// Actualizado para incorporar automáticamente el cálculo del 16% del IVA si aplica
 const totalWithDiscount = computed(() => {    
-    const amount = parseFloat(props.quote.amount) || 0;
+    let amount = parseFloat(props.quote.amount) || 0;
     const discount = parseFloat(props.quote.percentage_discount) || 0;
-    if (discount <= 0 || discount > 100) return amount;
-    return amount - ((amount * discount) / 100);
+    
+    if (discount > 0 && discount <= 100) {
+        amount = amount - ((amount * discount) / 100);
+    }
+    
+    // Sumar IVA interno
+    if (props.quote.needs_invoice) {
+        amount = amount * 1.16;
+    }
+    
+    return amount;
 });
 
 const remainingBalance = computed(() => {
@@ -518,6 +528,11 @@ const getReceiptUrl = (payment) => {
                                         <span class="font-bold text-sm sm:text-base">- {{ formatCurrency((quote.amount * quote.percentage_discount) / 100) }}</span>
                                     </div>
 
+                                    <div v-if="quote.needs_invoice" class="flex justify-between items-center text-blue-600 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 rounded-lg -mx-3">
+                                        <span class="flex items-center text-xs sm:text-sm"><i class="pi pi-receipt mr-2"></i> IVA (16%)</span>
+                                        <span class="font-bold text-sm sm:text-base">+ {{ formatCurrency((quote.amount - ((quote.amount * (quote.percentage_discount || 0)) / 100)) * 0.16) }}</span>
+                                    </div>
+
                                     <div class="flex justify-between items-center text-emerald-600 dark:text-emerald-400 text-sm sm:text-base" v-if="totalPaid > 0">
                                         <span class="flex items-center"><i class="pi pi-check-circle mr-2"></i> Pagado</span>
                                         <span class="font-medium">{{ formatCurrency(totalPaid) }}</span>
@@ -532,7 +547,7 @@ const getReceiptUrl = (payment) => {
                                             <span class="text-gray-500 dark:text-zinc-400 text-xs sm:text-sm font-medium uppercase tracking-wide">Saldo Restante</span>
                                             <span class="text-lg sm:text-xl font-bold" :class="remainingBalance > 0.01 ? 'text-rose-500 dark:text-rose-400' : 'text-gray-400 dark:text-zinc-500'">{{ formatCurrency(remainingBalance) }}</span>
                                         </div>
-                                        <p class="text-right text-[10px] sm:text-xs text-gray-400 dark:text-zinc-500 mt-1">Impuestos no incluidos</p>
+                                        <p class="text-right text-[10px] sm:text-xs text-gray-400 dark:text-zinc-500 mt-1">Total con IVA interno reflejado.</p>
                                     </div>
                                 </div>
                             </div>

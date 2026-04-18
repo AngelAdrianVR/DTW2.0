@@ -59,14 +59,12 @@ class ProjectController extends Controller
         $clients = Client::select('id', 'name')->get();
         $users = User::select('id', 'name')->get();
 
-        // Obtener cotizaciones aceptadas que AÚN NO tienen un proyecto asignado
-        $quotes = Quote::where('status', 'Aceptado')
+        // Obtener cotizaciones aceptadas o pagadas que AÚN NO tienen un proyecto asignado
+        $quotes = Quote::whereIn('status', ['Aceptado', 'Pagado'])
             ->whereDoesntHave('project')
+            ->latest('id') // <-- ORDENAR DE MÁS RECIENTE A MÁS ANTIGUO
             ->get();
 
-        // Nota: Asegúrate de que tu vista se esté renderizando correctamente. 
-        // Si tu archivo Vue se llama exactamente "CreateProjects.vue", cámbialo a 'Project/CreateProjects'.
-        // Aquí lo dejo como 'Project/Create' para coincidir con tu convención en Index, Show y Edit.
         return Inertia::render('Project/Create', [
             'clients' => $clients,
             'users' => $users,
@@ -85,6 +83,7 @@ class ProjectController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'budget' => 'nullable|numeric|min:0',
+            'budgeted_hours' => 'nullable|integer|min:0',
             'member_ids' => 'nullable|array',
             'member_ids.*' => 'exists:users,id',
         ]);
@@ -144,15 +143,17 @@ class ProjectController extends Controller
         $clients = Client::select('id', 'name')->get();
         $users = User::select('id', 'name')->get();
 
-        // Obtener cotizaciones que están aceptadas y O no tienen proyecto O pertenecen a este proyecto.
-        $quotes = Quote::where('status', 'Aceptado')
+        // Obtener cotizaciones que están aceptadas o pagadas y O no tienen proyecto O pertenecen a este proyecto.
+        $quotes = Quote::whereIn('status', ['Aceptado', 'Pagado'])
             ->where(function ($query) use ($project) {
                 $query->whereDoesntHave('project')
+                      ->orWhere('id', $project->quote_id) // Seguro extra: siempre incluye el vinculado actual
                       ->orWhere('project_id', $project->id);
             })
-            ->select('id', 'title', 'client_id', 'amount', 'percentage_discount', 'description')
+            // Seleccionar budgeted_hours para que Vue lo auto-rellene
+            ->select('id', 'title', 'client_id', 'amount', 'percentage_discount', 'description', 'budgeted_hours')
+            ->latest('id') // <-- ORDENAR DE MÁS RECIENTE A MÁS ANTIGUO
             ->get();
-
 
         return Inertia::render('Project/Edit', [
             'project' => $project,
@@ -167,19 +168,22 @@ class ProjectController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'client_id' => 'nullable|exists:clients,id',
+            'quote_id' => 'nullable|exists:quotes,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'budget' => 'nullable|numeric|min:0',
+            'budgeted_hours' => 'nullable|integer|min:0',
             'member_ids' => 'nullable|array',
             'member_ids.*' => 'exists:users,id',
         ]);
 
         // Manejar el cambio de cotización
         $oldQuoteId = $project->quote_id;
-        $newQuoteId = $request->input('quote_id') ?? null;
+        $newQuoteId = $request->input('quote_id'); // Asegura capturar el valor (incluso null)
 
-        if ($oldQuoteId != $newQuoteId) {
+        // Limpiar relaciones cruzadas en cotizaciones si cambió
+        if ($oldQuoteId !== $newQuoteId) {
             if ($oldQuoteId) {
                 Quote::where('id', $oldQuoteId)->update(['project_id' => null]);
             }
@@ -187,6 +191,9 @@ class ProjectController extends Controller
                 Quote::where('id', $newQuoteId)->update(['project_id' => $project->id]);
             }
         }
+        
+        // Forzamos explícitamente el quote_id actualizado por si fue removido como nulo
+        $validatedData['quote_id'] = $newQuoteId;
 
         $project->update($validatedData);
 
@@ -204,5 +211,17 @@ class ProjectController extends Controller
         $project->delete();
 
         return redirect()->route('projects.index')->with('success', 'Proyecto eliminado correctamente.');
+    }
+
+    // Nuevo método para actualizar estados rápidos desde el Index
+    public function updateStatus(Request $request, Project $project)
+    {
+        $validatedData = $request->validate([
+            'status' => ['required', 'string', Rule::in(['Pendiente', 'En proceso', 'Completado', 'Pausado', 'Cancelado'])],
+        ]);
+
+        $project->update(['status' => $validatedData['status']]);
+
+        return redirect()->back()->with('success', 'Estado del proyecto actualizado.');
     }
 }

@@ -94,6 +94,30 @@ const onPageChange = (event) => {
     });
 };
 
+// --- STATUS ACTIONS ---
+const updateProjectStatus = (project, status) => {
+    router.patch(route('projects.updateStatus', { project: project.id }), { status }, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            toast.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: `El proyecto se ha marcado como ${status}`,
+                life: 3000
+            });
+        },
+        onError: () => {
+            toast.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo actualizar el estado.',
+                life: 3000
+            });
+        }
+    });
+};
+
 // --- MENU ACTIONS ---
 const menuItems = computed(() => {
     if (!selectedProjectForMenu.value) return [];
@@ -109,9 +133,27 @@ const menuItems = computed(() => {
             icon: 'pi pi-pencil',
             command: () => router.get(route('projects.edit', project.id))
         },
+        { separator: true },
+        // Opciones para cambiar el estado manualmente
         {
-            separator: true
+            label: 'Pausar Proyecto',
+            icon: 'pi pi-pause',
+            visible: !['Pausado', 'Cancelado', 'Completado'].includes(project.status),
+            command: () => updateProjectStatus(project, 'Pausado')
         },
+        {
+            label: 'Cancelar Proyecto',
+            icon: 'pi pi-times',
+            visible: !['Cancelado', 'Completado'].includes(project.status),
+            command: () => updateProjectStatus(project, 'Cancelado')
+        },
+        {
+            label: 'Reanudar Proyecto',
+            icon: 'pi pi-play',
+            visible: ['Pausado', 'Cancelado'].includes(project.status),
+            command: () => updateProjectStatus(project, 'En proceso')
+        },
+        { separator: true },
         {
             label: 'Eliminar Proyecto',
             icon: 'pi pi-trash',
@@ -177,7 +219,7 @@ const getProjectProgress = (project) => {
 
 const getStatusSeverity = (status) => {
     const statuses = {
-        'Pendiente': 'warning',
+        'Pendiente': 'warn',
         'En proceso': 'info',
         'Completado': 'success',
         'Pausado': 'secondary',

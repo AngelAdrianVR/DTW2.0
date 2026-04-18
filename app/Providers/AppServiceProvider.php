@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Carbon\Carbon;
+use App\Models\Task;
+use App\Observers\TaskObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
             $event->user->last_login_at = Carbon::now();
             $event->user->save();
         });
+        Task::observe(TaskObserver::class);
     }
 }

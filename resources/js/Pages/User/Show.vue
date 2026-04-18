@@ -103,7 +103,7 @@ const formatCurrency = (value) => {
                         </div>
                          <div class="flex items-center gap-2">
                             <Link :href="route('users.edit', user.id)">
-                                <Button label="Editar Perfil" icon="pi pi-pencil" severity="secondary" outlined rounded class="!bg-white dark:!bg-transparent" />
+                                <Button label="Editar Perfil" icon="pi pi-pencil" rounded class="!text-[var(--primary-text-color)]" />
                             </Link>
                         </div>
                     </div>

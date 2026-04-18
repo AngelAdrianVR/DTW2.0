@@ -27,7 +27,8 @@ class Project extends Model
         'start_date',
         'end_date',
         'budget',
-        'total_invested_minutes', // Campo añadido para la nueva funcionalidad
+        'budgeted_hours',
+        'total_invested_minutes',
     ];
 
     /**
@@ -38,6 +39,7 @@ class Project extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'budgeted_hours' => 'integer',
     ];
 
     /**

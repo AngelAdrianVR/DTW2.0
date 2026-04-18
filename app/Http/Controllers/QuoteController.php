@@ -58,10 +58,12 @@ class QuoteController extends Controller
             'valid_until' => 'required|date',
             'payment_type' => 'required|string|max:255',
             'work_days' => 'required|integer|min:1',
+            'budgeted_hours' => 'nullable|integer|min:0',
             'percentage_discount' => 'nullable|numeric|min:0|max:100',
             'show_process' => 'required|boolean',
             'show_benefits' => 'required|boolean',
             'show_bank_info' => 'required|boolean',
+            'needs_invoice' => 'required|boolean',
         ]);
 
         $quote = Quote::create([
@@ -74,13 +76,15 @@ class QuoteController extends Controller
             'valid_until' => $validated['valid_until'],
             'payment_type' => $validated['payment_type'],
             'work_days' => $validated['work_days'],
+            'budgeted_hours' => $validated['budgeted_hours'] ?? null,
             'percentage_discount' => $validated['percentage_discount'] ?? 0,
             'show_process' => $validated['show_process'],
             'show_benefits' => $validated['show_benefits'],
             'show_bank_info' => $validated['show_bank_info'],
+            'needs_invoice' => $validated['needs_invoice'],
             'quote_code' => $this->generateQuoteCode(),
             'status' => 'Pendiente',
-            'origin' => 'Interno'
+            'origin' => 'Interno',
         ]);
 
         return redirect()->route('quotes.show', $quote->id)->with('flash', [
@@ -126,10 +130,12 @@ class QuoteController extends Controller
             'valid_until' => 'required|date',
             'payment_type' => 'required|string|max:255',
             'work_days' => 'required|integer|min:1',
+            'budgeted_hours' => 'nullable|integer|min:0',
             'percentage_discount' => 'nullable|numeric|min:0|max:100',
             'show_process' => 'required|boolean',
             'show_benefits' => 'required|boolean',
             'show_bank_info' => 'required|boolean',
+            'needs_invoice' => 'required|boolean',
         ]);
         
         $quote->update($validated);
