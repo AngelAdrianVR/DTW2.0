@@ -187,6 +187,8 @@ class DashboardController extends Controller
                     'en_proceso' => $projectsStats['En proceso'] ?? 0,
                     'pendientes' => $projectsStats['Pendiente'] ?? 0,
                     'completados' => $projectsStats['Completado'] ?? 0,
+                    'pausados' => $projectsStats['Pausado'] ?? 0,
+                    'cancelados' => $projectsStats['Cancelado'] ?? 0,
                 ],
                 'hostings' => [
                     'total' => $hostingsCount,

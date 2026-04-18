@@ -328,11 +328,12 @@ const getStatusIcon = (status) => {
                             <Column field="amount" header="Monto" sortable class="text-right">
                                 <template #body="{ data }">
                                     <div class="flex items-center justify-end gap-2">
+                                        <span v-if="data.needs_invoice" class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold" v-tooltip.top="'Incluye 16% de IVA interno'">+IVA</span>
                                         <span class="font-semibold text-gray-800 dark:text-zinc-200">{{ formatCurrency(data.final_amount) }}</span>
                                         <i v-if="data.percentage_discount && data.percentage_discount > 0"
                                            class="pi pi-info-circle text-gray-400 cursor-pointer"
                                            v-tooltip.left="{
-                                               value: `Subtotal: ${formatCurrency(data.amount)} <br/> Descuento: ${data.percentage_discount}% (${formatCurrency(data.amount - data.final_amount)})`,
+                                               value: `Subtotal: ${formatCurrency(data.amount)} \n Descuento: ${data.percentage_discount}%`,
                                                escape: false,
                                                class: 'custom-tooltip'
                                            }">
@@ -390,8 +391,8 @@ const getStatusIcon = (status) => {
                             <template #content>
                                 <p class="font-semibold text-gray-700 dark:text-zinc-300 mb-2">{{ quote.title }}</p>
                                 <ul class="space-y-2 text-sm text-gray-600 dark:text-zinc-400">
-                                    <li class="flex justify-between border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2">
-                                        <span class="font-bold">Monto:</span>
+                                    <li class="flex justify-between border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2 items-center">
+                                        <span class="font-bold flex items-center">Monto <span v-if="quote.needs_invoice" class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded ml-1.5 font-bold">+IVA</span></span>
                                         <span class="font-bold text-blue-600 dark:text-blue-400">{{ formatCurrency(quote.final_amount) }}</span>
                                     </li>
                                      <li class="flex justify-between">
@@ -508,4 +509,4 @@ html.dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td,
 .dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #27272a !important; 
 }
-</style>
+</style>    

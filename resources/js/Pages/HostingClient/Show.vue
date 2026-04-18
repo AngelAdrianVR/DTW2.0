@@ -89,7 +89,7 @@ const submitPayment = () => {
 <template>
     <AppLayout title="Detalles del Servicio">
         <!-- Fondo estilo Apple UI: muy claro o completamente oscuro -->
-        <div class="py-12 bg-[#F5F5F7] dark:bg-black min-h-screen">
+        <div class="py-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <!-- Encabezado con Nav -->

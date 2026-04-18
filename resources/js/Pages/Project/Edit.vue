@@ -1,7 +1,7 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Back from '@/Components/MyComponents/Back.vue';
 
 // PrimeVue Components
 import Button from 'primevue/button';
@@ -30,7 +30,46 @@ const form = useForm({
     start_date: props.project.start_date ? new Date(props.project.start_date) : null,
     end_date: props.project.end_date ? new Date(props.project.end_date) : null,
     budget: props.project.budget,
-    member_ids: props.project.members.map(member => member.id),
+    budgeted_hours: props.project.budgeted_hours,
+    member_ids: props.project.members ? props.project.members.map(member => member.id) : [],
+});
+
+// --- FUNCIONES AUXILIARES ---
+const cleanText = (text) => {
+    if (!text) return '';
+    try {
+        const parsed = JSON.parse(text);
+        if (parsed && parsed.ops) {
+            return parsed.ops.map(op => op.insert).join('');
+        }
+    } catch (e) {}
+    
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    return doc.body.textContent || "";
+};
+
+// --- WATCHER PARA ACTUALIZAR AUTOMÁTICAMENTE AL CAMBIAR COTIZACIÓN ---
+watch(() => form.quote_id, (newQuoteId) => {
+    if (newQuoteId) {
+        const selectedQuote = props.quotes.find(q => q.id === newQuoteId);
+        if (selectedQuote) {
+            // 1. Siempre asignamos el cliente de la cotización para garantizar la sincronización
+            form.client_id = selectedQuote.client_id;
+            
+            // 2. Si es una cotización DIFERENTE a la original del proyecto
+            if (newQuoteId !== props.project.quote_id) {
+                form.name = selectedQuote.title || `Proyecto para Cotización #${selectedQuote.id}`;
+                form.budget = selectedQuote.final_amount ?? selectedQuote.amount;
+                form.budgeted_hours = selectedQuote.budgeted_hours;
+                form.description = cleanText(selectedQuote.description);
+            } 
+            // 3. Si es la MISMA cotización original, pero el usuario borró los campos numéricos
+            else {
+                if (!form.budget) form.budget = selectedQuote.final_amount ?? selectedQuote.amount;
+                if (!form.budgeted_hours) form.budgeted_hours = selectedQuote.budgeted_hours;
+            }
+        }
+    }
 });
 
 // --- METHODS ---
@@ -66,7 +105,7 @@ const submit = () => {
                                     <label for="quote_id" class="font-semibold text-sm dark:text-zinc-300">Cotización Vinculada (Opcional)</label>
                                     <Dropdown id="quote_id" v-model="form.quote_id" :options="props.quotes" filter
                                         optionValue="id" placeholder="Selecciona una cotización aceptada"
-                                        :class="{ 'p-invalid': form.errors.quote_id }" showClear>
+                                        :class="{ 'p-invalid': form.errors.quote_id }" showClear class="!rounded-xl">
                                         <template #option="{ option }">
                                             <span>{{ option.title }} (Folio: {{ option.id }})</span>
                                         </template>
@@ -80,43 +119,49 @@ const submit = () => {
 
                                 <div class="flex flex-col gap-2 md:col-span-2">
                                     <label for="name" class="font-semibold text-sm dark:text-zinc-300">Nombre del Proyecto <span class="text-red-500">*</span></label>
-                                    <InputText id="name" v-model="form.name" :class="{ 'p-invalid': form.errors.name }" :disabled="!!form.quote_id" />
+                                    <InputText id="name" v-model="form.name" class="!rounded-xl" :class="{ 'p-invalid': form.errors.name }" :disabled="!!form.quote_id" />
                                     <small v-if="form.errors.name" class="p-error">{{ form.errors.name }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
                                     <label for="client_id" class="font-semibold text-sm dark:text-zinc-300">Cliente</label>
-                                    <Dropdown id="client_id" v-model="form.client_id" :options="props.clients" filter optionLabel="name" optionValue="id" placeholder="Selecciona un cliente" :class="{ 'p-invalid': form.errors.client_id }" showClear :disabled="!!form.quote_id" />
+                                    <Dropdown id="client_id" v-model="form.client_id" :options="props.clients" filter optionLabel="name" optionValue="id" placeholder="Selecciona un cliente" class="!rounded-xl" :class="{ 'p-invalid': form.errors.client_id }" showClear :disabled="!!form.quote_id" />
                                     <small v-if="form.errors.client_id" class="p-error">{{ form.errors.client_id }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
                                      <label for="budget" class="font-semibold text-sm dark:text-zinc-300">Presupuesto</label>
-                                     <InputNumber id="budget" v-model="form.budget" mode="currency" currency="MXN" locale="es-MX" :class="{ 'p-invalid': form.errors.budget }" :disabled="!!form.quote_id" />
+                                     <InputNumber id="budget" v-model="form.budget" mode="currency" currency="MXN" locale="es-MX" class="!rounded-xl" :class="{ 'p-invalid': form.errors.budget }" :disabled="!!form.quote_id" />
                                      <small v-if="form.errors.budget" class="p-error">{{ form.errors.budget }}</small>
+                                </div>
+
+                                <div class="flex flex-col gap-2">
+                                     <label for="budgeted_hours" class="font-semibold text-sm dark:text-zinc-300">Horas Presupuestadas</label>
+                                     <InputNumber id="budgeted_hours" v-model="form.budgeted_hours" suffix=" hrs" class="!rounded-xl" :class="{ 'p-invalid': form.errors.budgeted_hours }" />
+                                     <small v-if="form.errors.budgeted_hours" class="p-error">{{ form.errors.budgeted_hours }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2 md:col-span-2">
                                     <label for="description" class="font-semibold text-sm dark:text-zinc-300">Descripción</label>
-                                    <Textarea id="description" v-model="form.description" rows="4" :class="{ 'p-invalid': form.errors.description }" />
+                                    <Textarea id="description" v-model="form.description" rows="4" class="!rounded-xl" :class="{ 'p-invalid': form.errors.description }" />
                                     <small v-if="form.errors.description" class="p-error">{{ form.errors.description }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
                                     <label for="start_date" class="font-semibold text-sm dark:text-zinc-300">Fecha de Inicio</label>
-                                    <Calendar id="start_date" v-model="form.start_date" dateFormat="dd/mm/yy" :class="{ 'p-invalid': form.errors.start_date }" />
+                                    <Calendar id="start_date" v-model="form.start_date" dateFormat="dd/mm/yy" class="!rounded-xl" :class="{ 'p-invalid': form.errors.start_date }" />
                                     <small v-if="form.errors.start_date" class="p-error">{{ form.errors.start_date }}</small>
                                 </div>
 
                                 <div class="flex flex-col gap-2">
                                     <label for="end_date" class="font-semibold text-sm dark:text-zinc-300">Fecha de Fin</label>
-                                    <Calendar id="end_date" v-model="form.end_date" dateFormat="dd/mm/yy" :class="{ 'p-invalid': form.errors.end_date }" />
+                                    <Calendar id="end_date" v-model="form.end_date" dateFormat="dd/mm/yy" class="!rounded-xl" :class="{ 'p-invalid': form.errors.end_date }" />
                                     <small v-if="form.errors.end_date" class="p-error">{{ form.errors.end_date }}</small>
                                 </div>
 
                                  <div class="flex flex-col gap-2 md:col-span-2">
                                     <label for="member_ids" class="font-semibold text-sm dark:text-zinc-300">Miembros del Equipo</label>
-                                    <MultiSelect id="member_ids" v-model="form.member_ids" :options="props.users" filter optionLabel="name" optionValue="id" placeholder="Asigna miembros al proyecto" :class="{ 'p-invalid': form.errors.member_ids }" class="w-full" />
+                                    <MultiSelect id="member_ids" v-model="form.member_ids" :options="props.users" filter optionLabel="name" optionValue="id" placeholder="Asigna miembros al proyecto" class="w-full !rounded-xl" :class="{ 'p-invalid': form.errors.member_ids }" />
                                      <small v-if="form.errors.member_ids" class="p-error">{{ form.errors.member_ids }}</small>
                                 </div>
 
@@ -124,11 +169,11 @@ const submit = () => {
                         </template>
 
                         <template #footer>
-                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                            <div class="flex justify-end gap-3 pt-6 mt-2 border-t border-gray-100 dark:border-zinc-800">
                                 <Link :href="route('projects.index')">
-                                    <Button label="Cancelar" severity="secondary" text />
+                                    <Button label="Cancelar" severity="secondary" text class="!rounded-xl font-medium" />
                                 </Link>
-                                <Button label="Actualizar Proyecto" icon="pi pi-check" @click="submit" :loading="form.processing" class="!text-[var(--primary-text-color)]" />
+                                <Button label="Actualizar Proyecto" icon="pi pi-check" @click="submit" :loading="form.processing" class="!rounded-xl font-medium !text-[var(--primary-text-color)]" />
                             </div>
                         </template>
                     </Card>
