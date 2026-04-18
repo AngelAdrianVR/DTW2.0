@@ -23,6 +23,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+
 // ruta principal que muestra la página de inicio ---------------------------------------------
 // --------------------------------------------------------------------------------------------
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
@@ -81,7 +82,7 @@ Route::put('/quotes/{quote}/dates', [QuoteController::class, 'updateDates'])->na
 // Rutas de Proyectos --------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------
 Route::resource('projects', ProjectController::class)->middleware('auth');
-
+Route::patch('/projects/{project}/update-status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
 
 // Rutas para Tareas --------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------

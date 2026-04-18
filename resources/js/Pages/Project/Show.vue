@@ -116,6 +116,27 @@ const timeInvestedByUser = computed(() => {
     })).sort((a, b) => b.totalMinutes - a.totalMinutes);
 });
 
+// --- Lógica para calcular la diferencia de horas ---
+const timeDifference = computed(() => {
+    if (!project.value || !project.value.budgeted_hours) return null;
+    
+    const budgetedMinutes = project.value.budgeted_hours * 60;
+    const investedMinutes = project.value.tasks ? project.value.tasks.reduce((sum, task) => sum + (task.total_invested_minutes || 0), 0) : 0;
+    
+    const diffMinutes = budgetedMinutes - investedMinutes;
+    const isOverBudget = diffMinutes < 0;
+    const absDiff = Math.abs(diffMinutes);
+    
+    const hours = Math.floor(absDiff / 60);
+    const minutes = absDiff % 60;
+    
+    return {
+        isOverBudget,
+        text: `${hours}h ${String(minutes).padStart(2, '0')}m`,
+        rawDiff: diffMinutes
+    };
+});
+
 // --- State para Modales ---
 const isCreateTaskModalVisible = ref(false);
 const isEditTaskModalVisible = ref(false);
@@ -379,7 +400,7 @@ const getStatusSeverity = (status) => {
     switch (status) {
         case 'Activo': case 'En proceso': return 'info';
         case 'Completado': return 'success';
-        case 'Pendiente': return 'warning';
+        case 'Pendiente': return 'warn';
         case 'Cancelado': return 'danger';
         default: return 'secondary';
     }
@@ -448,12 +469,25 @@ const getKanbanHeaderStyle = (status) => {
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <div>
                             <div class="flex flex-wrap items-center gap-4">
-                                <Tag :value="project.status" :severity="getStatusSeverity(project.status)" class="!px-3 !py-1 !text-xs uppercase tracking-wider" />
+                                <Tag :value="project.status" :severity="getStatusSeverity(project.status)"/>
                                 
                                 <div class="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-3 py-1 rounded-full border border-cyan-100 dark:border-cyan-800 shadow-sm">
                                     <i class="pi pi-clock" style="font-size: 1rem"></i>
-                                    <span class="font-bold text-lg">{{ totalTimeInvested }}</span>
-                                    <span class="text-xs opacity-80">hrs</span>
+                                    <span class="font-bold text-base">{{ totalTimeInvested }}</span>
+                                    
+                                    <template v-if="project.budgeted_hours">
+                                        <span class="w-px h-4 bg-cyan-200 dark:bg-cyan-800 mx-1"></span>
+                                        <span class="text-sm font-semibold opacity-90" v-tooltip.top="'Horas Presupuestadas'">{{ project.budgeted_hours }}h presup.</span>
+                                        
+                                        <span class="w-px h-4 bg-cyan-200 dark:bg-cyan-800 mx-1"></span>
+                                        <span v-if="timeDifference" 
+                                              class="text-xs font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-md"
+                                              :class="timeDifference.isOverBudget ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'"
+                                              v-tooltip.top="timeDifference.isOverBudget ? 'Tiempo excedido' : 'Tiempo restante'">
+                                            <i class="pi" :class="timeDifference.isOverBudget ? 'pi-arrow-up' : 'pi-arrow-down'" style="font-size: 0.65rem"></i>
+                                            {{ timeDifference.text }}
+                                        </span>
+                                    </template>
                                 </div>
                             </div>
 

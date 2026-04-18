@@ -32,7 +32,8 @@ class Quote extends Model implements HasMedia
         'show_process',
         'show_benefits',
         'show_bank_info',
-        // NUEVOS CAMPOS AÑADIDOS AL FILLABLE
+        'budgeted_hours',
+        'needs_invoice',
         'sent_at',
         'accepted_at',
         'rejected_at',
@@ -44,9 +45,11 @@ class Quote extends Model implements HasMedia
 
     protected $casts = [
         'valid_until' => 'date',
+        'budgeted_hours' => 'integer',
         'show_process' => 'boolean',
         'show_benefits' => 'boolean',
         'show_bank_info' => 'boolean',
+        'needs_invoice' => 'boolean',
         'amount' => 'float',
         'amount_usd' => 'float',
         'sent_at' => 'datetime',
@@ -64,6 +67,7 @@ class Quote extends Model implements HasMedia
                     $client->status = 'Cliente';
                     $client->save();
                 }
+
             }
         });
     }
@@ -79,6 +83,11 @@ class Quote extends Model implements HasMedia
         if ($discount > 0) {
             $discountAmount = $amount * ($discount / 100);
             return (float) ($amount - $discountAmount);
+        }
+
+        // <-- LÓGICA DE IVA INTERNO: Multiplica por 1.16 si requiere factura
+        if ($this->needs_invoice) {
+            $amount = $amount * 1.16;
         }
         return $amount;
     }

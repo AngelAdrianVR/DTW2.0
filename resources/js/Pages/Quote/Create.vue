@@ -24,10 +24,13 @@ const form = useForm({
     valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
     payment_type: null,
     work_days: null,
+    budgeted_hours: null,
     percentage_discount: null,
     show_process: false,
     show_benefits: false,
     show_bank_info: false,
+    needs_invoice: false, 
+
 });
 
 const paymentOptions = ref([
@@ -107,18 +110,25 @@ const submit = () => { form.post(route('quotes.store')); };
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div class="flex flex-col gap-1">
                                         <label for="work_days" class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Días de Entrega <span class="text-red-500">*</span></label>
                                         <InputNumber id="work_days" v-model="form.work_days" :min="1" suffix=" días" :class="{ 'p-invalid': form.errors.work_days }" placeholder="Ej: 15" />
                                         <small v-if="form.errors.work_days" class="p-error">{{ form.errors.work_days }}</small>
                                     </div>
                                     <div class="flex flex-col gap-1">
+                                        <label for="budgeted_hours" class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider flex justify-between">
+                                            <span>Horas Presup.</span> <span class="font-normal normal-case text-gray-400">Info Interna</span>
+                                        </label>
+                                        <InputNumber id="budgeted_hours" v-model="form.budgeted_hours" :min="1" suffix=" hrs" :class="{ 'p-invalid': form.errors.budgeted_hours }" placeholder="Ej: 40" />
+                                        <small v-if="form.errors.budgeted_hours" class="p-error">{{ form.errors.budgeted_hours }}</small>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
                                         <label for="valid_until" class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Vigencia <span class="text-red-500">*</span></label>
                                         <DatePicker id="valid_until" v-model="form.valid_until" dateFormat="dd/mm/yy" :class="{ 'p-invalid': form.errors.valid_until }" />
                                         <small v-if="form.errors.valid_until" class="p-error">{{ form.errors.valid_until }}</small>
                                     </div>
-                                    <div class="flex flex-col gap-1 sm:col-span-3 lg:col-span-1">
+                                    <div class="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
                                         <label for="payment_type" class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Condiciones de Pago <span class="text-red-500">*</span></label>
                                         <Dropdown id="payment_type" v-model="form.payment_type" :options="paymentOptions" editable placeholder="Selecciona o escribe..." class="w-full" :class="{ 'p-invalid': form.errors.payment_type }" />
                                         <small v-if="form.errors.payment_type" class="p-error">{{ form.errors.payment_type }}</small>
@@ -177,6 +187,10 @@ const submit = () => { form.post(route('quotes.store')); };
                                         <div class="flex items-center">
                                             <Checkbox v-model="form.show_bank_info" inputId="show_bank_info" :binary="true" />
                                             <label for="show_bank_info" class="ml-2 text-sm text-gray-700 dark:text-zinc-300 cursor-pointer"> Datos Bancarios </label>
+                                        </div>
+                                        <div class="flex items-center ml-auto">
+                                            <Checkbox v-model="form.needs_invoice" inputId="needs_invoice" :binary="true" />
+                                            <label for="needs_invoice" class="ml-2 text-sm font-bold text-blue-600 cursor-pointer" v-tooltip.top="'Agrega el 16% de IVA interno para que coincida con los pagos.'"> Se Factura (+IVA) </label>
                                         </div>
                                     </div>
                                 </div>
