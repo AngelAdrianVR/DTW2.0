@@ -73,7 +73,7 @@ class TpspInventoryMovementController extends Controller
                 'min:0'
             ],
             'notes' => 'nullable|string',
-            // 'reference_type' => 'nullable|string',
+            'reference_type' => 'nullable|string',
             'reference_id' => 'nullable|integer',
         ]);
 

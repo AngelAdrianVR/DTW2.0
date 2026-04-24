@@ -104,7 +104,7 @@ const submit = () => {
                                 <div class="flex flex-col gap-2 md:col-span-2">
                                     <label for="quote_id" class="font-semibold text-sm dark:text-zinc-300">Cotización Vinculada (Opcional)</label>
                                     <Dropdown id="quote_id" v-model="form.quote_id" :options="props.quotes" filter
-                                        optionValue="id" placeholder="Selecciona una cotización aceptada"
+                                        :filterFields="['title', 'id']" optionLabel="title" optionValue="id" placeholder="Selecciona una cotización aceptada"
                                         :class="{ 'p-invalid': form.errors.quote_id }" showClear class="!rounded-xl">
                                         <template #option="{ option }">
                                             <span>{{ option.title }} (Folio: {{ option.id }})</span>

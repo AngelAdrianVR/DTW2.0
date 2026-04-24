@@ -55,9 +55,13 @@ const toast = useToast();
 const confirm = useConfirm();
 const menu = ref();
 const selectedQuoteForMenu = ref(null);
-const search = ref(props.filters.search || '');
 const isPaymentDialogVisible = ref(false);
 const selectedQuoteForPayment = ref(null);
+
+// Variables para búsqueda y ordenamiento
+const search = ref(props.filters.search || '');
+const sortField = ref(props.filters.sortField || 'id');
+const sortOrder = ref(props.filters.sortOrder ? Number(props.filters.sortOrder) : -1);
 
 // --- FORMS ---
 const paymentForm = useForm({
@@ -69,13 +73,29 @@ const paymentForm = useForm({
     receipt: null,
 });
 
-// --- WATCHERS ---
-watch(search, debounce((value) => {
-    router.get(route('quotes.index'), { search: value }, {
+// --- INERTIA FETCH ---
+const fetchQuotes = debounce(() => {
+    let params = {};
+    if (search.value) params.search = search.value;
+    if (sortField.value) params.sortField = sortField.value;
+    if (sortOrder.value !== null) params.sortOrder = sortOrder.value;
+
+    router.get(route('quotes.index'), params, {
         preserveState: true,
         replace: true,
     });
-}, 300));
+}, 300);
+
+// --- WATCHERS & EVENTS ---
+watch(search, () => {
+    fetchQuotes();
+});
+
+const onSort = (event) => {
+    sortField.value = event.sortField;
+    sortOrder.value = event.sortOrder;
+    fetchQuotes();
+};
 
 // --- MENU ACTIONS ---
 const menuItems = computed(() => {
@@ -293,7 +313,7 @@ const getStatusIcon = (status) => {
                             <InputIcon class="pi pi-search text-gray-400" />
                             <InputText 
                                 v-model="search" 
-                                placeholder="Buscar por Folio, Cliente o Estado..." 
+                                placeholder="Buscar por Folio, Cliente, Título..." 
                                 class="w-full" 
                             />
                         </IconField>
@@ -304,11 +324,12 @@ const getStatusIcon = (status) => {
 
                     <!-- Vista de Tabla para Escritorio -->
                     <div class="hidden md:block">
-                        <DataTable :value="quotes.data" paginator :rows="15" stripedRows tableStyle="min-width: 50rem;"
+                        <!-- Se quitó paginator y :rows="15", se agregó lazy, @sort, sortField, y sortOrder -->
+                        <DataTable :value="quotes.data" lazy :sortField="sortField" :sortOrder="sortOrder" @sort="onSort" stripedRows tableStyle="min-width: 50rem;"
                             @row-click="onRowClick" selectionMode="single" dataKey="id" :rowClass="rowClass" class="index-quotes-table">
                             <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron cotizaciones.</div> </template>
 
-                            <Column header="Folio" style="width: 10%">
+                            <Column field="id" header="Folio" style="width: 10%" sortable>
                                 <template #body="{ data }">
                                    <div class="flex items-center gap-2">
                                         <i :class="getStatusIcon(data.status)" :title="data.status" class="text-gray-400 dark:text-zinc-500"></i>
@@ -341,12 +362,14 @@ const getStatusIcon = (status) => {
                                     </div>
                                 </template>
                             </Column>
-                            <Column header="Pagado" sortable class="text-right">
+                            <!-- Se agregó field="total_paid" para que identifique el campo en BD -->
+                            <Column field="total_paid" header="Pagado" sortable class="text-right">
                                 <template #body="{ data }">
                                     <span class="text-emerald-600 dark:text-emerald-400 font-medium">{{ formatCurrency(data.total_paid) }}</span>
                                 </template>
                             </Column>
-                            <Column header="Saldo" sortable class="text-right">
+                            <!-- Se agregó field="balance" para el saldo calculado -->
+                            <Column field="balance" header="Saldo" sortable class="text-right">
                                 <template #body="{ data }">
                                     <span class="font-bold" :class="[(data.final_amount - (data.total_paid || 0)) > 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-zinc-500']">
                                         {{ formatCurrency(data.final_amount - (data.total_paid || 0)) }}
@@ -358,7 +381,7 @@ const getStatusIcon = (status) => {
                                     <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
                                 </template>
                             </Column>
-                             <Column field="project.name" header="Proyecto">
+                             <Column field="project.name" header="Proyecto" sortable>
                                 <template #body="{ data }">
                                     <p class="text-blue-500 hover:text-blue-400 hover:underline cursor-pointer" @click.stop="$inertia.visit(route('projects.show', data.project.id))" v-if="data.project">{{ data.project.name }}</p>
                                     <p v-else class="text-gray-400">-</p>
@@ -375,6 +398,7 @@ const getStatusIcon = (status) => {
 
                     <Menu ref="menu" id="overlay_menu" :model="menuItems" :popup="true" />
 
+                    <!-- El único paginador activo, el original color azul -->
                     <Pagination :links="quotes.links" />
 
                     <!-- Vista de Tarjetas para Móvil -->
@@ -509,4 +533,4 @@ html.dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td,
 .dark .index-quotes-table .p-datatable-tbody > tr:not(:last-child) > td { 
     border-bottom: 1px solid #27272a !important; 
 }
-</style>    
+</style>
