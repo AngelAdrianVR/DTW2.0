@@ -82,14 +82,16 @@ class Quote extends Model implements HasMedia
 
         if ($discount > 0) {
             $discountAmount = $amount * ($discount / 100);
-            return (float) ($amount - $discountAmount);
+            // CORRECCIÓN: Anteriormente aquí había un "return" y se saltaba el IVA.
+            $amount = $amount - $discountAmount;
         }
 
         // <-- LÓGICA DE IVA INTERNO: Multiplica por 1.16 si requiere factura
         if ($this->needs_invoice) {
             $amount = $amount * 1.16;
         }
-        return $amount;
+        
+        return (float) $amount;
     }
 
     public function client(): BelongsTo

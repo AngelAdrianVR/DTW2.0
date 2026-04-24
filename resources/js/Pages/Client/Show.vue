@@ -227,7 +227,11 @@ const cleanForWhatsApp = (phone) => {
                                 <DataTable :value="client.quotes" responsiveLayout="scroll" paginator :rows="5" tableStyle="min-width: 50rem;" class="zinc-table">
                                     <template #empty> <div class="p-4 text-center text-gray-500">No se encontraron cotizaciones.</div> </template>
                                     <Column field="id" header="Folio" sortable>
-                                        <template #body="{data}"><span class="text-gray-600 dark:text-zinc-400">Cot-{{ data.id }}</span></template>
+                                        <template #body="{data}">
+                                            <Link :href="route('quotes.show', data.id)" class="text-blue-500 hover:underline dark:text-blue-400 font-medium">
+                                                Cot-{{ data.id }}
+                                            </Link>
+                                        </template>
                                     </Column>
                                     <Column field="title" header="Título" sortable>
                                         <template #body="{data}"><span class="text-gray-800 dark:text-zinc-200 font-medium">{{ data.title }}</span></template>

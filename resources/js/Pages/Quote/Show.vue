@@ -73,18 +73,41 @@ const progressWidth = computed(() => {
 
 const canUpdateTo = (targetStatus) => {
     if (isUpdatingStatus.value) return false;
-    if (props.quote.status === 'Pendiente' && targetStatus === 'Enviado') return true;
-    if (props.quote.status === 'Enviado' && (targetStatus === 'Aceptado' || targetStatus === 'Rechazado')) return true;
-    if (props.quote.status === 'Rechazado' && (targetStatus === 'Aceptado' || targetStatus === 'Enviado')) return true;
-    if (props.quote.status === 'Aceptado' && (targetStatus === 'Enviado' || targetStatus === 'Rechazado')) return true;
+    
+    const currentStatus = props.quote.status;
+    
+    if (currentStatus === 'Pendiente') {
+        return ['Enviado', 'Pagado'].includes(targetStatus);
+    }
+    if (currentStatus === 'Enviado') {
+        return ['Aceptado', 'Rechazado', 'Pagado'].includes(targetStatus);
+    }
+    if (currentStatus === 'Aceptado') {
+        return ['Enviado', 'Rechazado', 'Pagado'].includes(targetStatus);
+    }
+    if (currentStatus === 'Rechazado') {
+        return ['Aceptado', 'Enviado'].includes(targetStatus);
+    }
+    if (currentStatus === 'Pagado') {
+        return ['Aceptado'].includes(targetStatus);
+    }
+    
     return false;
 };
 
 const changeQuoteStatus = (newStatus) => {
     if (!canUpdateTo(newStatus)) return;
     
+    const payload = { status: newStatus };
+
+    // Si pasa a Pagado, enviamos la fecha del último pago para evitar que se ponga la fecha actual
+    if (newStatus === 'Pagado' && props.quote.payments && props.quote.payments.length > 0) {
+        const latestPayment = [...props.quote.payments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))[0];
+        payload.date = latestPayment.payment_date;
+    }
+    
     isUpdatingStatus.value = true;
-    router.put(route('quotes.updateStatus', { quote: props.quote.id }), { status: newStatus }, {
+    router.put(route('quotes.updateStatus', { quote: props.quote.id }), payload, {
         preserveScroll: true,
         onSuccess: () => {
             toast.add({ severity: 'success', summary: 'Éxito', detail: 'Estado actualizado correctamente.', life: 3000 });
@@ -96,6 +119,17 @@ const changeQuoteStatus = (newStatus) => {
             isUpdatingStatus.value = false;
         }
     });
+};
+
+// Función para actualizar el estado automáticamente cuando se salda la cuenta
+const checkAutoStatusUpdate = () => {
+    setTimeout(() => {
+        if (remainingBalance.value <= 0 && props.quote.status !== 'Pagado') {
+            changeQuoteStatus('Pagado');
+        } else if (remainingBalance.value > 0 && props.quote.status === 'Pagado') {
+            changeQuoteStatus('Aceptado'); 
+        }
+    }, 300); // 300ms de retraso para asegurar que los props estén actualizados
 };
 
 // --- DATE EDITOR LOGIC ---
@@ -147,7 +181,6 @@ const totalPaid = computed(() => {
     return props.quote.payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 });
 
-// Actualizado para incorporar automáticamente el cálculo del 16% del IVA si aplica
 const totalWithDiscount = computed(() => {    
     let amount = parseFloat(props.quote.amount) || 0;
     const discount = parseFloat(props.quote.percentage_discount) || 0;
@@ -187,8 +220,8 @@ const openEditPaymentDialog = (payment) => {
     paymentForm.amount = parseFloat(payment.amount);
     paymentForm.payment_date = new Date(payment.payment_date);
     paymentForm.notes = payment.notes || '';
-    paymentForm.receipt = null; // No precargamos el archivo por seguridad/limitación del navegador
-    paymentForm._method = 'put'; // Usamos PUT para la actualización
+    paymentForm.receipt = null; 
+    paymentForm._method = 'put'; 
 
     isPaymentDialogVisible.value = true;
 };
@@ -204,12 +237,12 @@ const closePaymentDialog = () => {
 
 const submitPayment = () => {
     if (isEditingPayment.value) {
-        // Al enviar archivos por PUT/PATCH en Laravel, a menudo es mejor enviar un POST con _method='put'
         paymentForm.post(route('client-payments.update', selectedPaymentId.value), {
             preserveScroll: true,
             onSuccess: () => {
                 closePaymentDialog();
                 toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago actualizado correctamente', life: 3000 });
+                checkAutoStatusUpdate();
             },
             onError: (errors) => {
                 const errorMessages = Object.values(errors).join(' ');
@@ -222,6 +255,7 @@ const submitPayment = () => {
             onSuccess: () => {
                 closePaymentDialog();
                 toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago registrado correctamente', life: 3000 });
+                checkAutoStatusUpdate();
             },
             onError: (errors) => {
                 const errorMessages = Object.values(errors).join(' ');
@@ -245,6 +279,7 @@ const confirmDeletePayment = (payment) => {
                 preserveScroll: true,
                 onSuccess: () => {
                     toast.add({ severity: 'success', summary: 'Éxito', detail: 'Pago eliminado correctamente', life: 3000 });
+                    checkAutoStatusUpdate();
                 },
                 onError: () => {
                     toast.add({ severity: 'error', summary: 'Error', detail: 'Hubo un problema al eliminar el pago.', life: 3000 });
@@ -292,7 +327,6 @@ const getStatusClasses = (status) => {
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    // Ajustar a la zona horaria local para evitar que se muestre un día antes
     date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
     return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 };
@@ -300,7 +334,6 @@ const formatDate = (dateString) => {
 const formatDateShort = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    // Ajustar a la zona horaria local para evitar que se muestre un día antes
     date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
 };
@@ -330,6 +363,26 @@ const getReceiptUrl = (payment) => {
     if (payment.receipt_path || payment.receipt) return '/storage/' + (payment.receipt_path || payment.receipt);
     if (payment.receipt_url) return payment.receipt_url;
     return null;
+};
+
+// HELPER PARA IDENTIFICAR TIPO DE ARCHIVO
+const getFileInfo = (fileName) => {
+    if (!fileName) return { icon: 'pi pi-file', colorClass: 'bg-gray-50 text-gray-500 dark:bg-gray-900/20 dark:text-gray-400', label: 'Desconocido' };
+    
+    const ext = fileName.split('.').pop().toLowerCase();
+    
+    switch (ext) {
+        case 'pdf': 
+            return { icon: 'pi pi-file-pdf', colorClass: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400', label: 'PDF' };
+        case 'xml': 
+            return { icon: 'pi pi-code', colorClass: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400', label: 'XML' };
+        case 'jpg':
+        case 'jpeg':
+        case 'png': 
+            return { icon: 'pi pi-image', colorClass: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400', label: ext.toUpperCase() };
+        default: 
+            return { icon: 'pi pi-file', colorClass: 'bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400', label: ext.toUpperCase() };
+    }
 };
 </script>
 
@@ -629,14 +682,23 @@ const getReceiptUrl = (payment) => {
                                     <ul class="space-y-3">
                                         <li v-for="file in invoices" :key="file.id" class="group flex items-center justify-between p-3 rounded-xl bg-white dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700 hover:shadow-md transition-all duration-200">
                                             <a :href="file.original_url" target="_blank" rel="noopener noreferrer" class="flex items-center flex-1 min-w-0 mr-3">
-                                                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0 text-red-500">
-                                                    <i class="pi pi-file-pdf text-lg sm:text-xl"></i>
+                                                
+                                                <!-- Icono dinámico basado en el helper getFileInfo -->
+                                                <div :class="['w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0', getFileInfo(file.file_name).colorClass]">
+                                                    <i :class="[getFileInfo(file.file_name).icon, 'text-lg sm:text-xl']"></i>
                                                 </div>
+                                                
                                                 <div class="ml-3 flex-1 min-w-0">
                                                     <p class="text-xs sm:text-sm font-medium text-gray-900 dark:text-zinc-100 truncate group-hover:text-blue-600 transition-colors">
                                                         {{ file.file_name }}
                                                     </p>
-                                                    <p class="text-[10px] sm:text-xs text-gray-500 truncate">{{ (file.size / 1024).toFixed(2) }} KB</p>
+                                                    <div class="flex items-center gap-2 mt-0.5">
+                                                        <!-- Etiqueta con el tipo de archivo -->
+                                                        <span :class="['text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-opacity-50', getFileInfo(file.file_name).colorClass]">
+                                                            {{ getFileInfo(file.file_name).label }}
+                                                        </span>
+                                                        <p class="text-[10px] sm:text-xs text-gray-500 truncate">{{ (file.size / 1024).toFixed(2) }} KB</p>
+                                                    </div>
                                                 </div>
                                             </a>
                                             <Button @click="deleteFile(file.id)" icon="pi pi-trash" class="!w-8 !h-8 !p-0 !text-gray-400 hover:!text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/30 transition-colors" text rounded />
