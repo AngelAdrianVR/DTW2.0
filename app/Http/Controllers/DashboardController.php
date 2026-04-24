@@ -27,9 +27,12 @@ class DashboardController extends Controller
             ->all();
 
         // --- KPI de Clientes ---
+        // Se actualizó la consulta para incluir el IVA en la deuda si la cotización lo requiere
         $totalOwedPerClient = DB::table('quotes')
-            ->select('client_id', DB::raw('SUM(amount * (1 - COALESCE(percentage_discount, 0) / 100)) as total_owed'))
-            ->whereIn('status', ['Aceptado', 'Pagado']) // <--- Corrección: Se agrega 'Pagado' para equilibrar los pagos totales
+            ->select('client_id', DB::raw('SUM(
+                (amount * (1 - COALESCE(percentage_discount, 0) / 100)) * (CASE WHEN needs_invoice = 1 THEN 1.16 ELSE 1 END)
+            ) as total_owed'))
+            ->whereIn('status', ['Aceptado', 'Pagado'])
             ->groupBy('client_id');
 
         $totalPaidPerClient = DB::table('client_payments')
@@ -47,7 +50,6 @@ class DashboardController extends Controller
         // --- KPI de Proyectos y Hostings ---
         $projectsCount = Project::count();
         
-        // Desglose de estados de proyectos para el KPI mejorado
         $projectsStats = Project::select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status')
@@ -93,7 +95,6 @@ class DashboardController extends Controller
                 'stats' => [
                     'completed' => $tasks->where('status', 'Completada')->count(),
                     'in_progress' => $tasks->where('status', 'En proceso')->count(),
-                    // Tareas actualmente en curso para mostrarlas en el hover
                     'in_progress_details' => $tasks->where('status', 'En proceso')->map(function($t) {
                         return [
                             'id' => $t->id,
@@ -115,13 +116,44 @@ class DashboardController extends Controller
         });
 
         // --- KPI Financieros y Gráfica de Ingresos ---
-        $acceptedAndPaidQuotesQuery = Quote::whereIn('quotes.status', ['Aceptado', 'Pagado']);
-        $totalInvoiced = (clone $acceptedAndPaidQuotesQuery)->get()->sum('final_amount');
+        
+        // Calcular Utilidad e IVA desglosado
+        $acceptedAndPaidQuotes = Quote::whereIn('status', ['Aceptado', 'Pagado'])->get();
+        $totalInvoiced = 0;
+        $totalIva = 0;
+        $totalUtility = 0;
+
+        foreach ($acceptedAndPaidQuotes as $quote) {
+            $amount = (float) ($quote->amount ?? 0);
+            $discount = (float) ($quote->percentage_discount ?? 0);
+
+            if ($discount > 0) {
+                $amount = $amount - ($amount * ($discount / 100));
+            }
+
+            if ($quote->needs_invoice) {
+                $iva = $amount * 0.16;
+                $finalAmount = $amount + $iva;
+                
+                $totalInvoiced += $finalAmount;
+                $totalIva += $iva;
+                $totalUtility += $amount;
+            } else {
+                $totalInvoiced += $amount;
+                $totalUtility += $amount;
+            }
+        }
     
+        // Se actualizó la consulta para incluir el IVA en el total por cliente
         $invoicedPerClient = Quote::query()
             ->join('clients', 'quotes.client_id', '=', 'clients.id')
             ->whereIn('quotes.status', ['Aceptado', 'Pagado'])
-            ->select('clients.name', DB::raw('SUM(quotes.amount * (1 - COALESCE(quotes.percentage_discount, 0) / 100)) as total'))
+            ->select(
+                'clients.name', 
+                DB::raw('SUM(
+                    (quotes.amount * (1 - COALESCE(quotes.percentage_discount, 0) / 100)) * (CASE WHEN quotes.needs_invoice = 1 THEN 1.16 ELSE 1 END)
+                ) as total')
+            )
             ->groupBy('clients.name')
             ->orderBy('total', 'desc')
             ->get();
@@ -180,6 +212,8 @@ class DashboardController extends Controller
                     'total' => $clientsCount,
                     'with_debt' => $clientsWithDebt,
                     'total_invoiced' => $totalInvoiced,
+                    'total_iva' => $totalIva,           // Enviar total de IVA al Frontend
+                    'total_utility' => $totalUtility,   // Enviar la utilidad neta al Frontend
                     'invoiced_per_client' => $invoicedPerClient,
                 ],
                 'projects' => [

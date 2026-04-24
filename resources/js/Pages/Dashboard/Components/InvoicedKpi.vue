@@ -16,6 +16,9 @@ const formatCurrency = (value) => {
 };
 
 const grandTotalFormatted = computed(() => formatCurrency(props.data?.total_invoiced));
+// Nuevas propiedades computadas para los formatos
+const totalIvaFormatted = computed(() => formatCurrency(props.data?.total_iva));
+const totalUtilityFormatted = computed(() => formatCurrency(props.data?.total_utility));
 
 // Filtramos solo los 2 clientes principales para el KPI
 const topClients = computed(() => {
@@ -37,7 +40,19 @@ const topClients = computed(() => {
                 <h3 class="text-base font-bold text-gray-700 dark:text-gray-300">Total Facturado</h3>
             </div>
             <p class="font-extrabold text-4xl text-gray-900 dark:text-white tracking-tight break-all">{{ grandTotalFormatted }}</p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 font-medium">Cotizaciones aceptadas/pagadas este ciclo</p>
+            
+            <!-- NUEVO DESGLOSE: Utilidad e IVA -->
+            <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
+                <div>
+                    <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-wider mb-0.5">Utilidad</p>
+                    <p class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ totalUtilityFormatted }}</p>
+                </div>
+                <div class="w-px h-6 bg-gray-200 dark:bg-zinc-700"></div>
+                <div>
+                    <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-wider mb-0.5">IVA (16%)</p>
+                    <p class="text-sm font-bold text-gray-600 dark:text-gray-300">{{ totalIvaFormatted }}</p>
+                </div>
+            </div>
         </div>
         
         <!-- Lista de desglose (Solo top 2) -->

@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Quote;
+use App\Models\Project;
+use App\Models\ClientPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -15,24 +17,63 @@ class QuoteController extends Controller
 {
     public function index(Request $request)
     {
-        $filters = $request->only('search');
+        $filters = $request->only(['search', 'sortField', 'sortOrder']);
+
+        $sortField = $request->input('sortField', 'id');
+        $sortOrder = $request->input('sortOrder', -1);
+        $direction = ($sortOrder == 1 || $sortOrder === 'asc') ? 'asc' : 'desc';
+
+        $search = $request->input('search');
         
         $quotes = Quote::query()
-            ->with(['client:id,name', 'project:id,name,quote_id'])
+            ->select('quotes.*')
+            ->with(['client:id,name,tax_id', 'project:id,name,quote_id'])
             ->withSum('payments as total_paid', 'amount')
-            ->when($request->input('search'), function ($query, $search) {
+            ->when($search, function ($query, $search) {
                 $query->where(function($q) use ($search) {
-                    $q->where('id', 'like', "%{$search}%")
-                    ->orWhere('status', 'like', "%{$search}%")
+                    $q->where('quotes.id', 'like', "%{$search}%")
+                    ->orWhere('quotes.status', 'like', "%{$search}%")
+                    ->orWhere('quotes.title', 'like', "%{$search}%")
+                    ->orWhere('quotes.amount', 'like', "%{$search}%")
                     ->orWhereHas('client', function ($clientQuery) use ($search) {
                         $clientQuery->where('name', 'like', "%{$search}%");
                     })
-                    ->orWhere('client_name', 'like', "%{$search}%");
+                    ->orWhere('quotes.client_name', 'like', "%{$search}%")
+                    ->orWhereHas('project', function ($projectQuery) use ($search) {
+                        $projectQuery->where('name', 'like', "%{$search}%");
+                    });
                 });
-            })
-            ->latest('id')
-            ->paginate(20)
-            ->withQueryString();
+            });
+
+        $finalAmountSql = '(CASE 
+            WHEN quotes.percentage_discount > 0 THEN quotes.amount - (quotes.amount * (quotes.percentage_discount / 100)) 
+            WHEN quotes.needs_invoice = 1 THEN quotes.amount * 1.16 
+            ELSE quotes.amount 
+        END)';
+
+        if ($sortField === 'client') {
+            $clientTable = (new Client)->getTable();
+            $quotes->orderByRaw("COALESCE((SELECT name FROM {$clientTable} WHERE {$clientTable}.id = quotes.client_id), quotes.client_name) $direction");
+        } elseif ($sortField === 'final_amount' || $sortField === 'amount') {
+            $quotes->orderByRaw("$finalAmountSql $direction");
+        } elseif ($sortField === 'total_paid') {
+            $quotes->orderBy('total_paid', $direction);
+        } elseif ($sortField === 'balance') {
+            $paymentTable = (new ClientPayment)->getTable();
+            $quotes->orderByRaw("($finalAmountSql - COALESCE((SELECT SUM(amount) FROM {$paymentTable} WHERE {$paymentTable}.quote_id = quotes.id), 0)) $direction");
+        } elseif ($sortField === 'project.name') {
+            $projectTable = (new Project)->getTable();
+            $quotes->orderByRaw("(SELECT name FROM {$projectTable} WHERE {$projectTable}.quote_id = quotes.id) $direction");
+        } else {
+            $validColumns = ['id', 'title', 'status', 'created_at', 'updated_at'];
+            if (in_array($sortField, $validColumns)) {
+                $quotes->orderBy('quotes.'.$sortField, $direction);
+            } else {
+                $quotes->orderBy('quotes.id', 'desc');
+            }
+        }
+
+        $quotes = $quotes->paginate(15)->withQueryString();
 
         return Inertia::render('Quote/Index', [
             'quotes' => $quotes,
@@ -166,43 +207,70 @@ class QuoteController extends Controller
     public function updateStatus(Request $request, Quote $quote)
     {
         $validated = $request->validate([
-            'status' => ['required', Rule::in(['Enviado', 'Aceptado', 'Rechazado'])],
+            'status' => ['required', Rule::in(['Enviado', 'Aceptado', 'Rechazado', 'Pagado'])],
+            'date'   => ['nullable', 'date'],
         ]);
 
         $canUpdate = false;
-        switch ($quote->status) {
-            case 'Pendiente':
-                if ($validated['status'] === 'Enviado') {
-                    $canUpdate = true;
-                    if (!$quote->sent_at) $quote->sent_at = now();
-                }
-                break;
-            case 'Enviado':
-                if (in_array($validated['status'], ['Aceptado', 'Rechazado'])) {
-                    $canUpdate = true;
-                    if ($validated['status'] === 'Aceptado' && !$quote->accepted_at) {
-                        $quote->accepted_at = now();
-                    } elseif ($validated['status'] === 'Rechazado' && !$quote->rejected_at) {
-                        $quote->rejected_at = now();
+
+        // Si es un pase directo a "Pagado" desde cualquier estado activo (Pendiente, Enviado, Aceptado)
+        if ($validated['status'] === 'Pagado' && in_array($quote->status, ['Pendiente', 'Enviado', 'Aceptado'])) {
+            $canUpdate = true;
+            // Si nos envían la fecha desde Vue (del último pago), la usamos.
+            if (!empty($validated['date'])) {
+                $quote->paid_at = $validated['date'];
+            } else {
+                // Si no, buscamos el último pago registrado en base de datos.
+                $latestPayment = $quote->payments()->latest('payment_date')->first();
+                $quote->paid_at = $latestPayment ? $latestPayment->payment_date : now();
+            }
+            
+            // Si pasó a pagado directo sin ser aceptado (e.g. Enviado -> Pagado), automáticamente aceptamos también.
+            if (!$quote->accepted_at) {
+                $quote->accepted_at = $quote->paid_at;
+            }
+        } 
+        // Lógica de transiciones regulares
+        else {
+            switch ($quote->status) {
+                case 'Pendiente':
+                    if ($validated['status'] === 'Enviado') {
+                        $canUpdate = true;
+                        if (!$quote->sent_at) $quote->sent_at = now();
                     }
-                }
-                break;
-            case 'Rechazado':
-                if (in_array($validated['status'], ['Aceptado', 'Enviado'])) {
-                    $canUpdate = true;
-                    if ($validated['status'] === 'Aceptado' && !$quote->accepted_at) {
-                        $quote->accepted_at = now();
+                    break;
+                case 'Enviado':
+                    if (in_array($validated['status'], ['Aceptado', 'Rechazado'])) {
+                        $canUpdate = true;
+                        if ($validated['status'] === 'Aceptado' && !$quote->accepted_at) {
+                            $quote->accepted_at = now();
+                        } elseif ($validated['status'] === 'Rechazado' && !$quote->rejected_at) {
+                            $quote->rejected_at = now();
+                        }
                     }
-                }
-                break;
-            case 'Aceptado':
-                if (in_array($validated['status'], ['Enviado', 'Rechazado'])) {
-                    $canUpdate = true;
-                    if ($validated['status'] === 'Rechazado' && !$quote->rejected_at) {
-                        $quote->rejected_at = now();
+                    break;
+                case 'Rechazado':
+                    if (in_array($validated['status'], ['Aceptado', 'Enviado'])) {
+                        $canUpdate = true;
+                        if ($validated['status'] === 'Aceptado' && !$quote->accepted_at) {
+                            $quote->accepted_at = now();
+                        }
                     }
-                }
-                break;
+                    break;
+                case 'Aceptado':
+                    if (in_array($validated['status'], ['Enviado', 'Rechazado'])) {
+                        $canUpdate = true;
+                        if ($validated['status'] === 'Rechazado' && !$quote->rejected_at) {
+                            $quote->rejected_at = now();
+                        }
+                    }
+                    break;
+                case 'Pagado':
+                    if (in_array($validated['status'], ['Aceptado'])) {
+                        $canUpdate = true; // Permite regresar a aceptado si se revierte un pago
+                    }
+                    break;
+            }
         }
 
         if (!$canUpdate) {
