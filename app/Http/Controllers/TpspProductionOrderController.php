@@ -55,6 +55,32 @@ class TpspProductionOrderController extends Controller
     }
 
     /**
+     * Actualiza los campos básicos de una orden de producción.
+     */
+    public function update(Request $request, $id)
+    {
+        $order = TpspProductionOrder::findOrFail($id);
+
+        $validatedData = $request->validate([
+            'quantity_requested' => 'required|integer|min:1',
+            'due_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        // No permitir reducir la cantidad por debajo de lo ya producido
+        if ($validatedData['quantity_requested'] < $order->quantity_produced) {
+            return response()->json([
+                'message' => 'No puedes reducir la cantidad solicitada por debajo de lo ya producido (' . $order->quantity_produced . ' unidades).'
+            ], 422);
+        }
+
+        $order->update($validatedData);
+        $order->load('product');
+
+        return response()->json($order);
+    }
+
+    /**
      * Elimina una orden de producción.
      */
     public function destroy($id)

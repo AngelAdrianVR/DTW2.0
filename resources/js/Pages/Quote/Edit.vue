@@ -30,6 +30,7 @@ const form = useForm({
     show_process: Boolean(props.quote.show_process),
     show_benefits: Boolean(props.quote.show_benefits),
     show_bank_info: Boolean(props.quote.show_bank_info),
+    show_tax_breakdown: Boolean(props.quote.show_tax_breakdown),
     needs_invoice: Boolean(props.quote.needs_invoice),
 });
 
@@ -51,7 +52,7 @@ const submit = () => {
 
 <template>
     <AppLayout title="Editar Cotización">
-        <div class="py-12 bg-[#F5F5F7] dark:bg-zinc-950 min-h-screen">
+        <div class="py-12 bg-zinc-150 dark:bg-zinc-950 min-h-screen">
             <div class="max-w-[90rem] mx-auto sm:px-6 lg:px-8">
                 
                 <div class="mb-4">
@@ -189,9 +190,15 @@ const submit = () => {
                                             <Checkbox v-model="form.show_bank_info" inputId="show_bank_info" :binary="true" />
                                             <label for="show_bank_info" class="ml-2 text-sm text-gray-700 dark:text-zinc-300 cursor-pointer"> Datos Bancarios </label>
                                         </div>
-                                        <div class="flex items-center ml-auto">
-                                            <Checkbox v-model="form.needs_invoice" inputId="needs_invoice" :binary="true" />
-                                            <label for="needs_invoice" class="ml-2 text-sm font-bold text-blue-600 cursor-pointer" v-tooltip.top="'Agrega el 16% de IVA interno para que coincida con los pagos.'"> Se Factura (+IVA) </label>
+                                        <div class="flex items-center gap-x-6 gap-y-3 ml-auto">
+                                            <div class="flex items-center">
+                                                <Checkbox v-model="form.show_tax_breakdown" inputId="show_tax_breakdown" :binary="true" />
+                                                <label for="show_tax_breakdown" class="ml-2 text-sm font-bold text-amber-600 cursor-pointer" v-tooltip.top="'Muestra el desglose de IVA y retenciones en la plantilla impresa.'"> Mostrar Desglose Fiscal </label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <Checkbox v-model="form.needs_invoice" inputId="needs_invoice" :binary="true" />
+                                                <label for="needs_invoice" class="ml-2 text-sm font-bold text-blue-600 cursor-pointer" v-tooltip.top="'Agrega el 16% de IVA interno para que coincida con los pagos.'"> Se Factura (+IVA) </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
