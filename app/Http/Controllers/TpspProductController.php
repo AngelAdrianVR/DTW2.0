@@ -127,15 +127,17 @@ class TpspProductController extends Controller
             return response()->json(['message' => 'La cantidad a ajustar no puede ser cero.'], 422);
         }
 
+        // Bloquear Devolución de producto si el stock ya está en negativo
+        if ($validatedData['type'] === 'Devolución de producto' && $product->stock < 0) {
+            return response()->json([
+                'message' => 'No se puede registrar una devolución porque el producto ya tiene stock negativo (' . $product->stock . '). Regulariza el inventario primero con una Entrada o Compra.'
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
 
             $product->stock += $validatedData['quantity'];
-            
-            if ($product->stock < 0) {
-                return response()->json(['message' => 'El ajuste resultaría en un stock negativo inválido.'], 422);
-            }
-            
             $product->save();
 
             tpspInventoryMovement::create([
