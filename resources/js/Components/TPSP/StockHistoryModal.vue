@@ -35,7 +35,7 @@ const formatDateTime = (dateString) => {
 };
 
 const getMovementSeverity = (type) => {
-    if (['Compra', 'Entrada_Produccion', 'Entrada de material'].includes(type)) return 'success';
+    if (['Compra', 'Entrada_Produccion', 'Entrada de material', 'Devolución de producto'].includes(type)) return 'success';
     if (['Venta', 'Consumo_Produccion'].includes(type)) return 'danger';
     return 'info';
 };

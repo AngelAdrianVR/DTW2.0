@@ -34,6 +34,7 @@ class TpspProductionOrderController extends Controller
 
     /**
      * Almacena una nueva orden de producción.
+     * Descuenta los materiales del inventario al momento de crearla.
      */
     public function store(Request $request)
     {
@@ -48,18 +49,71 @@ class TpspProductionOrderController extends Controller
         $validatedData['order_number'] = 'TPSP-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
         $validatedData['status'] = 'Pendiente';
 
-        $order = TpspProductionOrder::create($validatedData);
-        $order->load('product'); 
+        $warnings = [];
+        $kitProduct = tpspProduct::find($validatedData['product_id']);
+        $quantityRequested = $validatedData['quantity_requested'];
 
-        return response()->json($order, 201);
+        if ($kitProduct && $kitProduct->is_kit) {
+            $components = tpspKitComponent::where('kit_product_id', $kitProduct->id)
+                ->with('componentProduct')
+                ->get();
+
+            try {
+                DB::beginTransaction();
+
+                $order = TpspProductionOrder::create($validatedData);
+
+                foreach ($components as $component) {
+                    $componentProduct = $component->componentProduct;
+                    if (!$componentProduct) continue;
+
+                    $requiredQty = $component->quantity_required * $quantityRequested;
+
+                    // Descontar del inventario (permite quedar negativo)
+                    $componentProduct->decrement('stock', $requiredQty);
+                    $componentProduct->refresh();
+
+                    tpspInventoryMovement::create([
+                        'product_id' => $component->component_product_id,
+                        'quantity' => -$requiredQty,
+                        'type' => 'Consumo_Produccion',
+                        'reference_type' => TpspProductionOrder::class,
+                        'reference_id' => $order->id,
+                        'notes' => "Consumo inicial para Kit: {$kitProduct->name}. Orden: {$order->order_number} ({$quantityRequested} unid.)",
+                    ]);
+
+                    if ($componentProduct->stock < 0) {
+                        $warnings[] = "⚠️ {$componentProduct->name}: stock en NEGATIVO ({$componentProduct->stock}) tras descontar {$requiredQty} para producir {$quantityRequested} unidad(es).";
+                    }
+                }
+
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['message' => 'Error al crear la orden: ' . $e->getMessage()], 500);
+            }
+        } else {
+            $order = TpspProductionOrder::create($validatedData);
+        }
+
+        $order->load('product');
+
+        $response = $order->toArray();
+        if (!empty($warnings)) {
+            $response['warnings'] = $warnings;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**
      * Actualiza los campos básicos de una orden de producción.
+     * Ajusta el inventario de componentes según el delta de cantidad.
      */
     public function update(Request $request, $id)
     {
         $order = TpspProductionOrder::findOrFail($id);
+        $oldQuantity = $order->quantity_requested;
 
         $validatedData = $request->validate([
             'quantity_requested' => 'required|integer|min:1',
@@ -67,21 +121,119 @@ class TpspProductionOrderController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $newQuantity = $validatedData['quantity_requested'];
+        $delta = $newQuantity - $oldQuantity;
+
         // No permitir reducir la cantidad por debajo de lo ya producido
-        if ($validatedData['quantity_requested'] < $order->quantity_produced) {
+        if ($newQuantity < $order->quantity_produced) {
             return response()->json([
                 'message' => 'No puedes reducir la cantidad solicitada por debajo de lo ya producido (' . $order->quantity_produced . ' unidades).'
             ], 422);
         }
 
+        $warnings = [];
+        $kitProduct = tpspProduct::find($order->product_id);
+        $components = collect();
+
+        if ($kitProduct && $kitProduct->is_kit) {
+            $components = tpspKitComponent::where('kit_product_id', $kitProduct->id)
+                ->with('componentProduct')
+                ->get();
+
+            // Solo ajustar inventario si hay un delta real
+            if ($delta != 0) {
+                try {
+                    DB::beginTransaction();
+
+                    foreach ($components as $component) {
+                        $componentProduct = $component->componentProduct;
+                        if (!$componentProduct) continue;
+
+                        $adjustQty = $component->quantity_required * abs($delta);
+
+                        if ($delta > 0) {
+                            // === AUMENTO: descontar materiales del inventario ===
+                            $componentProduct->decrement('stock', $adjustQty);
+                            // Refrescar para obtener el stock real después del decremento
+                            $componentProduct->refresh();
+
+                            tpspInventoryMovement::create([
+                                'product_id' => $component->component_product_id,
+                                'quantity' => -$adjustQty,
+                                'type' => 'Consumo_Produccion',
+                                'reference_type' => TpspProductionOrder::class,
+                                'reference_id' => $order->id,
+                                'notes' => "Consumo por ampliación de orden: {$kitProduct->name}. Orden: {$order->order_number} (+{$delta} unid.)",
+                            ]);
+
+                            if ($componentProduct->stock < 0) {
+                                $warnings[] = "⚠️ {$componentProduct->name}: stock en NEGATIVO ({$componentProduct->stock}) tras descontar {$adjustQty} para cubrir el aumento de {$delta} unidad(es).";
+                            }
+                        } else {
+                            // === DISMINUCIÓN: regresar materiales al inventario ===
+                            $componentProduct->increment('stock', $adjustQty);
+                            $componentProduct->refresh();
+
+                            tpspInventoryMovement::create([
+                                'product_id' => $component->component_product_id,
+                                'quantity' => $adjustQty,
+                                'type' => 'Ajuste',
+                                'reference_type' => TpspProductionOrder::class,
+                                'reference_id' => $order->id,
+                                'notes' => "Devolución por reducción de orden: {$kitProduct->name}. Orden: {$order->order_number} ({$delta} unid.)",
+                            ]);
+                        }
+                    }
+
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Error al ajustar inventario: ' . $e->getMessage()], 500);
+                }
+            }
+
+            // === SIEMPRE: Calcular proyección de inventario para lo que falta producir ===
+            $remainingToProduce = $newQuantity - $order->quantity_produced;
+
+            foreach ($components as $component) {
+                $componentProduct = $component->componentProduct;
+                if (!$componentProduct) continue;
+
+                $neededTotal = $component->quantity_required * $remainingToProduce;
+                // Re-leer el stock fresco
+                $freshProduct = tpspProduct::find($componentProduct->id);
+                $futureStock = $freshProduct ? ($freshProduct->stock - $neededTotal) : ($componentProduct->stock - $neededTotal);
+
+                if ($futureStock < 0) {
+                    // Evitar duplicar la advertencia si ya se agregó arriba
+                    $alreadyWarned = false;
+                    foreach ($warnings as $w) {
+                        if (str_contains($w, $componentProduct->name) && str_contains($w, 'negativo')) {
+                            $alreadyWarned = true;
+                            break;
+                        }
+                    }
+                    if (!$alreadyWarned) {
+                        $warnings[] = "⚠️ {$componentProduct->name}: stock actual ({$freshProduct?->stock}) insuficiente. Faltarían " . abs($futureStock) . " para completar las {$remainingToProduce} unidades restantes.";
+                    }
+                }
+            }
+        }
+
         $order->update($validatedData);
         $order->load('product');
 
-        return response()->json($order);
+        $response = $order->toArray();
+        if (!empty($warnings)) {
+            $response['warnings'] = $warnings;
+        }
+
+        return response()->json($response);
     }
 
     /**
-     * Elimina una orden de producción.
+     * Elimina una orden de producción. Devuelve los materiales al inventario
+     * si no ha iniciado producción.
      */
     public function destroy($id)
     {
@@ -90,8 +242,43 @@ class TpspProductionOrderController extends Controller
         if ($order->quantity_produced > 0 || $order->quantity_delivered > 0) {
             return response()->json(['message' => 'No se puede eliminar una orden que ya tiene producción o entregas registradas.'], 422);
         }
-        
-        $order->delete();
+
+        try {
+            DB::beginTransaction();
+
+            // Devolver materiales al inventario si es un kit
+            $kitProduct = tpspProduct::find($order->product_id);
+            if ($kitProduct && $kitProduct->is_kit) {
+                $components = tpspKitComponent::where('kit_product_id', $kitProduct->id)
+                    ->with('componentProduct')
+                    ->get();
+
+                foreach ($components as $component) {
+                    $componentProduct = $component->componentProduct;
+                    if (!$componentProduct) continue;
+
+                    $returnQty = $component->quantity_required * $order->quantity_requested;
+
+                    $componentProduct->increment('stock', $returnQty);
+
+                    tpspInventoryMovement::create([
+                        'product_id' => $component->component_product_id,
+                        'quantity' => $returnQty,
+                        'type' => 'Ajuste',
+                        'reference_type' => TpspProductionOrder::class,
+                        'reference_id' => $order->id,
+                        'notes' => "Devolución por cancelación de orden: {$kitProduct->name}. Orden: {$order->order_number}.",
+                    ]);
+                }
+            }
+
+            $order->delete();
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error al eliminar la orden: ' . $e->getMessage()], 500);
+        }
+
         return response()->noContent();
     }
 
@@ -154,6 +341,8 @@ class TpspProductionOrderController extends Controller
 
     /**
      * Agrega progreso a una orden.
+     * Los materiales ya fueron descontados en store()/update(), aquí solo se
+     * registra el avance y se incrementa el stock del producto kit terminado.
      */
     public function addProgress(Request $request, $id)
     {
@@ -179,41 +368,9 @@ class TpspProductionOrderController extends Controller
             DB::beginTransaction();
 
             $kitProduct = tpspProduct::find($order->product_id);
-            
-            $components = tpspKitComponent::where('kit_product_id', $kitProduct->id)
-                                          ->with('componentProduct') 
-                                          ->get();
 
-            if ($kitProduct->is_kit && $components->isEmpty()) {
-                throw new \Exception('Este producto está marcado como Kit pero no tiene componentes definidos.');
-            }
-
-            foreach ($components as $component) {
-                $componentProduct = $component->componentProduct; 
-                
-                if (!$componentProduct) {
-                    throw new \Exception("El componente ID {$component->component_product_id} (requerido por el Kit) no fue encontrado.");
-                }
-
-                $requiredQty = $component->quantity_required * $quantityToAdd;
-
-                if ($componentProduct->stock < $requiredQty) {
-                    throw ValidationException::withMessages([
-                        'quantity' => "Stock insuficiente para el componente: {$componentProduct->name}. Se necesitan {$requiredQty}, disponibles: {$componentProduct->stock}."
-                    ]);
-                }
-
-                $componentProduct->decrement('stock', $requiredQty);
-
-                tpspInventoryMovement::create([
-                    'product_id' => $component->component_product_id,
-                    'quantity' => -$requiredQty, 
-                    'type' => 'Consumo_Produccion',
-                    'reference_type' => tpspProductionOrder::class,
-                    'reference_id' => $order->id,
-                    'notes' => "Consumo para Kit: {$kitProduct->name}. Orden: {$order->order_number}",
-                ]);
-            }
+            // Los materiales ya fueron descontados del inventario en store()/update().
+            // Aquí solo registramos la entrada de producción y subimos el stock del kit.
 
             $order->quantity_produced = $newTotalProduced;
             

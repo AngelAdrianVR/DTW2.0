@@ -54,7 +54,7 @@ const allProducts = ref([]);
 const loading = ref(true);
 
 // Opciones de tu migración
-const movementTypes = ref(['Compra', 'Consumo_Produccion', 'Entrada_Produccion', 'Venta', 'Ajuste']);
+const movementTypes = ref(['Compra', 'Consumo_Produccion', 'Entrada_Produccion', 'Venta', 'Ajuste', 'Devolución de producto']);
 
 const newMovement = ref({
     product_id: null,
