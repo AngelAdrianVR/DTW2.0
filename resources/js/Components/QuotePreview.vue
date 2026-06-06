@@ -24,6 +24,27 @@ const activeTotalWithDiscount = computed(() => {
     return amount - (amount * discount / 100);
 });
 
+// ISR Retention (RESICO): 1.25% on subtotal, only for Persona Moral + needs_invoice
+const isrRetention = computed(() => {
+    if (!props.data.needs_invoice) return 0;
+    if (!props.client || props.client.regimen_fiscal !== 'persona_moral') return 0;
+    return Math.round(activeTotalWithDiscount.value * 0.0125 * 100) / 100;
+});
+
+const ivaAmount = computed(() => {
+    if (!props.data.needs_invoice) return 0;
+    return Math.round(activeTotalWithDiscount.value * 0.16 * 100) / 100;
+});
+
+const grandTotal = computed(() => {
+    let total = activeTotalWithDiscount.value;
+    if (props.data.needs_invoice) {
+        total = total + ivaAmount.value;
+    }
+    total = total - isrRetention.value;
+    return total;
+});
+
 const formattedCreatedAt = computed(() => {
     const date = new Date(props.createdAt || Date.now());
     return isNaN(date) ? '---' : date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -53,6 +74,8 @@ const cleanDescription = computed(() => {
     html = html.replace(/overflow-wrap:\s*[^;]+;?/gi, '');
     // Eliminamos justificados forzados para garantizar la alineación a la izquierda
     html = html.replace(/text-align:\s*justify;?/gi, '');
+    // Forzamos que las palabras se mantengan intactas y el texto vaya a la izquierda
+    html = html.replace(/white-space:\s*[^;]+;?/gi, '');
     
     return html;
 });
@@ -162,14 +185,24 @@ const cleanDescription = computed(() => {
                             <span>Descuento ({{ data.percentage_discount }}%):</span>
                             <span>- {{ formatCurrency((activeAmount * data.percentage_discount) / 100) }}</span>
                         </div>
+                        <div v-if="data.show_tax_breakdown && data.needs_invoice" class="flex justify-between text-[11px] text-blue-600">
+                            <span>IVA (16%):</span>
+                            <span>+ {{ formatCurrency(ivaAmount) }}</span>
+                        </div>
+                        <div v-if="data.show_tax_breakdown && isrRetention > 0" class="flex justify-between text-[11px] text-amber-600">
+                            <span>Retención ISR (1.25%):</span>
+                            <span>- {{ formatCurrency(isrRetention) }}</span>
+                        </div>
                         
                         <!-- Total Final -->
                         <div class="flex justify-between items-center bg-[#1a1a1a] text-white p-2.5 rounded-lg mt-2 shadow-sm">
                             <span class="text-[10px] font-bold uppercase tracking-wider">Total Final</span>
-                            <span class="text-[15px] font-black leading-none">{{ formatCurrency(activeTotalWithDiscount) }}</span>
+                            <span class="text-[15px] font-black leading-none">{{ formatCurrency(grandTotal) }}</span>
                         </div>
                         <p class="text-[10px] text-gray-900 text-right mt-1.5 uppercase tracking-wide">
-                            IVA no incluido. Moneda: {{ currency === 'USD' ? 'USD' : 'MXN' }}.
+                            <span v-if="data.show_tax_breakdown && isrRetention > 0">IVA incluido. Retención ISR (RESICO) aplicada. Moneda: {{ currency === 'USD' ? 'USD' : 'MXN' }}.</span>
+                            <span v-else-if="data.show_tax_breakdown && data.needs_invoice">IVA incluido. Moneda: {{ currency === 'USD' ? 'USD' : 'MXN' }}.</span>
+                            <span v-else>Más IVA. Moneda: {{ currency === 'USD' ? 'USD' : 'MXN' }}.</span>
                         </p>
                     </div>
                 </div>

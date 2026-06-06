@@ -53,6 +53,7 @@ class ClientController extends Controller
             'address' => 'nullable|string',
             'status' => 'required|in:Cliente,Prospecto',
             'source' => 'nullable|string|max:255',
+            'regimen_fiscal' => 'required|in:persona_fisica,persona_moral',
             'contacts' => 'present|array', // Valida que 'contacts' esté presente y sea un array
             'contacts.*.name' => 'required|string|max:255',
             'contacts.*.email' => 'nullable|email|max:255',
@@ -69,6 +70,7 @@ class ClientController extends Controller
                 'address' => $validated['address'],
                 'status' => $validated['status'],
                 'source' => $validated['source'],
+                'regimen_fiscal' => $validated['regimen_fiscal'],
             ]);
 
             if (!empty($validated['contacts'])) {
@@ -131,6 +133,7 @@ class ClientController extends Controller
             'address' => 'nullable|string',
             'status' => 'required|in:Cliente,Prospecto',
             'source' => 'nullable|string|max:255',
+            'regimen_fiscal' => 'required|in:persona_fisica,persona_moral',
             'contacts' => 'present|array',
             'contacts.*.name' => 'required|string|max:255',
             'contacts.*.email' => 'nullable|email|max:255',
@@ -147,6 +150,7 @@ class ClientController extends Controller
                 'address' => $validated['address'],
                 'status' => $validated['status'],
                 'source' => $validated['source'],
+                'regimen_fiscal' => $validated['regimen_fiscal'],
             ]);
 
             // 2. Sincronizamos los contactos.

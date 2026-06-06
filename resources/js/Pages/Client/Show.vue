@@ -168,6 +168,7 @@ const cleanForWhatsApp = (phone) => {
                             <template #content>
                                 <ul class="space-y-3 text-gray-600 dark:text-zinc-300 text-sm">
                                     <li v-if="client.address"><strong class="font-semibold text-gray-800 dark:text-zinc-100">Dirección:</strong> {{ client.address }}</li>
+                                    <li><strong class="font-semibold text-gray-800 dark:text-zinc-100">Régimen Fiscal:</strong> {{ client.regimen_fiscal === 'persona_moral' ? 'Persona Moral' : 'Persona Física' }}</li>
                                     <li v-if="client.source"><strong class="font-semibold text-gray-800 dark:text-zinc-100">Fuente:</strong> {{ client.source }}</li>
                                     <li><strong class="font-semibold text-gray-800 dark:text-zinc-100">Registrado:</strong> {{ formatDate(client.created_at) }}</li>
                                 </ul>
