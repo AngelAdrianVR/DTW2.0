@@ -32,8 +32,11 @@ class Quote extends Model implements HasMedia
         'show_process',
         'show_benefits',
         'show_bank_info',
+        'show_tax_breakdown',
         'budgeted_hours',
         'needs_invoice',
+        'isr_retention',
+        'aplica_retencion',
         'sent_at',
         'accepted_at',
         'rejected_at',
@@ -49,9 +52,12 @@ class Quote extends Model implements HasMedia
         'show_process' => 'boolean',
         'show_benefits' => 'boolean',
         'show_bank_info' => 'boolean',
+        'show_tax_breakdown' => 'boolean',
         'needs_invoice' => 'boolean',
         'amount' => 'float',
         'amount_usd' => 'float',
+        'isr_retention' => 'float',
+        'aplica_retencion' => 'boolean',
         'sent_at' => 'datetime',
         'accepted_at' => 'datetime',
         'rejected_at' => 'datetime',
@@ -72,26 +78,40 @@ class Quote extends Model implements HasMedia
         });
     }
 
-    protected $appends = ['final_amount'];
+    protected $appends = ['subtotal', 'final_amount'];
 
-    public function getFinalAmountAttribute(): float
+    /**
+     * Subtotal: Monto base después de aplicar descuento, antes de IVA e ISR.
+     */
+    public function getSubtotalAttribute(): float
     {
-        // Se previene error fatal en PHP si los datos llegan a estar null
         $amount = (float) ($this->amount ?? 0);
         $discount = (float) ($this->percentage_discount ?? 0);
 
         if ($discount > 0) {
-            $discountAmount = $amount * ($discount / 100);
-            // CORRECCIÓN: Anteriormente aquí había un "return" y se saltaba el IVA.
-            $amount = $amount - $discountAmount;
+            $amount = $amount - ($amount * ($discount / 100));
         }
 
-        // <-- LÓGICA DE IVA INTERNO: Multiplica por 1.16 si requiere factura
+        return round($amount, 2);
+    }
+
+    public function getFinalAmountAttribute(): float
+    {
+        $amount = $this->getSubtotalAttribute();
+
+        // IVA interno (16%) si requiere factura
         if ($this->needs_invoice) {
             $amount = $amount * 1.16;
         }
-        
-        return (float) $amount;
+
+        // Retención ISR 1.25% (RESICO) — solo si la bandera aplica_retencion está activa
+        // (protege el historial financiero de cotizaciones anteriores al cambio fiscal)
+        $isrRetention = (float) ($this->isr_retention ?? 0);
+        if ($this->aplica_retencion && $isrRetention > 0) {
+            $amount = $amount - $isrRetention;
+        }
+
+        return round($amount, 2);
     }
 
     public function client(): BelongsTo

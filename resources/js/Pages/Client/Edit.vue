@@ -19,12 +19,18 @@ const statusOptions = ref([
     { label: 'Cliente', value: 'Cliente' }
 ]);
 
+const regimenOptions = ref([
+    { label: 'Persona Física', value: 'persona_fisica' },
+    { label: 'Persona Moral (Empresas)', value: 'persona_moral' }
+]);
+
 const form = useForm({
     name: props.client.name,
     tax_id: props.client.tax_id,
     address: props.client.address,
     status: props.client.status,
     source: props.client.source,
+    regimen_fiscal: props.client.regimen_fiscal || 'persona_fisica',
     contacts: props.client.contacts || [],
 });
 
@@ -71,6 +77,11 @@ if (form.contacts.length === 0) { addContact(); }
                                     <label for="name" class="font-semibold text-sm dark:text-zinc-300">Nombre de la Empresa <span class="text-red-500">*</span></label>
                                     <InputText id="name" v-model="form.name" :class="{ 'p-invalid': form.errors.name }" />
                                     <small v-if="form.errors.name" class="p-error">{{ form.errors.name }}</small>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <label for="regimen_fiscal" class="font-semibold text-sm dark:text-zinc-300">Régimen Fiscal <span class="text-red-500">*</span></label>
+                                    <Dropdown id="regimen_fiscal" v-model="form.regimen_fiscal" :options="regimenOptions" optionLabel="label" optionValue="value" placeholder="Selecciona el régimen fiscal" :class="{ 'p-invalid': form.errors.regimen_fiscal }" />
+                                    <small v-if="form.errors.regimen_fiscal" class="p-error">{{ form.errors.regimen_fiscal }}</small>
                                 </div>
                                 <div class="flex flex-col gap-2">
                                     <label for="tax_id" class="font-semibold text-sm dark:text-zinc-300">RFC / Tax ID</label>

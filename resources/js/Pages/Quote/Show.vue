@@ -194,6 +194,14 @@ const totalWithDiscount = computed(() => {
         amount = amount * 1.16;
     }
     
+    // Restar retención ISR (RESICO) — solo si la bandera está activa (protege historial)
+    if (props.quote.aplica_retencion) {
+        const isrRetention = parseFloat(props.quote.isr_retention) || 0;
+        if (isrRetention > 0) {
+            amount = amount - isrRetention;
+        }
+    }
+    
     return amount;
 });
 
@@ -573,7 +581,7 @@ const getFileInfo = (fileName) => {
                                 <div class="space-y-4">
                                     <div class="flex justify-between items-center text-gray-600 dark:text-zinc-400 text-sm sm:text-base">
                                         <span>Subtotal</span>
-                                        <span class="font-medium text-gray-900 dark:text-zinc-100">{{ formatCurrency(quote.amount) }}</span>
+                                        <span class="font-medium text-gray-900 dark:text-zinc-100">{{ formatCurrency(quote.subtotal ?? quote.amount) }}</span>
                                     </div>
                                     
                                     <div v-if="quote.percentage_discount > 0" class="flex justify-between items-center text-rose-500 bg-rose-50 dark:bg-rose-900/10 px-3 py-2 rounded-lg -mx-3">
@@ -583,7 +591,12 @@ const getFileInfo = (fileName) => {
 
                                     <div v-if="quote.needs_invoice" class="flex justify-between items-center text-blue-600 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 rounded-lg -mx-3">
                                         <span class="flex items-center text-xs sm:text-sm"><i class="pi pi-receipt mr-2"></i> IVA (16%)</span>
-                                        <span class="font-bold text-sm sm:text-base">+ {{ formatCurrency((quote.amount - ((quote.amount * (quote.percentage_discount || 0)) / 100)) * 0.16) }}</span>
+                                        <span class="font-bold text-sm sm:text-base">+ {{ formatCurrency((quote.subtotal ?? (quote.amount - ((quote.amount * (quote.percentage_discount || 0)) / 100))) * 0.16) }}</span>
+                                    </div>
+
+                                    <div v-if="quote.aplica_retencion && quote.isr_retention > 0" class="flex justify-between items-center text-amber-600 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 rounded-lg -mx-3">
+                                        <span class="flex items-center text-xs sm:text-sm"><i class="pi pi-minus-circle mr-2"></i> Retención ISR (1.25%)</span>
+                                        <span class="font-bold text-sm sm:text-base">- {{ formatCurrency(quote.isr_retention) }}</span>
                                     </div>
 
                                     <div class="flex justify-between items-center text-emerald-600 dark:text-emerald-400 text-sm sm:text-base" v-if="totalPaid > 0">
@@ -600,7 +613,11 @@ const getFileInfo = (fileName) => {
                                             <span class="text-gray-500 dark:text-zinc-400 text-xs sm:text-sm font-medium uppercase tracking-wide">Saldo Restante</span>
                                             <span class="text-lg sm:text-xl font-bold" :class="remainingBalance > 0.01 ? 'text-rose-500 dark:text-rose-400' : 'text-gray-400 dark:text-zinc-500'">{{ formatCurrency(remainingBalance) }}</span>
                                         </div>
-                                        <p class="text-right text-[10px] sm:text-xs text-gray-400 dark:text-zinc-500 mt-1">Total con IVA interno reflejado.</p>
+                                        <p class="text-right text-[10px] sm:text-xs text-gray-400 dark:text-zinc-500 mt-1">
+                                            <span v-if="quote.aplica_retencion && quote.isr_retention > 0">Total con IVA interno y retención ISR (RESICO).</span>
+                                            <span v-else-if="quote.needs_invoice">Total con IVA interno reflejado.</span>
+                                            <span v-else>Total sin IVA.</span>
+                                        </p>
                                     </div>
                                 </div>
                             </div>

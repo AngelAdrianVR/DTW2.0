@@ -29,6 +29,7 @@ const form = useForm({
     show_process: false,
     show_benefits: false,
     show_bank_info: false,
+    show_tax_breakdown: false,
     needs_invoice: false, 
 
 });
@@ -51,7 +52,7 @@ const submit = () => { form.post(route('quotes.store')); };
 
 <template>
     <AppLayout title="Crear Cotización">
-        <div class="py-12 bg-[#F5F5F7] dark:bg-zinc-950 min-h-screen">
+        <div class="py-12 bg-zinc-150 dark:bg-zinc-950 min-h-screen">
             <div class="max-w-[90rem] mx-auto sm:px-6 lg:px-8">
                 
                 <div class="mb-4">
@@ -110,11 +111,11 @@ const submit = () => { form.post(route('quotes.store')); };
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <div class="flex flex-col gap-1">
                                         <label for="work_days" class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Días de Entrega <span class="text-red-500">*</span></label>
                                         <InputNumber id="work_days" v-model="form.work_days" :min="1" suffix=" días" :class="{ 'p-invalid': form.errors.work_days }" placeholder="Ej: 15" />
-                                        <small v-if="form.errors.work_days" class="p-error">{{ form.errors.work_days }}</small>
+                                        <small v-if="form.errors.work_days" class="p-error text-red-500">{{ form.errors.work_days }}</small>
                                     </div>
                                     <div class="flex flex-col gap-1">
                                         <label for="budgeted_hours" class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider flex justify-between">
@@ -131,7 +132,7 @@ const submit = () => { form.post(route('quotes.store')); };
                                     <div class="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
                                         <label for="payment_type" class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Condiciones de Pago <span class="text-red-500">*</span></label>
                                         <Dropdown id="payment_type" v-model="form.payment_type" :options="paymentOptions" editable placeholder="Selecciona o escribe..." class="w-full" :class="{ 'p-invalid': form.errors.payment_type }" />
-                                        <small v-if="form.errors.payment_type" class="p-error">{{ form.errors.payment_type }}</small>
+                                        <small v-if="form.errors.payment_type" class="p-error text-red-500">{{ form.errors.payment_type }}</small>
                                     </div>
                                 </div>
 
@@ -188,9 +189,15 @@ const submit = () => { form.post(route('quotes.store')); };
                                             <Checkbox v-model="form.show_bank_info" inputId="show_bank_info" :binary="true" />
                                             <label for="show_bank_info" class="ml-2 text-sm text-gray-700 dark:text-zinc-300 cursor-pointer"> Datos Bancarios </label>
                                         </div>
-                                        <div class="flex items-center ml-auto">
-                                            <Checkbox v-model="form.needs_invoice" inputId="needs_invoice" :binary="true" />
-                                            <label for="needs_invoice" class="ml-2 text-sm font-bold text-blue-600 cursor-pointer" v-tooltip.top="'Agrega el 16% de IVA interno para que coincida con los pagos.'"> Se Factura (+IVA) </label>
+                                        <div class="flex items-center gap-x-6 gap-y-3 ml-auto">
+                                            <div class="flex items-center">
+                                                <Checkbox v-model="form.show_tax_breakdown" inputId="show_tax_breakdown" :binary="true" />
+                                                <label for="show_tax_breakdown" class="ml-2 text-sm font-bold text-amber-600 cursor-pointer" v-tooltip.top="'Muestra el desglose de IVA y retenciones en la plantilla impresa.'"> Mostrar Desglose Fiscal </label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <Checkbox v-model="form.needs_invoice" inputId="needs_invoice" :binary="true" />
+                                                <label for="needs_invoice" class="ml-2 text-sm font-bold text-blue-600 cursor-pointer" v-tooltip.top="'Agrega el 16% de IVA interno para que coincida con los pagos.'"> Se Factura (+IVA) </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

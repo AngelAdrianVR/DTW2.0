@@ -24,6 +24,7 @@ class Client extends Model
         'address',
         'status', // Estatus (Prospecto, Cliente)
         'source', // fuente del cliente
+        'regimen_fiscal', // Régimen fiscal: persona_fisica | persona_moral
     ];
 
     public function assignee(): BelongsTo

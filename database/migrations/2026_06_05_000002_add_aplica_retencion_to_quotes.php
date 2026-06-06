@@ -6,19 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('quotes', function (Blueprint $table) {
-            if (!Schema::hasColumn('quotes', 'needs_invoice')) {
-                $table->boolean('needs_invoice')->default(false)->after('show_bank_info');
-            }
+            $table->boolean('aplica_retencion')
+                ->default(false)
+                ->after('isr_retention')
+                ->comment('Bandera de seguridad: solo cotizaciones nuevas aplican retención ISR (RESICO)');
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('quotes', function (Blueprint $table) {
-            $table->dropColumn('needs_invoice');
+            $table->dropColumn('aplica_retencion');
         });
     }
 };

@@ -45,11 +45,11 @@ class QuoteController extends Controller
                 });
             });
 
-        $finalAmountSql = '(CASE 
-            WHEN quotes.percentage_discount > 0 THEN quotes.amount - (quotes.amount * (quotes.percentage_discount / 100)) 
-            WHEN quotes.needs_invoice = 1 THEN quotes.amount * 1.16 
-            ELSE quotes.amount 
-        END)';
+        $finalAmountSql = '(
+            (quotes.amount * (1 - COALESCE(quotes.percentage_discount, 0) / 100.0))
+            * CASE WHEN quotes.needs_invoice = 1 THEN 1.16 ELSE 1.0 END
+            - CASE WHEN quotes.aplica_retencion = 1 THEN COALESCE(quotes.isr_retention, 0) ELSE 0 END
+        )';
 
         if ($sortField === 'client') {
             $clientTable = (new Client)->getTable();
@@ -84,7 +84,7 @@ class QuoteController extends Controller
     public function create()
     {
         return Inertia::render('Quote/Create', [
-            'clients' => Client::select('id', 'name', 'tax_id', 'address')->get()
+            'clients' => Client::select('id', 'name', 'tax_id', 'address', 'regimen_fiscal')->get()
         ]);
     }
 
@@ -104,8 +104,17 @@ class QuoteController extends Controller
             'show_process' => 'required|boolean',
             'show_benefits' => 'required|boolean',
             'show_bank_info' => 'required|boolean',
+            'show_tax_breakdown' => 'required|boolean',
             'needs_invoice' => 'required|boolean',
         ]);
+
+        // Calcular retención ISR (RESICO): solo Persona Moral + Factura
+        $isrRetention = $this->computeIsrRetention(
+            $validated['amount'],
+            $validated['percentage_discount'] ?? 0,
+            $validated['needs_invoice'],
+            $validated['client_id']
+        );
 
         $quote = Quote::create([
             'client_id' => $validated['client_id'],
@@ -122,7 +131,10 @@ class QuoteController extends Controller
             'show_process' => $validated['show_process'],
             'show_benefits' => $validated['show_benefits'],
             'show_bank_info' => $validated['show_bank_info'],
+            'show_tax_breakdown' => $validated['show_tax_breakdown'],
             'needs_invoice' => $validated['needs_invoice'],
+            'isr_retention' => $isrRetention,
+            'aplica_retencion' => true, // Nuevas cotizaciones: aplicar regla RESICO
             'quote_code' => $this->generateQuoteCode(),
             'status' => 'Pendiente',
             'origin' => 'Interno',
@@ -156,7 +168,7 @@ class QuoteController extends Controller
     {
         return Inertia::render('Quote/Edit', [
             'quote' => $quote,
-            'clients' => Client::select('id', 'name', 'tax_id', 'address')->get()
+            'clients' => Client::select('id', 'name', 'tax_id', 'address', 'regimen_fiscal')->get()
         ]);
     }
 
@@ -176,8 +188,17 @@ class QuoteController extends Controller
             'show_process' => 'required|boolean',
             'show_benefits' => 'required|boolean',
             'show_bank_info' => 'required|boolean',
+            'show_tax_breakdown' => 'required|boolean',
             'needs_invoice' => 'required|boolean',
         ]);
+        
+        // Calcular retención ISR (RESICO): solo Persona Moral + Factura
+        $validated['isr_retention'] = $this->computeIsrRetention(
+            $validated['amount'],
+            $validated['percentage_discount'] ?? 0,
+            $validated['needs_invoice'],
+            $validated['client_id']
+        );
         
         $quote->update($validated);
 
@@ -348,6 +369,30 @@ class QuoteController extends Controller
             'message' => '¡Tu solicitud ha sido enviada con éxito!',
             'type' => 'success'
         ]);
+    }
+
+    /**
+     * Calcula la retención de ISR (1.25%) para el régimen RESICO.
+     * Solo aplica si el cliente es Persona Moral y la cotización requiere factura.
+     */
+    private function computeIsrRetention(float $amount, float $percentageDiscount, bool $needsInvoice, int $clientId): float
+    {
+        if (!$needsInvoice) {
+            return 0.00;
+        }
+
+        $client = Client::find($clientId);
+        if (!$client || $client->regimen_fiscal !== 'persona_moral') {
+            return 0.00;
+        }
+
+        // Subtotal después del descuento
+        $subtotal = $amount;
+        if ($percentageDiscount > 0) {
+            $subtotal = $subtotal - ($subtotal * $percentageDiscount / 100);
+        }
+
+        return round($subtotal * 0.0125, 2);
     }
 
     private function generateQuoteCode()
