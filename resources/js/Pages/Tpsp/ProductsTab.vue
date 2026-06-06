@@ -26,9 +26,15 @@ const loading = ref(true);
 // --- ESTADOS PARA FILTROS Y BÚSQUEDA ---
 const searchQuery = ref('');
 const selectedCategoryFilter = ref(null);
+const selectedKitFilter = ref(null);
 
 // Opciones
 const productCategories = ref(['Material', 'Insumo', 'Empaque', 'Producto Terminado']);
+const kitFilterOptions = ref([
+    { label: 'Todos los productos', value: null },
+    { label: 'Solo Compuestos (Kits)', value: true },
+    { label: 'Solo Simples (No Kits)', value: false },
+]);
 
 // Estado de modales
 const productDialog = ref(false);
@@ -99,22 +105,28 @@ const filteredProducts = computed(() => {
     if (selectedCategoryFilter.value) {
         result = result.filter(p => p.category === selectedCategoryFilter.value);
     }
+    if (selectedKitFilter.value !== null) {
+        result = result.filter(p => p.is_kit === selectedKitFilter.value);
+    }
     return result.map(p => {
         if (p.is_kit) {
             const components = kitComponentsMap.value[p.id];
             let calculable_stock = 0;
+            let hasNegativeComponent = false;
             let isDataReady = components !== undefined;
             if (isDataReady && components.length > 0) {
                 const stockPerComponent = components.map(comp => {
                     const compProduct = products.value.find(prod => prod.id === comp.component_product_id);
                     const currentStock = compProduct ? compProduct.stock : 0;
-                    return Math.floor(currentStock / comp.quantity_required);
+                    if (currentStock < 0) hasNegativeComponent = true;
+                    const effectiveStock = Math.max(0, currentStock);
+                    return Math.floor(effectiveStock / comp.quantity_required);
                 });
                 calculable_stock = Math.min(...stockPerComponent);
             } else if (isDataReady && components.length === 0) {
                 calculable_stock = 0;
             }
-            return { ...p, calculable_stock: isDataReady ? calculable_stock : '...', components: components || [] };
+            return { ...p, calculable_stock: isDataReady ? calculable_stock : '...', hasNegativeComponent, components: components || [] };
         }
         return p;
     });
@@ -127,7 +139,7 @@ const formatDateTime = (dateString) => {
 };
 
 const getMovementSeverity = (type) => {
-    if (['Compra', 'Entrada_Produccion', 'Entrada de material'].includes(type)) return 'success';
+    if (['Compra', 'Entrada_Produccion', 'Entrada de material', 'Devolución de producto'].includes(type)) return 'success';
     if (['Venta', 'Consumo_Produccion'].includes(type)) return 'danger';
     return 'info';
 };
@@ -358,6 +370,15 @@ const onDeleteComponent = (component) => {
                         :options="productCategories"
                         placeholder="Todas las categorías"
                         :showClear="true"
+                        class="w-full sm:w-48 !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm !h-[42px] flex items-center"
+                    />
+                    <Dropdown
+                        v-model="selectedKitFilter"
+                        :options="kitFilterOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Filtrar por tipo"
+                        :showClear="false"
                         class="w-full sm:w-56 !rounded-xl !border-zinc-200 dark:!border-zinc-700 dark:!bg-zinc-950 shadow-sm !h-[42px] flex items-center"
                     />
                 </div>
@@ -395,10 +416,10 @@ const onDeleteComponent = (component) => {
                             </template>
                         </Column>
 
-                        <Column field="stock" header="Físico" style="min-width: 100px;">
+                        <Column field="stock" header="Físico" :sortable="true" style="min-width: 100px;">
                             <template #body="slotProps">
                                 <div class="flex items-baseline gap-1.5">
-                                    <span class="font-bold text-base" :class="slotProps.data.stock > 0 ? 'text-zinc-800 dark:text-zinc-200' : 'text-red-500'">
+                                    <span class="font-bold text-base" :class="slotProps.data.stock >= 0 ? 'text-zinc-800 dark:text-zinc-200' : 'text-red-500'">
                                         {{ slotProps.data.stock }}
                                     </span>
                                     <span class="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-500">{{ slotProps.data.unit_of_measure }}</span>
@@ -406,12 +427,15 @@ const onDeleteComponent = (component) => {
                             </template>
                         </Column>
 
-                        <Column header="Fabricable" style="min-width: 110px;">
+                        <Column header="Fabricable" style="min-width: 120px;">
                             <template #body="slotProps">
                                 <div v-if="slotProps.data.is_kit">
-                                    <Tag :severity="slotProps.data.calculable_stock > 0 ? 'success' : 'danger'" class="!rounded-md">
-                                        <span class="font-bold text-xs">{{ slotProps.data.calculable_stock }} unid.</span>
-                                    </Tag>
+                                    <div class="flex items-center gap-1.5">
+                                        <Tag :severity="slotProps.data.calculable_stock > 0 ? 'success' : 'danger'" class="!rounded-md">
+                                            <span class="font-bold text-xs">{{ slotProps.data.calculable_stock }} unid.</span>
+                                        </Tag>
+                                        <i v-if="slotProps.data.hasNegativeComponent" class="pi pi-exclamation-triangle text-amber-500" v-tooltip.top="'Uno o más componentes tienen stock negativo'" style="font-size: 0.75rem;"></i>
+                                    </div>
                                 </div>
                                 <span v-else class="text-zinc-300 dark:text-zinc-700 text-xs">-</span>
                             </template>
@@ -499,12 +523,15 @@ const onDeleteComponent = (component) => {
                             <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col bg-zinc-50 dark:bg-zinc-950 px-3 py-2 rounded-xl border border-zinc-100 dark:border-zinc-800">
                                     <span class="text-[0.65rem] uppercase tracking-wider font-semibold text-zinc-400 mb-0.5"><i class="pi pi-box mr-1 text-[0.6rem]"></i> Físico</span>
-                                    <span class="font-bold text-lg text-zinc-800 dark:text-zinc-200 leading-none">
+                                    <span class="font-bold text-lg leading-none" :class="product.stock >= 0 ? 'text-zinc-800 dark:text-zinc-200' : 'text-red-500'">
                                         {{ product.stock }} <span class="text-xs font-medium text-zinc-500 uppercase">{{ product.unit_of_measure }}</span>
                                     </span>
                                 </div>
                                 <div v-if="product.is_kit" class="flex flex-col bg-emerald-50/50 dark:bg-emerald-900/10 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
-                                    <span class="text-[0.65rem] uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400 mb-0.5"><i class="pi pi-wrench mr-1 text-[0.6rem]"></i> Fabricable</span>
+                                    <span class="text-[0.65rem] uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400 mb-0.5">
+                                        <i class="pi pi-wrench mr-1 text-[0.6rem]"></i> Fabricable
+                                        <i v-if="product.hasNegativeComponent" class="pi pi-exclamation-triangle text-amber-500 ml-1" v-tooltip.top="'Componentes en negativo'"></i>
+                                    </span>
                                     <span class="font-bold text-lg text-emerald-700 dark:text-emerald-300 leading-none">
                                         {{ product.calculable_stock }} <span class="text-xs font-medium text-emerald-600/70 uppercase">U.</span>
                                     </span>

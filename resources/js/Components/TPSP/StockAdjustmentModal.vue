@@ -22,7 +22,7 @@ const visible = computed({
     set: (val) => emit('update:visible', val),
 });
 
-const movementTypes = ['Ajuste', 'Compra', 'Venta', 'Entrada_Produccion', 'Consumo_Produccion', 'Entrada de material'];
+const movementTypes = ['Ajuste', 'Compra', 'Venta', 'Entrada_Produccion', 'Consumo_Produccion', 'Entrada de material', 'Devolución de producto'];
 
 const movementData = ref({ product_id: null, quantity: 0, type: 'Ajuste', notes: '' });
 const movementLoading = ref(false);

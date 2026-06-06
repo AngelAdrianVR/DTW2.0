@@ -25,6 +25,7 @@ const visible = computed({
 const isEditing = ref(false);
 const kitProducts = ref([]);
 const loading = ref(false);
+const warnings = ref([]);
 
 const form = ref({
     product_id: null,
@@ -52,6 +53,7 @@ const fetchKitProducts = async () => {
 const resetForm = () => {
     form.value = { product_id: null, quantity_requested: 1, due_date: null };
     isEditing.value = false;
+    warnings.value = [];
 };
 
 // Al abrir: si hay orderData, es edición; si no, es creación
@@ -73,21 +75,40 @@ watch(() => props.visible, async (val) => {
 
 const submit = async () => {
     loading.value = true;
+    warnings.value = [];
     try {
         if (isEditing.value) {
-            await axios.put(`/tpsp/production-orders/${props.orderData.id}`, form.value);
-            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Orden actualizada correctamente.', life: 3000 });
+            const response = await axios.put(`/tpsp/production-orders/${props.orderData.id}`, form.value);
+            if (response.data.warnings && response.data.warnings.length > 0) {
+                warnings.value = response.data.warnings;
+                toast.add({ severity: 'warn', summary: 'Actualizado con alertas', detail: 'Revisa las advertencias de inventario.', life: 8000 });
+            } else {
+                toast.add({ severity: 'success', summary: 'Éxito', detail: 'Orden actualizada correctamente.', life: 3000 });
+                emit('update:visible', false);
+                emit('saved');
+            }
         } else {
-            await axios.post('/tpsp/production-orders', form.value);
-            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Orden de producción creada.', life: 3000 });
+            const response = await axios.post('/tpsp/production-orders', form.value);
+            if (response.data.warnings && response.data.warnings.length > 0) {
+                warnings.value = response.data.warnings;
+                toast.add({ severity: 'warn', summary: 'Creado con alertas', detail: 'Revisa las advertencias de inventario.', life: 8000 });
+            } else {
+                toast.add({ severity: 'success', summary: 'Éxito', detail: 'Orden de producción creada.', life: 3000 });
+                emit('update:visible', false);
+                emit('saved');
+            }
         }
-        emit('update:visible', false);
-        emit('saved');
     } catch (error) {
         toast.add({ severity: 'error', summary: 'Error', detail: error.response?.data?.message || 'No se pudo guardar la orden.', life: 4000 });
     } finally {
         loading.value = false;
     }
+};
+
+const acknowledgeWarnings = () => {
+    warnings.value = [];
+    emit('update:visible', false);
+    emit('saved');
 };
 
 </script>
@@ -138,10 +159,29 @@ const submit = async () => {
                     />
                 </div>
             </div>
+
+            <!-- Panel de Advertencias de Inventario -->
+            <div v-if="warnings.length > 0" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-4 flex flex-col gap-3">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-exclamation-triangle text-amber-600 dark:text-amber-400 text-lg"></i>
+                    <span class="font-bold text-amber-800 dark:text-amber-300 text-sm">Alertas de Inventario</span>
+                </div>
+                <ul class="list-disc list-inside flex flex-col gap-1.5">
+                    <li v-for="(w, i) in warnings" :key="i" class="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">{{ w }}</li>
+                </ul>
+                <p class="text-[0.65rem] text-amber-600/70 dark:text-amber-500/60 mt-1">
+                    La orden se guardó correctamente. Los materiales se ajustaron. Verifica que el proveedor entregue el faltante.
+                </p>
+            </div>
         </div>
         <template #footer>
-            <Button label="Cancelar" @click="visible = false" class="!px-5 !py-2.5 !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium mt-4" />
-            <Button :label="isEditing ? 'Actualizar Orden' : 'Crear Orden'" @click="submit" :loading="loading" class="!px-5 !py-2.5 !rounded-xl !text-[var(--primary-text-color)] font-medium mt-4" />
+            <template v-if="warnings.length > 0">
+                <Button label="Entendido, Cerrar" @click="acknowledgeWarnings" class="!px-5 !py-2.5 !rounded-xl !bg-amber-500 hover:!bg-amber-600 !text-white !border-0 font-medium mt-4" />
+            </template>
+            <template v-else>
+                <Button label="Cancelar" @click="visible = false" class="!px-5 !py-2.5 !rounded-xl !text-zinc-600 dark:!text-zinc-300 hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !bg-transparent !border-0 font-medium mt-4" />
+                <Button :label="isEditing ? 'Actualizar Orden' : 'Crear Orden'" @click="submit" :loading="loading" class="!px-5 !py-2.5 !rounded-xl !text-[var(--primary-text-color)] font-medium mt-4" />
+            </template>
         </template>
     </Dialog>
 </template>
