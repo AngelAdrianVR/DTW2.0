@@ -86,6 +86,7 @@ class ClientController extends Controller
     {
         $client->load([
             'contacts',
+            'media', // Carga los documentos del cliente (Spatie Media Library)
             'payments' => function ($query) {
                 // AQUÍ ESTÁ LA MAGIA: Agregamos ->with(['quote', 'media']) para que también viaje la cotización y los archivos PDF/JPG
                 $query->with(['quote', 'media'])->orderBy('payment_date', 'desc');
@@ -181,5 +182,31 @@ class ClientController extends Controller
 
         // Usamos Redirect::route() para asegurar que la redirección sea correcta
         return Redirect::route('clients.index')->with('success', 'Cliente eliminado correctamente.');
+    }
+
+    /**
+     * Sube un documento asociado al cliente.
+     */
+    public function uploadDocument(Request $request, Client $client)
+    {
+        $request->validate([
+            'document' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx|max:20480',
+        ]);
+
+        $client->addMediaFromRequest('document')
+            ->toMediaCollection('documents');
+
+        return Redirect::back()->with('success', 'Documento subido correctamente.');
+    }
+
+    /**
+     * Elimina un documento asociado al cliente.
+     */
+    public function deleteDocument(Client $client, $mediaId)
+    {
+        $media = $client->media()->findOrFail($mediaId);
+        $media->delete();
+
+        return Redirect::back()->with('success', 'Documento eliminado correctamente.');
     }
 }

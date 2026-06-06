@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useForm, Link, Head } from '@inertiajs/vue3';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Dropdown from 'primevue/dropdown';
 import Tooltip from 'primevue/tooltip';
@@ -11,6 +12,7 @@ import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
+import ConfirmDialog from 'primevue/confirmdialog';
 import InputNumber from 'primevue/inputnumber';
 import Calendar from 'primevue/calendar';
 import Textarea from 'primevue/textarea';
@@ -24,6 +26,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const confirm = useConfirm();
 const isPaymentDialogVisible = ref(false);
 
 const paymentForm = useForm({
@@ -34,6 +37,12 @@ const paymentForm = useForm({
     quote_id: null,
     receipt: null, // Agregado para soportar adjuntos
 });
+
+const documentForm = useForm({
+    document: null,
+});
+
+const isUploadingDocument = ref(false);
 
 const balance = computed(() => {
     return parseFloat(props.total_billed) - parseFloat(props.total_paid);
@@ -64,6 +73,50 @@ const submitPayment = () => {
         },
         onError: (errors) => {
             toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo registrar el pago. Revisa los datos.', life: 3000 });
+        }
+    });
+};
+
+const onDocumentSelected = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    documentForm.document = file;
+    documentForm.post(route('clients.documents.upload', props.client.id), {
+        preserveScroll: true,
+        forceFormData: true,
+        onSuccess: () => {
+            event.target.value = '';
+            documentForm.reset();
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Documento subido correctamente.', life: 3000 });
+        },
+        onError: (errors) => {
+            event.target.value = '';
+            documentForm.reset();
+            toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo subir el documento. Verifica el formato.', life: 3000 });
+        }
+    });
+};
+
+const deleteDocument = (mediaId, documentName) => {
+    confirm.require({
+        message: `¿Estás seguro de que quieres eliminar el documento "${documentName}"?`,
+        header: 'Confirmar Eliminación',
+        icon: 'pi pi-exclamation-triangle',
+        acceptClass: '!bg-red-600 hover:!bg-red-700 !border-0 !rounded-xl !px-4 !py-2 !text-[var(--primary-text-color)]',
+        acceptLabel: 'Sí, eliminar',
+        rejectLabel: 'Cancelar',
+        rejectClass: 'p-button-text !text-zinc-600 dark:!text-zinc-600 !rounded-xl !px-4 !py-2 hover:!bg-zinc-100',
+        accept: () => {
+            useForm({}).delete(route('clients.documents.delete', { client: props.client.id, media: mediaId }), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Documento eliminado correctamente.', life: 3000 });
+                },
+                onError: () => {
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar el documento.', life: 3000 });
+                }
+            });
         }
     });
 };
@@ -105,6 +158,7 @@ const cleanForWhatsApp = (phone) => {
         <div class="p-4 sm:p-6 lg:p-8 min-h-screen">
             <div class="max-w-7xl mx-auto">
                 <Toast />
+                <ConfirmDialog />
 
                 <!-- Header -->
                 <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -208,6 +262,51 @@ const cleanForWhatsApp = (phone) => {
                                     </li>
                                 </ul>
                                 <p v-else class="text-gray-500 dark:text-zinc-500 text-sm text-center py-2">No hay contactos registrados.</p>
+                            </template>
+                        </Card>
+
+                        <!-- Documents -->
+                        <Card class="bg-white dark:bg-zinc-900 shadow-sm border border-gray-100 dark:border-zinc-800 rounded-2xl">
+                            <template #title>
+                                <div class="flex items-center gap-2 text-gray-800 dark:text-zinc-100 font-bold text-lg">
+                                    <i class="pi pi-folder-open"></i>
+                                    <span>Documentos</span>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- Upload Button -->
+                                <div class="mb-4">
+                                    <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer font-medium text-sm">
+                                        <i class="pi pi-upload"></i>
+                                        <span>Subir Documento</span>
+                                        <input type="file" @change="onDocumentSelected" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
+                                    </label>
+                                </div>
+
+                                <!-- Document List -->
+                                <ul v-if="client.media && client.media.length > 0" class="space-y-3">
+                                    <li v-for="doc in client.media" :key="doc.id" class="flex items-center justify-between gap-3 border-b border-gray-100 dark:border-zinc-800 pb-3 last:border-b-0">
+                                        <a :href="doc.original_url" target="_blank" class="flex items-center gap-3 flex-1 min-w-0 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg p-1.5 -m-1.5 transition-colors group">
+                                            <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                                <i class="pi pi-file text-blue-600 dark:text-blue-400"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-sm font-medium text-gray-800 dark:text-zinc-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                    {{ doc.name }}
+                                                </p>
+                                                <p class="text-xs text-gray-400 dark:text-zinc-500">
+                                                    {{ new Date(doc.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' }) }}
+                                                </p>
+                                            </div>
+                                        </a>
+                                        <Button icon="pi pi-trash" severity="danger" text rounded size="small"
+                                            @click="deleteDocument(doc.id, doc.name)"
+                                            v-tooltip.top="'Eliminar documento'" />
+                                    </li>
+                                </ul>
+                                <p v-else class="text-gray-500 dark:text-zinc-500 text-sm text-center py-4">
+                                    <i class="pi pi-info-circle mr-1"></i> No hay documentos adjuntos.
+                                </p>
                             </template>
                         </Card>
 

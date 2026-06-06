@@ -60,6 +60,8 @@ Route::get('/dashboard/quotes-data', [DashboardController::class, 'getQuotesBySt
 // Rutas de Clientes --------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------
 Route::resource('clients', ClientController::class)->middleware('auth');
+Route::post('/clients/{client}/documents', [ClientController::class, 'uploadDocument'])->name('clients.documents.upload')->middleware('auth');
+Route::delete('/clients/{client}/documents/{media}', [ClientController::class, 'deleteDocument'])->name('clients.documents.delete')->middleware('auth');
 
 
 // Rutas de pagos de clientes --------------------------------------------------------------------------------------
