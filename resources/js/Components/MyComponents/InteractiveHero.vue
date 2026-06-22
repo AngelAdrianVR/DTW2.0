@@ -14,7 +14,8 @@ export default {
       if (!canvas) return;
 
       const ctx = canvas.getContext('2d');
-      let drops = [];
+      let stars = [];
+      let time = 0;
 
       // Ajustar el tamaño del canvas a su contenedor
       const resizeCanvas = () => {
@@ -22,45 +23,65 @@ export default {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
         
-        // Inicializar las gotas para la lluvia digital
-        const fontSize = 16;
-        const columns = Math.floor(canvas.width / fontSize);
-        drops = [];
-        for (let i = 0; i < columns; i++) {
-          drops[i] = 1;
-        }
+        // CALIDAD: Cambia el 100 para ajustar cantidad de estrellas (más = más pesado)
+        stars = Array.from({ length: 90 }, () => ({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.5,
+          a: Math.random() * Math.PI * 2
+        }));
       };
       
       window.addEventListener('resize', resizeCanvas);
       resizeCanvas();
 
-      // Caracteres a usar en la animación
-      const binary = "01";
-
-      // Bucle de animación para la lluvia digital
       function draw() {
-        // Fondo semi-transparente para crear el efecto de estela
-        ctx.fillStyle = 'rgba(10, 25, 47, 0.1)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Fondo transparente para que el video se vea a través
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        ctx.fillStyle = '#64FFDA'; // Un color verde menta tecnológico
-        const fontSize = 16;
-        ctx.font = `${fontSize}px monospace`;
+        // Estrellas
+        ctx.fillStyle = '#ffffff';
+        stars.forEach(star => {
+          star.a += 0.02;
+          ctx.globalAlpha = 0.3 + Math.abs(Math.sin(star.a)) * 0.7;
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        
+        // Burbuja fluida con gradientes
+        time += 0.015;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        // CALIDAD: Cambia el 0.5 para ajustar el tamaño de los orbes (más grande = más lag)
+        const radius = Math.min(cx, cy) * 0.4;
 
-        for (let i = 0; i < drops.length; i++) {
-          const text = binary.charAt(Math.floor(Math.random() * binary.length));
-          ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'screen';
+        // CALIDAD: Cambia el blur para ajustar suavizado (más px = más difuso pero más pesado)
+        ctx.filter = 'blur(35px)';
 
-          // Reiniciar la gota si llega al final de la pantalla
-          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-            drops[i] = 0;
-          }
-          drops[i]++;
-        }
+        const drawOrb = (color, ox, oy) => {
+          const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, radius);
+          grad.addColorStop(0, color);
+          grad.addColorStop(1, 'transparent');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(ox, oy, radius, 0, Math.PI * 2);
+          ctx.fill();
+        };
+
+        drawOrb('rgba(168, 85, 247, 0.7)', cx + Math.sin(time) * radius * 0.4, cy + Math.cos(time) * radius * 0.4);
+        drawOrb('rgba(234, 179, 8, 0.5)', cx + Math.cos(time * 1.2) * radius * 0.4, cy + Math.sin(time * 0.8) * radius * 0.4);
+        drawOrb('rgba(59, 130, 246, 0.7)', cx + Math.sin(time * 0.9) * radius * 0.4, cy + Math.cos(time * 1.1) * radius * 0.4);
+
+        ctx.filter = 'none';
+        ctx.globalCompositeOperation = 'source-over';
       }
       
       // --- Variables para controlar la velocidad de la animación ---
-      let fps = 40; // Reducimos los fotogramas por segundo para que sea más lento
+      // CALIDAD: Cambia fps para ajustar fluidez (60 = máxima, 30 = aceptable, 24 = mínima)
+      let fps = 45;
       let now;
       let then = Date.now();
       let interval = 1000 / fps;
@@ -98,17 +119,28 @@ export default {
 <template>
   <!-- Sección Hero principal -->
   <section id="inicio" class="hero-section min-h-screen flex items-center justify-center text-center relative overflow-hidden px-4">
-    <!-- Canvas para la animación de fondo -->
-    <canvas ref="heroCanvas" class="absolute top-0 left-0 w-full h-full z-0"></canvas>
+    <!-- Video de fondo (burbuja fluida) -->
+    <video
+      autoplay
+      loop
+      muted
+      playsinline
+      class="absolute inset-0 w-full h-full object-cover z-0"
+      src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260421_072701_f6a01abb-eb30-4559-9d6e-774362defbc3.mp4"
+    ></video>
+
+    <!-- Overlay oscuro para legibilidad del texto -->
+    <div class="absolute inset-0 bg-gradient-to-b from-[#050510]/70 via-[#050510]/60 to-[#050510]/80 z-[1]"></div>
+
+    <!-- Canvas para estrellas y orbes (transparente sobre el video) -->
+    <canvas ref="heroCanvas" class="absolute top-0 left-0 w-full h-full z-[2]"></canvas>
     
     <!-- Contenido superpuesto -->
     <div class="relative z-10">
-      <!-- Ahora usamos la función `t()` global que viene del mixin -->
       <h1 class="text-5xl md:text-7xl font-bold mb-4 text-glow fade-in-up-h1">{{ t('Digital Innovation Without Limits') }}</h1>
       <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-12 fade-in-up-p">
         {{ t('We transform ideas into cutting-edge technological solutions. We drive your vision towards the digital future.') }}
       </p>
-      <!-- Botón de llamada a la acción con estilo simplificado -->
       <a href="#servicios" class="cta-button">
         {{ t('Explore Services') }}
       </a>
@@ -140,8 +172,7 @@ export default {
 
 /* Estilos para el texto con efecto de brillo */
 .text-glow {
-  /* Sutil efecto de sombra para mejorar la legibilidad sobre el fondo */
-  text-shadow: 0 0 10px rgba(10, 25, 47, 0.8);
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.2), 0 0 15px rgba(0, 0, 0, 0.9);
 }
 
 /* Estilos para el nuevo botón de llamada a la acción */
@@ -149,22 +180,25 @@ export default {
   display: inline-block;
   font-size: 1rem;
   font-weight: 600;
-  color: #64FFDA; /* Mismo color que la lluvia digital */
+  color: #c4b5fd;
   background-color: transparent;
-  border: 2px solid #64FFDA;
+  border: 2px solid #8b5cf6;
   border-radius: 8px;
   padding: 0.75rem 1.75rem;
   text-decoration: none;
-  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
 }
 
 .cta-button:hover {
-  background-color: rgba(100, 255, 218, 0.1);
-  transform: translateY(-3px); /* Ligero efecto de elevación */
+  background-color: rgba(139, 92, 246, 0.15);
+  border-color: #a855f7;
+  box-shadow: 0 0 35px rgba(168, 85, 247, 0.4);
+  transform: translateY(-3px);
+  color: #e9d5ff;
 }
 
 .cta-button:active {
   transform: translateY(-1px);
 }
 </style>
-

@@ -1,36 +1,43 @@
 <template>
-  <section id="clients" class="py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-    <div class="max-w-7xl mx-auto">
-      <h2 class="section-title text-3xl sm:text-4xl font-bold text-center mb-12">
-        <span>{{ t('Our Clients & Experience') }}</span>
+  <section id="clients" class="relative w-full bg-[#050510] px-4 sm:px-6 md:px-10 py-12 sm:py-20 overflow-hidden">
+    <!-- Blobs ambientales -->
+    <div class="absolute top-0 -right-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.06] pointer-events-none" style="background-color: #06b6d4;"></div>
+    <div class="absolute -bottom-32 -left-32 w-[450px] h-[450px] rounded-full blur-[100px] opacity-[0.05] pointer-events-none" style="background-color: #7c3aed;"></div>
+
+    <div class="max-w-[1400px] mx-auto">
+      <h2
+        class="text-white text-3xl sm:text-4xl md:text-5xl font-light text-center mb-12 sm:mb-20"
+        style="letter-spacing: -0.04em;"
+      >
+        {{ t('Our Clients & Experience') }}
       </h2>
 
-      <!-- Los contadores ahora son el elemento principal -->
-      <div ref="counters" class="grid grid-cols-1 md:grid-cols-3 gap-8 text-white w-full max-w-4xl mx-auto mb-20">
-         <div v-for="counter in counters" :key="counter.label" class="counter-card p-6 text-center rounded-2xl">
-          <p class="text-5xl sm:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 mb-2">
+      <!-- Contadores -->
+      <div ref="counters" class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl mx-auto mb-16 sm:mb-24">
+        <div
+          v-for="(counter, idx) in counters"
+          :key="counter.label"
+          :style="{ animationDelay: `${idx * 0.1}s` }"
+          class="counter-card"
+        >
+          <p class="counter-number">
             <span :id="'counter-' + counter.id">{{ Math.round(counter.displayValue) }}</span>+
           </p>
-          <p class="text-lg text-gray-300">{{ t(counter.label) }}</p>
+          <p class="counter-label">{{ t(counter.label) }}</p>
         </div>
       </div>
 
-      <!-- Sección de Logos de Clientes con carrusel dinámico -->
-      <div class="mt-16">
-        <p class="text-center text-gray-400 font-semibold mb-8">{{ t('Trusted by leading companies') }}</p>
+      <!-- Logos de Clientes -->
+      <div class="mt-12">
+        <p class="text-center text-white/40 font-light text-sm tracking-wider uppercase mb-8">{{ t('Trusted by leading companies') }}</p>
         
-        <!-- Contenedor del carrusel -->
         <div class="logo-scroller" v-if="clientLogos && clientLogos.length > 0">
           <div class="logo-scroller-inner">
-            <!-- Logos originales -->
             <div v-for="(client, index) in clientLogos" :key="`logo-a-${index}`" class="logo-item">
-              <!-- MODIFICACIÓN: Aumentada la altura de h-10 a h-16 -->
-              <img :src="client.url" :alt="client.name" class="h-16 w-auto object-contain" />
+              <img :src="client.url" :alt="client.name" class="logo-img" />
             </div>
-            <!-- Logos duplicados para el efecto de bucle infinito -->
             <div v-for="(client, index) in clientLogos" :key="`logo-b-${index}`" aria-hidden="true" class="logo-item">
-              <!-- MODIFICACIÓN: Aumentada la altura de h-10 a h-14 -->
-              <img :src="client.url" :alt="client.name" class="h-10 w-auto object-contain" />
+              <img :src="client.url" :alt="client.name" class="logo-img" />
             </div>
           </div>
         </div>
@@ -107,43 +114,51 @@ export default {
 </script>
 
 <style scoped>
-/* Estilos del título y las tarjetas de contador (sin cambios) */
-.section-title {
-  position: relative;
-  display: inline-block;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #fff;
-  padding-bottom: 0.5rem;
-}
-.section-title span {
-  position: relative;
-  z-index: 1;
-}
-.section-title::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 3px;
-  background: linear-gradient(90deg, #6215C0, #17EDF4);
-  border-radius: 2px;
-}
+/* =========== TARJETAS DE CONTADORES =========== */
 .counter-card {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(23, 25, 48, 0.5);
-  backdrop-filter: blur(5px);
-  transition: all 0.3s ease-in-out;
+  padding: 1.5rem;
+  text-align: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #0a0a14;
+  /* Sin backdrop-filter, sin transition:all */
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s ease,
+              box-shadow 0.4s ease;
+  transform: translateY(0);
+  animation: counterStaggerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .counter-card:hover {
-  transform: translateY(-8px);
-  border-color: rgba(23, 237, 244, 0.5);
-  box-shadow: 0 0 20px rgba(23, 237, 244, 0.2);
+  transform: translateY(-6px);
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 8px 35px rgba(139, 92, 246, 0.1);
 }
 
-/* Estilos para el carrusel de logos */
+@keyframes counterStaggerIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.counter-number {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  background: linear-gradient(135deg, #a855f7, #eab308, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+@media (min-width: 640px) {
+  .counter-number { font-size: 3.75rem; }
+}
+
+.counter-label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 300;
+}
+
+/* =========== CARRUSEL DE LOGOS =========== */
 .logo-scroller {
   max-width: 100%;
   overflow: hidden;
@@ -155,7 +170,9 @@ export default {
   display: flex;
   flex-wrap: nowrap;
   width: fit-content;
-  animation: scroll 40s linear infinite;
+  /* GPU-accelerated: solo usa transform */
+  will-change: transform;
+  animation: logoScroll 45s linear infinite;
 }
 
 .logo-scroller:hover .logo-scroller-inner {
@@ -166,26 +183,29 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 2rem; /* 32px de espacio entre logos */
+  padding: 0 2rem;
 }
 
-.logo-item img {
-  max-width: none; /* Evita que las imágenes se encojan */
-  transition: all 0.3s ease;
-  filter: grayscale(1);
-  opacity: 0.7;
+.logo-img {
+  height: 40px;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  /* Solo opacity y transform en hover, sin filter para evitar lag */
+  opacity: 0.55;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (min-width: 640px) {
+  .logo-img { height: 56px; }
 }
 
-.logo-item img:hover {
-  filter: grayscale(0);
+.logo-img:hover {
   opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
-@keyframes scroll {
-  to {
-    transform: translateX(-50%);
-  }
+@keyframes logoScroll {
+  to { transform: translateX(-50%); }
 }
 </style>
 
