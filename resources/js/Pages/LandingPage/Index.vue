@@ -17,10 +17,13 @@ import ioT from '@/../../public/images/IoT.webp';
 import ioT2 from '@/../../public/images/IOT2.png';
 import mov1 from '@/../../public/images/sistemas.webp';
 import mov2 from '@/../../public/images/home_IoT.webp';
-import web1 from '@/../../public/images/web1.png';
-import web2 from '@/../../public/images/web2.png';
+import mov3 from '@/../../public/images/app3.webp';
+import web1 from '@/../../public/images/web.webp';
+import web2 from '@/../../public/images/IA.webp';
+import web3 from '@/../../public/images/POS.webp';
 import cloud1 from '@/../../public/images/cloud1.png';
 import cloud2 from '@/../../public/images/cloud2.png';
+import cloud3 from '@/../../public/images/cloud3.png';
 
 export default {
   // Registra los componentes
@@ -57,7 +60,8 @@ export default {
           detailedDescription: 'From corporate websites to complex e-commerce platforms and custom web applications, we create digital experiences that captivate and convert. We use modern technologies like Vue.js, React, and Node.js to build fast, secure, and scalable solutions tailored to your needs.',
           images: [
             web1,
-            web2
+            web2,
+            web3
           ]
         },
         {
@@ -68,7 +72,8 @@ export default {
           detailedDescription: 'We design and develop mobile applications for iOS and Android that stand out for their intuitive interface and flawless performance. Whether native or hybrid, we focus on creating apps that users love and that drive business growth.',
           images: [
             mov1,
-            mov2
+            mov2,
+            mov3
           ]
         },
         {
@@ -79,7 +84,8 @@ export default {
           detailedDescription: 'We help you migrate, manage, and optimize your infrastructure in the cloud. We design scalable architectures with microservices, implement CI/CD pipelines for agile deployments, and ensure the security and availability of your applications on platforms like AWS, Google Cloud, and Azure.',
           images: [
             cloud1,
-            cloud2
+            cloud2,
+            cloud3
           ]
         },
         {

@@ -51,10 +51,11 @@ export default {
         
         // Burbuja fluida con gradientes
         time += 0.015;
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
+        const cx = canvas.width / 1.5;
+        const cy = canvas.height / 1.5;
         // CALIDAD: Cambia el 0.5 para ajustar el tamaño de los orbes (más grande = más lag)
-        const radius = Math.min(cx, cy) * 0.4;
+        // En desktop reducimos 25% el radio para que la burbuja no tape contenido
+        const radius = Math.min(cx, cy) * (canvas.width >= 768 ? 0.3 : 0.4);
 
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'screen';
@@ -81,7 +82,7 @@ export default {
       
       // --- Variables para controlar la velocidad de la animación ---
       // CALIDAD: Cambia fps para ajustar fluidez (60 = máxima, 30 = aceptable, 24 = mínima)
-      let fps = 45;
+      let fps = 30;
       let now;
       let then = Date.now();
       let interval = 1000 / fps;
@@ -141,9 +142,9 @@ export default {
       <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-12 fade-in-up-p">
         {{ t('We transform ideas into cutting-edge technological solutions. We drive your vision towards the digital future.') }}
       </p>
-      <a href="#servicios" class="cta-button">
+      <!-- <a href="#servicios" class="cta-button">
         {{ t('Explore Services') }}
-      </a>
+      </a> -->
     </div>
   </section>
 </template>
