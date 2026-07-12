@@ -11,6 +11,8 @@ export default {
     return {
       // Estado para rastrear el servicio seleccionado. Nulo significa que no hay ninguno seleccionado.
       selectedService: null,
+      // Índice de la imagen activa en la mini galería
+      activeImage: 0,
     };
   },
   methods: {
@@ -65,6 +67,7 @@ export default {
     // Establecer el servicio seleccionado al hacer clic
     selectService(service) {
       this.selectedService = service;
+      this.activeImage = 0;
     },
     // Volver a la vista de cuadrícula
     goBack() {
@@ -144,7 +147,28 @@ export default {
             </div>
             
             <div class="image-gallery">
-              <img v-for="(image, idx) in selectedService.images" :key="idx" :src="image" :alt="selectedService.title" class="gallery-image">
+              <!-- Imagen principal -->
+              <div class="gallery-main">
+                <img
+                  :src="selectedService.images[activeImage]"
+                  :alt="selectedService.title"
+                  class="gallery-main-img"
+                />
+                <!-- Indicador sutil -->
+                <span class="gallery-badge">{{ activeImage + 1 }} / {{ Math.min(selectedService.images.length, 3) }}</span>
+              </div>
+              <!-- Miniaturas -->
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(image, idx) in selectedService.images.slice(0, 3)"
+                  :key="idx"
+                  @click="activeImage = idx"
+                  class="gallery-thumb"
+                  :class="{ 'gallery-thumb--active': activeImage === idx }"
+                >
+                  <img :src="image" :alt="selectedService.title + ' ' + (idx + 1)" class="gallery-thumb-img" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -217,23 +241,72 @@ export default {
 
 /* =========== GALERÍA DE IMÁGENES =========== */
 .image-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
-.gallery-image {
+
+/* Imagen principal */
+.gallery-main {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  aspect-ratio: 16 / 10;
+  background: #0d0d1a;
+  box-shadow: 0 0 40px rgba(168, 85, 247, 0.08);
+}
+.gallery-main-img {
   width: 100%;
-  height: auto;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  opacity: 0.75;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.35s ease;
 }
-.gallery-image:hover {
-  transform: scale(1.04);
-  opacity: 1;
-  box-shadow: 0 0 30px rgba(168, 85, 247, 0.2);
-  border-color: rgba(168, 85, 247, 0.35);
+.gallery-badge {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* Miniaturas */
+.gallery-thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+.gallery-thumb {
+  position: relative;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  border: 2px solid transparent;
+  aspect-ratio: 16 / 10;
+  background: #0d0d1a;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.25s ease;
+}
+.gallery-thumb:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(168, 85, 247, 0.2);
+}
+.gallery-thumb--active {
+  border-color: rgba(168, 85, 247, 0.7);
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.25);
+  transform: translateY(-2px);
+}
+.gallery-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.3s ease;
 }
 
 /* =========== TRANSICIONES ENTRE VISTAS =========== */
