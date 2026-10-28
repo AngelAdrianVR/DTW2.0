@@ -47,10 +47,10 @@ const notchDynamicClasses = computed(() => {
             case 'warning':
                 return 'shadow-amber-500/50 border-amber-400';
             default:
-                return 'shadow-indigo-500/30 border-white/10';
+                return 'shadow-violet-400/20 border-white/5';
         }
     }
-    return 'shadow-indigo-500/30 border-white/10';
+    return 'shadow-violet-400/20 border-white/5';
 });
 
 
@@ -185,7 +185,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 
 <template>
     <Head :title="title" />
-    <div class="bg-gray-900 min-h-screen text-gray-200 font-sans selection:bg-indigo-500/30">
+    <div class="bg-[#050510] min-h-screen text-gray-200 font-sans selection:bg-violet-500/30">
         <!-- =========== Notch Interactivo =========== -->
         <header
             ref="notchRef"
@@ -196,7 +196,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                 headerPositionClass,
                 'top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center',
                 'transition-all duration-500 ease-in-out',
-                'bg-black/30 backdrop-blur-xl border-2 shadow-2xl',
+                'bg-[#0a0a14]/10 backdrop-blur-xl border-2 border-white/30 shadow-2xl',
                 notchDynamicClasses,
                 {
                     'w-32 h-10 rounded-full': !isNotchExpanded,
@@ -232,7 +232,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                     <!-- Centro: Navegación Desktop -->
                     <nav class="hidden sm:flex flex-1 justify-center items-center space-x-2 sm:space-x-4 md:space-x-6">
                         <a v-for="link in navLinks" :key="link.id" :href="link.href"
-                           class="text-xs sm:text-sm font-medium pb-1 border-b-2 border-transparent hover:border-indigo-500 hover:text-white transition-all duration-300">
+                           class="text-xs sm:text-sm font-medium pb-1 border-b-2 border-transparent hover:border-violet-400 hover:text-violet-300 transition-all duration-300 text-gray-400">
                             {{ t(link.key) }}
                         </a>
                     </nav>
@@ -250,13 +250,13 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                         <div class="flex items-center gap-1 p-1 rounded-full bg-white/5">
                             <Link :href="route('language.switch', 'es')" preserve-scroll
                                   :class="['p-1 px-2 sm:px-3 rounded-full text-xs font-semibold transition-colors',
-                                  $page.props.locale === 'es' ? 'bg-indigo-500 text-white' : 'hover:bg-white/10']"
+                                  $page.props.locale === 'es' ? 'bg-violet-500 text-white' : 'hover:bg-white/5 text-gray-400']"
                             >
                                 ES
                             </Link>
                             <Link :href="route('language.switch', 'en')" preserve-scroll
                                   :class="['p-1 px-2 sm:px-3 rounded-full text-xs font-semibold transition-colors',
-                                  $page.props.locale === 'en' ? 'bg-indigo-500 text-white' : 'hover:bg-white/10']"
+                                  $page.props.locale === 'en' ? 'bg-violet-500 text-white' : 'hover:bg-white/5 text-gray-400']"
                             >
                                 EN
                             </Link>
@@ -271,10 +271,10 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                 </template>
             </div>
 
-            <div v-if="!isNotchExpanded" class="absolute h-2 w-12 bg-indigo-200/100 rounded-full animate-pulse-slow"></div>
+            <div v-if="!isNotchExpanded" class="absolute h-2 w-12 bg-violet-500/100 rounded-full animate-pulse-slow"></div>
         </header>
 
-        <main class="pt-20">
+        <main class="">
             <slot />
         </main>
 
@@ -283,11 +283,11 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
             <div v-if="isMobileMenuOpen" 
                  class="fixed inset-0 top-0 pt-24 z-40 sm:hidden" 
                  @click="isMobileMenuOpen = false">
-                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
                 <div class="relative container mx-auto px-4">
-                    <nav class="bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 p-4 flex flex-col gap-2">
+                    <nav class="bg-[#0a0a14]/95 backdrop-blur-xl rounded-2xl border border-white/5 shadow-2xl p-4 flex flex-col gap-2">
                         <a v-for="link in navLinks" :key="link.id" :href="link.href" @click="isMobileMenuOpen = false"
-                           class="block text-center py-3 text-lg font-semibold hover:bg-indigo-500/20 rounded-lg transition-colors">
+                           class="block text-center py-3 text-lg font-semibold text-gray-300 hover:bg-violet-500/10 hover:text-violet-300 rounded-lg transition-colors">
                            {{ t(link.key) }}
                         </a>
                     </nav>
@@ -296,9 +296,9 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
         </transition>
 
         <!-- ================== FOOTER MEJORADO ================== -->
-        <footer class="bg-gray-900/50 backdrop-blur-lg mt-20 relative overflow-hidden">
-            <!-- Efecto de borde animado -->
-            <div class="absolute top-0 left-0 w-full h-px footer-border-glow"></div>
+        <footer class="bg-[#030308] border-t border-white/5 mt-20 relative overflow-hidden">
+            <!-- Efecto de borde animado con gradiente -->
+            <div class="absolute top-0 left-0 w-full h-px" style="background: linear-gradient(to right, transparent, #a855f7, #eab308, #3b82f6, transparent);"></div>
             
             <div class="container mx-auto py-16 px-6 lg:px-8">
                 <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left">
@@ -311,19 +311,19 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 
                         <MiniGlobe />
 
-                        <p class="text-sm text-gray-400 w-full text-center">
+                        <p class="text-sm text-gray-500 w-full text-center">
                             {{ t('Building the digital future, one line of code at a time.') }}
                         </p>
                     </div>
 
                     <!-- Columna 2: Navegación -->
                     <div>
-                        <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Navigation') }}</h3>
+                        <h3 class="font-semibold text-white/90 tracking-wider uppercase text-sm">{{ t('Navigation') }}</h3>
                         <ul class="mt-4 space-y-3">
                             <li v-for="link in navLinks" :key="link.id">
-                                <a :href="link.href" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300 group">
+                                <a :href="link.href" class="text-gray-500 hover:text-violet-400 transition-colors duration-300 group">
                                     {{ t(link.key) }}
-                                    <span class="block max-w-0 group-hover:max-w-full transition-all duration-500 h-0.5 bg-indigo-500 mx-auto md:mx-0"></span>
+                                    <span class="block max-w-0 group-hover:max-w-full transition-all duration-500 h-0.5 bg-violet-500 mx-auto md:mx-0"></span>
                                 </a>
                             </li>
                         </ul>
@@ -331,26 +331,24 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                     
                     <!-- Columna 3: Legal -->
                      <div>
-                        <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Legal') }}</h3>
+                        <h3 class="font-semibold text-white/90 tracking-wider uppercase text-sm">{{ t('Legal') }}</h3>
                         <ul class="mt-4 space-y-3">
-                            <li><Link :href="route('terms.show')" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Terms of Service') }}</Link></li>
-                            <li><Link :href="route('privacy.show')" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300">{{ t('Privacy Policy') }}</Link></li>
+                            <li><Link :href="route('terms.show')" class="text-gray-500 hover:text-violet-400 transition-colors duration-300">{{ t('Terms of Service') }}</Link></li>
+                            <li><Link :href="route('privacy.show')" class="text-gray-500 hover:text-violet-400 transition-colors duration-300">{{ t('Privacy Policy') }}</Link></li>
                         </ul>
                     </div>
 
                     <!-- Columna 4: Contacto -->
                     <div class="flex flex-col items-center md:items-start">
-                         <h3 class="font-semibold text-white tracking-wider uppercase">{{ t('Contact') }}</h3>
+                         <h3 class="font-semibold text-white/90 tracking-wider uppercase text-sm">{{ t('Contact') }}</h3>
                         <ul class="mt-4 space-y-4">
                             <li class="flex items-center justify-center md:justify-start">
-                                <a href="https://wa.me/5213321705650" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300 flex items-center gap-3 group">
-                                    <!-- <component :is="WhatsAppIcon" class="..."/> -->
+                                <a href="https://wa.me/5213321705650" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-violet-400 transition-colors duration-300 flex items-center gap-3 group">
                                     <span>+52 1 33 2170 5650</span>
                                 </a>
                             </li>
                             <li class="flex items-center justify-center md:justify-start">
-                                <a href="mailto:contacto@dtw.com.mx" class="text-gray-400 hover:text-indigo-400 transition-colors duration-300 flex items-center gap-3 group">
-                                    <!-- <component :is="MailIcon" class="..."/> -->
+                                <a href="mailto:contacto@dtw.com.mx" class="text-gray-500 hover:text-violet-400 transition-colors duration-300 flex items-center gap-3 group">
                                     <span>contacto@dtw.com.mx</span>
                                 </a>
                             </li>
@@ -358,7 +356,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                     </div>
                 </div>
                 
-                <div class="mt-12 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
+                <div class="mt-12 pt-8 border-t border-white/5 text-center text-gray-600 text-sm">
                     &copy; {{ new Date().getFullYear() }} DTW. {{ t('All rights reserved.') }}
                 </div>
             </div>

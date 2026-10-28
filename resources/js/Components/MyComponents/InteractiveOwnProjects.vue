@@ -1,54 +1,65 @@
 <template>
-  <section id="own-projects" class="py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-    <div class="max-w-7xl mx-auto">
-      <h2 class="section-title text-3xl sm:text-4xl font-bold text-center mb-20">
-        <span>{{ t('Our Own Projects') }}</span>
+  <section id="own-projects" class="relative w-full bg-[#050510] px-4 sm:px-6 md:px-10 py-12 sm:py-20 overflow-hidden">
+    <!-- Blob ambiental -->
+    <div class="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.06] pointer-events-none" style="background-color: #7c3aed;"></div>
+    <div class="absolute top-1/3 -right-32 w-[400px] h-[400px] rounded-full blur-[100px] opacity-[0.05] pointer-events-none" style="background-color: #3b82f6;"></div>
+
+    <div class="max-w-[1400px] mx-auto">
+      <h2
+        class="text-white text-3xl sm:text-4xl md:text-5xl font-light text-center mb-12 sm:mb-24"
+        style="letter-spacing: -0.04em;"
+      >
+        {{ t('Our Own Projects') }}
       </h2>
 
-      <div v-for="(project, index) in processedProjects" :key="project.id" 
-           class="project-showcase grid grid-cols-1 lg:grid-cols-10 gap-8 items-stretch p-4 sm:p-6 rounded-2xl mb-16">
-        
-        <!-- Columna de la Galería -->
-        <div class="gallery-container lg:col-span-6 flex flex-col" :class="{ 'lg:order-last': index % 2 !== 0 }">
-          <div class="main-image-wrapper rounded-lg overflow-hidden h-80 sm:h-96 group">
-            <!-- Carrusel con transición -->
-            <template v-if="project.galleryImages.length > 0">
-              <transition name="fade" mode="out-in">
-                <img :key="currentImageKey(project)"
-                     :src="currentImageUrl(project)"
-                     :alt="currentImageAlt(project)"
-                     class="main-image object-contain w-full h-full">
-              </transition>
-            </template>
-            <!-- Placeholder si no hay imágenes -->
-            <template v-else>
-              <div class="no-image-placeholder flex items-center justify-center h-full bg-slate-900/50 rounded-lg">
-                <span class="text-gray-500 text-2xl font-semibold">{{ project.title }}</span>
-              </div>
-            </template>
-          </div>
-          <!-- SECCIÓN DE MINIATURAS ELIMINADA -->
-        </div>
+      <div
+        v-for="(project, index) in processedProjects"
+        :key="project.id"
+        class="project-showcase group"
+        :style="{ animationDelay: `${index * 0.12}s` }"
+      >
+        <!-- Blob decorativo del showcase -->
+        <div class="absolute top-1/2 -translate-y-1/2 -left-[350px] h-[380px] w-[380px] rounded-full blur-3xl opacity-0 group-hover:opacity-[0.12] transition-opacity duration-700 pointer-events-none" style="background-color: #7c3aed;"></div>
 
-        <!-- Columna de la Tarjeta de Detalles -->
-        <div class="details-card lg:col-span-4 flex flex-col p-8 rounded-xl text-center">
-          <div v-if="project.logoImage" class="logo-wrapper mb-6">
-            <img :src="project.logoImage.original_url" :alt="project.title + ' Logo'" class="project-logo mx-auto h-20 w-auto object-contain">
+        <div class="grid grid-cols-1 lg:grid-cols-10 gap-8 items-stretch relative z-10">
+          <!-- Columna de la Galería -->
+          <div class="gallery-col lg:col-span-6 flex flex-col" :class="{ 'lg:order-last': index % 2 !== 0 }">
+            <div class="main-image-wrapper group/img">
+              <template v-if="project.galleryImages.length > 0">
+                <transition name="crossfade" mode="out-in">
+                  <img :key="currentImageKey(project)"
+                       :src="currentImageUrl(project)"
+                       :alt="currentImageAlt(project)"
+                       class="main-image">
+                </transition>
+              </template>
+              <template v-else>
+                <div class="no-image-placeholder">
+                  <span>{{ project.title }}</span>
+                </div>
+              </template>
+            </div>
           </div>
-          
-          <h3 class="text-3xl font-bold text-white mb-4">{{ project.title }}</h3>
-          <p class="text-gray-300 flex-grow mb-8">{{ project.content }}</p>
-          
-          <div class="mt-auto">
-             <a :href="project.link_url" target="_blank" rel="noopener noreferrer" class="visit-site-button">
-              {{ t('Visit Site') }}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 icon-arrow" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-              </svg>
-            </a>
+
+          <!-- Columna de la Tarjeta de Detalles -->
+          <div class="details-col lg:col-span-4 flex flex-col">
+            <div v-if="project.logoImage" class="logo-wrapper">
+              <img :src="project.logoImage.original_url" :alt="project.title + ' Logo'" class="project-logo">
+            </div>
+            
+            <h3 class="text-white text-2xl sm:text-3xl font-light leading-tight mb-4" style="letter-spacing: -0.02em;">{{ project.title }}</h3>
+            <p class="text-white/55 font-light leading-relaxed flex-grow mb-8 text-[14px] sm:text-[15px]">{{ project.content }}</p>
+            
+            <div class="mt-auto">
+              <a :href="project.link_url" target="_blank" rel="noopener noreferrer" class="visit-btn">
+                {{ t('Visit Site') }}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 arrow-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
-
       </div>
     </div>
   </section>
@@ -122,96 +133,133 @@ export default {
 </script>
 
 <style scoped>
-/* Título de la sección */
-.section-title {
-  position: relative;
-  display: inline-block;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #fff;
-  padding-bottom: 0.5rem;
-}
-.section-title span {
-  position: relative;
-  z-index: 1;
-}
-.section-title::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 3px;
-  background: linear-gradient(90deg, #6215C0, #17EDF4);
-  border-radius: 2px;
-}
-
-/* Contenedor principal de cada proyecto */
+/* =========== SHOWCASE CONTENEDOR =========== */
 .project-showcase {
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease-in-out;
+  position: relative;
+  background: #0a0a14;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  margin-bottom: 4rem;
+  overflow: hidden;
+  /* Solo propiedades GPU-friendly */
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+  transform: translateY(0);
+  animation: showcaseStaggerIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .project-showcase:hover {
-  border-color: rgba(23, 237, 244, 0.5);
+  border-color: rgba(139, 92, 246, 0.25);
+  box-shadow: 0 8px 50px rgba(139, 92, 246, 0.06), 0 0 25px rgba(59, 130, 246, 0.04);
 }
 
-/* Tarjeta de detalles del proyecto */
-.details-card {
-  background: rgba(29, 36, 56, 0.5);
-  border: 1px solid rgba(98, 21, 192, 0.4);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  transition: all 0.3s ease-in-out;
-}
-.project-showcase:hover .details-card {
-  border-color: rgba(98, 21, 192, 0.8);
-  box-shadow: 0 0 25px rgba(98, 21, 192, 0.4);
+@keyframes showcaseStaggerIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Estilos para la galería de imágenes */
+/* =========== GALERÍA =========== */
+.gallery-col {
+  /* nada extra, hereda del grid */
+}
+
+.main-image-wrapper {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  height: 320px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+@media (min-width: 640px) {
+  .main-image-wrapper { height: 400px; }
+}
+
 .main-image {
-  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.4s ease;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Solo transform en hover, sin filter para evitar lag */
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scale(1);
 }
-.group:hover .main-image {
-  transform: scale(1.05);
-  filter: brightness(1.1);
+.group\/img:hover .main-image {
+  transform: scale(1.04);
 }
 
-/* Botón de visita */
-.visit-site-button {
+.no-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: rgba(15, 15, 30, 0.5);
+  border-radius: 0.75rem;
+  color: #64748b;
+  font-size: 1.5rem;
+  font-weight: 300;
+}
+
+/* =========== DETALLES =========== */
+.details-col {
+  background: #0d0d1a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  /* Sin backdrop-filter (pesado), solo fondo sólido con borde sutil */
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+.project-showcase:hover .details-col {
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 0 35px rgba(139, 92, 246, 0.08);
+}
+
+.logo-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.project-logo {
+  margin: 0 auto;
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* =========== BOTÓN VISITAR =========== */
+.visit-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.5rem;
+  padding: 0.7rem 1.5rem;
   border-radius: 0.5rem;
-  background-image: linear-gradient(90deg, #6215C0, #17EDF4);
-  color: #ffffff;
-  font-weight: bold;
+  background: linear-gradient(135deg, #7c3aed, #3b82f6);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
   text-decoration: none;
-  transition: all 0.3s ease;
-  background-size: 200% 100%;
-  background-position: right bottom;
+  /* Solo transform y box-shadow */
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease;
+  box-shadow: 0 0 18px rgba(124, 58, 237, 0.2);
 }
-
-.visit-site-button:hover {
-  background-position: left bottom;
-  box-shadow: 0 0 20px rgba(23, 237, 244, 0.5);
+.visit-btn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 0 35px rgba(124, 58, 237, 0.4);
 }
-.visit-site-button .icon-arrow {
-  transition: transform 0.3s ease;
+.visit-btn .arrow-icon {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.visit-site-button:hover .icon-arrow {
-  transform: translateX(5px);
+.visit-btn:hover .arrow-icon {
+  transform: translateX(4px);
 }
 
-/* Estilos para la transición de la imagen */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s ease;
+/* =========== TRANSICIÓN CROSSFADE (optimizada) =========== */
+.crossfade-enter-active {
+  transition: opacity 0.4s ease;
 }
-.fade-enter, .fade-leave-to {
+.crossfade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.crossfade-enter-from,
+.crossfade-leave-to {
   opacity: 0;
 }
 </style>

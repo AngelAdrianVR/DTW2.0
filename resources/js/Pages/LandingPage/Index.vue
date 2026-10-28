@@ -6,6 +6,7 @@ import InteractiveProjects from '@/Components/MyComponents/InteractiveProjects.v
 import InteractiveOwnProjects from '@/Components/MyComponents/InteractiveOwnProjects.vue';
 import InteractiveContact from '@/Components/MyComponents/InteractiveContact.vue';
 import InteractiveClients from '@/Components/MyComponents/InteractiveClients.vue';
+// import BenefitsSection from '@/Components/MyComponents/BenefitsSection.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
@@ -16,10 +17,13 @@ import ioT from '@/../../public/images/IoT.webp';
 import ioT2 from '@/../../public/images/IOT2.png';
 import mov1 from '@/../../public/images/sistemas.webp';
 import mov2 from '@/../../public/images/home_IoT.webp';
-import web1 from '@/../../public/images/web1.png';
-import web2 from '@/../../public/images/web2.png';
+import mov3 from '@/../../public/images/app3.webp';
+import web1 from '@/../../public/images/web.webp';
+import web2 from '@/../../public/images/IA.webp';
+import web3 from '@/../../public/images/POS.webp';
 import cloud1 from '@/../../public/images/cloud1.png';
 import cloud2 from '@/../../public/images/cloud2.png';
+import cloud3 from '@/../../public/images/cloud3.png';
 
 export default {
   // Registra los componentes
@@ -35,6 +39,7 @@ export default {
     InteractiveProjects,
     InteractiveServices,
     InteractiveOwnProjects,
+    // BenefitsSection,
   },
 
   props: {
@@ -55,7 +60,8 @@ export default {
           detailedDescription: 'From corporate websites to complex e-commerce platforms and custom web applications, we create digital experiences that captivate and convert. We use modern technologies like Vue.js, React, and Node.js to build fast, secure, and scalable solutions tailored to your needs.',
           images: [
             web1,
-            web2
+            web2,
+            web3
           ]
         },
         {
@@ -66,7 +72,8 @@ export default {
           detailedDescription: 'We design and develop mobile applications for iOS and Android that stand out for their intuitive interface and flawless performance. Whether native or hybrid, we focus on creating apps that users love and that drive business growth.',
           images: [
             mov1,
-            mov2
+            mov2,
+            mov3
           ]
         },
         {
@@ -77,7 +84,8 @@ export default {
           detailedDescription: 'We help you migrate, manage, and optimize your infrastructure in the cloud. We design scalable architectures with microservices, implement CI/CD pipelines for agile deployments, and ensure the security and availability of your applications on platforms like AWS, Google Cloud, and Azure.',
           images: [
             cloud1,
-            cloud2
+            cloud2,
+            cloud3
           ]
         },
         {
@@ -117,149 +125,142 @@ export default {
     <LandingLayout 
       :title="t('Home') + ' DTW'" >
         <div class="page-container selection:bg-cyan-300/50">
+            <!-- Blobs de luz ambiental (solo CSS, sin JS, sin impacto en rendimiento) -->
+            <div class="ambient-lights" aria-hidden="true">
+                <div class="ambient-blob a-blob-1"></div>
+                <div class="ambient-blob a-blob-2"></div>
+                <div class="ambient-blob a-blob-3"></div>
+            </div>
+
             <!-- SECCIÓN INICIO (HERO) -->
             <InteractiveHero />
+
+            <!-- Divisor gradiente sutil -->
+            <div class="section-divider"></div>
 
             <!-- SECCIÓN SERVICIOS -->
             <InteractiveServices :services="translatedServices" />
 
+            <!-- Divisor gradiente sutil -->
+            <div class="section-divider"></div>
+
             <!-- SECCIÓN PROYECTOS -->
             <InteractiveProjects :projects="portfolio" />
 
+            <div class="section-divider"></div>
+
             <!-- SECCIÓN PROYECTOS PROPIOS -->
-            <!-- Pasamos la prop 'ownProjects' directamente desde el controlador -->
             <InteractiveOwnProjects :projects="ownProjects" />
 
+            <div class="section-divider"></div>
+
             <!-- SECCIÓN CLIENTES -->
-            <!-- MODIFICACIÓN: Pasamos los logos al componente -->
             <InteractiveClients :clientLogos="clientLogos" />
+
+            <div class="section-divider"></div>
 
             <!-- SECCIÓN CONTACTO -->
             <InteractiveContact />
-
-            
         </div>
     </LandingLayout>
 </template>
 
 <style scoped>
-/* Estilos generales y de fondo */
+/* =========== CONTENEDOR PRINCIPAL =========== */
 .page-container {
   position: relative;
   overflow-x: hidden;
+  background: #050510;
 }
 
-.grid-background {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    linear-gradient(rgba(17, 24, 39, 0) 0%, #111827 90%),
-    radial-gradient(ellipse at center, rgba(30, 30, 50, 0.6) 0%, transparent 70%),
-    linear-gradient(to right, rgba(29, 78, 216, 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(29, 78, 216, 0.1) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+/* =========== LUCES AMBIENTALES FIJAS (CSS-only, GPU-accelerated) =========== */
+.ambient-lights {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   z-index: 0;
-}
-
-.hero-section {
-  position: relative;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-}
-
-/* Efecto de brillo en texto */
-.text-glow {
-  text-shadow: 0 0 8px rgba(23, 237, 244, 0.6), 0 0 20px rgba(98, 21, 192, 0.5);
-}
-
-/* Títulos de sección */
-.section-title {
-  position: relative;
-  display: inline-block;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #fff;
-  padding-bottom: 0.5rem;
-}
-.section-title span {
-  position: relative;
-  z-index: 1;
-}
-.section-title::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 3px;
-  background: linear-gradient(90deg, #6215C0, #17EDF4);
-  border-radius: 2px;
-}
-
-
-/* Tarjetas de Servicio */
-.service-card {
-  background-color: rgba(23, 25, 48, 0.5) !important;
-  border: 1px solid rgba(23, 237, 244, 0.2) !important;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease-in-out;
-  border-radius: 1rem !important;
-}
-
-.service-card:hover {
-  transform: translateY(-10px);
-  border-color: rgba(23, 237, 244, 0.7) !important;
-  box-shadow: 0 0 25px rgba(23, 237, 244, 0.3);
-}
-
-/* Tarjetas de Proyecto */
-.project-card {
-  background-color: rgba(23, 25, 48, 0.8) !important;
-  border: 1px solid rgba(98, 21, 192, 0.2) !important;
-  transition: all 0.3s ease-in-out;
-  border-radius: 1rem !important;
   overflow: hidden;
 }
 
-.project-card:hover {
-    border-color: rgba(98, 21, 192, 0.7) !important;
-    box-shadow: 0 0 25px rgba(98, 21, 192, 0.3);
-}
-.project-card img {
-    transition: transform 0.3s ease-in-out;
-}
-.project-card:hover img {
-    transform: scale(1.05);
+.ambient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  will-change: transform;
+  animation: ambientFloat 20s ease-in-out infinite;
 }
 
-/* Formulario de Contacto */
-.contact-form {
-  background-color: rgba(23, 25, 48, 0.5) !important;
-  border: 1px solid rgba(23, 237, 244, 0.2) !important;
-  backdrop-filter: blur(10px);
-  border-radius: 1rem !important;
+/* Violeta - arriba derecha */
+.a-blob-1 {
+  width: 550px;
+  height: 550px;
+  top: -15%;
+  right: -10%;
+  background: rgba(124, 58, 237, 0.09);
+  animation-delay: 0s;
+  animation-duration: 22s;
 }
 
-/* Estilos para los inputs de PrimeVue */
-:deep(.p-inputtext), :deep(.p-textarea) {
-  background: rgba(0,0,0,0.3) !important;
-  border: 1px solid rgba(255,255,255,0.2) !important;
-  color: #fff !important;
+/* Azul - centro izquierda */
+.a-blob-2 {
+  width: 450px;
+  height: 450px;
+  top: 50%;
+  left: -8%;
+  background: rgba(59, 130, 246, 0.07);
+  animation-delay: -7s;
+  animation-duration: 18s;
+}
+
+/* Cyan/ámbar - abajo derecha */
+.a-blob-3 {
+  width: 400px;
+  height: 400px;
+  bottom: -10%;
+  right: 15%;
+  background: rgba(6, 182, 212, 0.06);
+  animation-delay: -14s;
+  animation-duration: 24s;
+}
+
+@keyframes ambientFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25%      { transform: translate(3%, -2%) scale(1.08); }
+  50%      { transform: translate(-2%, 3%) scale(0.94); }
+  75%      { transform: translate(-3%, -1%) scale(1.05); }
+}
+
+/* =========== DIVISORES ENTRE SECCIONES (línea gradiente sutil) =========== */
+.section-divider {
+  position: relative;
+  z-index: 1;
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 92, 246, 0.15) 20%,
+    rgba(59, 130, 246, 0.2) 50%,
+    rgba(6, 182, 212, 0.12) 80%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+/* =========== ESTILOS DE INPUTS PRIMEVUE (global scope con :deep) =========== */
+:deep(.p-inputtext),
+:deep(.p-textarea) {
+  background: #0d0d1a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
 }
 
 :deep(.p-inputtext:enabled:focus) {
-  box-shadow: 0 0 0 1px rgba(23, 237, 244, 0.8) !important;
-  border-color: rgba(23, 237, 244, 0.8) !important;
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.6) !important;
+  border-color: rgba(168, 85, 247, 0.5) !important;
 }
 
 :deep(.p-float-label > label) {
-    color: #9ca3af !important;
+  color: #64748b !important;
 }
-
 </style>

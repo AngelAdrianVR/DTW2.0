@@ -104,22 +104,23 @@ const handleSubmit = () => {
 .section-title span { position: relative; z-index: 1; }
 .section-title::after {
   content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 60%; height: 3px; background: linear-gradient(90deg, #6215C0, #17EDF4);
+  width: 60%; height: 3px;
+  background: linear-gradient(90deg, #a855f7, #eab308, #3b82f6);
   border-radius: 2px;
 }
 .contact-form {
-  background-color: rgba(23, 25, 48, 0.5); border: 1px solid rgba(23, 237, 244, 0.2);
+  background-color: #0a0a14; border: 1px solid rgba(168,85,247,0.15);
   backdrop-filter: blur(10px); border-radius: 1rem; transition: all 0.3s ease;
 }
 :deep(.p-inputtext), :deep(.p-textarea) {
-  background: rgba(0,0,0,0.3) !important; border: 1px solid rgba(255,255,255,0.2) !important;
-  color: #fff !important; transition: all 0.3s ease;
+  background: #0d0d1a !important; border: 1px solid rgba(255,255,255,0.08) !important;
+  color: #e2e8f0 !important; transition: all 0.3s ease;
 }
 :deep(.p-inputtext:enabled:focus), :deep(.p-textarea:enabled:focus) {
-  box-shadow: 0 0 15px rgba(23, 237, 244, 0.5) !important;
-  border-color: rgba(23, 237, 244, 0.8) !important;
+  box-shadow: 0 0 15px rgba(168,85,247,0.3) !important;
+  border-color: rgba(168,85,247,0.6) !important;
 }
-:deep(.p-float-label > label) { color: #9ca3af !important; }
+:deep(.p-float-label > label) { color: #64748b !important; }
 
 /* Estilos para los errores de validación */
 .field {
@@ -138,14 +139,14 @@ const handleSubmit = () => {
 /* Nuevo Botón Minimalista */
 .submit-button {
   padding: 0.75rem 2.5rem; font-size: 1rem; font-weight: 500;
-  color: #e5e7eb; background-color: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 999px;
+  color: #c4b5fd; background-color: transparent;
+  border: 1px solid rgba(168,85,247,0.4); border-radius: 999px;
   cursor: pointer; transition: all 0.3s ease; position: relative;
   overflow: hidden;
 }
 .submit-button:hover:not(:disabled) {
-  color: #fff; border-color: #17EDF4;
-  box-shadow: 0 0 15px rgba(23, 237, 244, 0.4);
+  color: #e9d5ff; border-color: #a855f7;
+  box-shadow: 0 0 20px rgba(168,85,247,0.3);
 }
 .submit-button:disabled {
   opacity: 0.7; cursor: not-allowed;
@@ -153,8 +154,8 @@ const handleSubmit = () => {
 
 /* Animación del Spinner */
 .spinner {
-  width: 1.25em; height: 1.25em; border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #17EDF4; border-radius: 50%;
+  width: 1.25em; height: 1.25em; border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #a855f7; border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin {
