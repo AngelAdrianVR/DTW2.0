@@ -146,7 +146,7 @@ function onTrackScroll() {
                         href="/soluciones"
                         class="group inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.07]"
                     >
-                        {{ t('See all solutions') }}
+                        {{ t('See all projects') }}
                         <i class="pi pi-arrow-up-right text-xs transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"></i>
                     </Link>
                 </div>

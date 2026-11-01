@@ -29,16 +29,16 @@ return [
     | Soluciones (sección "Servicios" de la landing)
     |--------------------------------------------------------------------------
     |
-    | Fuente única de datos de las soluciones que se muestran en el carrusel
-    | de proyectos y en la galería /soluciones.
+    | Fuente única de datos de las soluciones que se muestran en el bloque de
+    | servicios de la landing. La galería /soluciones ya no las pinta: ahí se
+    | listan los proyectos de clientes del back-office (WebContent `portfolio`).
     |
     | Los campos `*_key` contienen la clave de traducción (por convención del
     | proyecto la clave es la frase en inglés) que Vue resuelve con t(), así
     | que el contenido se traduce automáticamente a ES/EN.
     |
-    | `gallery` conserva imágenes adicionales por solución. La ficha de detalle
-    | (/soluciones/{slug}) ya no existe, así que hoy no se pinta en ninguna
-    | vista; se mantiene como material disponible por si se retoma.
+    | `gallery` conserva imágenes adicionales por solución. Hoy no se pinta en
+    | ninguna vista; se mantiene como material disponible por si se retoma.
     |
     */
 

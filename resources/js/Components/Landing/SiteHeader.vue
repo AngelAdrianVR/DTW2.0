@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
                         class="rounded-xl px-3 py-3 text-base font-medium text-dtw-ink transition hover:bg-white/5"
                         @click="closeMenu"
                     >
-                        {{ t('All solutions') }}
+                        {{ t('All projects') }}
                     </Link>
 
                     <div class="mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-4">

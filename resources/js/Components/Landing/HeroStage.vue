@@ -99,7 +99,7 @@ function onSeeSolutions() {
                 {{ t('Less manual work.') }}
                 <span class="dtw-hero-shimmer mt-1">
                     <span
-                        class="block bg-gradient-to-r from-dtw-primary-soft via-dtw-primary to-dtw-cyan bg-clip-text pb-1 text-transparent"
+                        class="block bg-gradient-to-r from-dtw-primary-soft via-dtw-primary to-dtw-cyan bg-clip-text pb-2 text-transparent"
                     >
                         {{ t('More time and money for your business.') }}
                     </span>

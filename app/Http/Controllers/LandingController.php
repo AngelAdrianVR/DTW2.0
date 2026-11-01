@@ -10,10 +10,7 @@ class LandingController extends Controller
     public function index()
     {
         // Obtener contenido publicado y ordenado
-        $portfolio = WebContent::where('type', 'portfolio')
-                               ->where('is_published', true)
-                               ->orderBy('sort_order')
-                               ->get();
+        $portfolio = $this->publishedPortfolio();
 
         $ownProjects = WebContent::where('type', 'own_projects')
                                  ->where('is_published', true)
@@ -51,11 +48,18 @@ class LandingController extends Controller
     }
 
     /**
-     * Galería completa de soluciones (/soluciones).
+     * Galería completa de proyectos (/soluciones).
+     *
+     * Se listan todos los proyectos desarrollados para clientes (WebContent
+     * tipo `portfolio` publicados), en el mismo orden del back-office. Cada
+     * tarjeta enlaza a su ficha (/landing-projects/{id}).
      */
     public function solutions()
     {
-        return Inertia::render('LandingPage/Solutions/Index', $this->sharedProps());
+        return Inertia::render('LandingPage/Solutions/Index', [
+            'portfolio' => $this->publishedPortfolio(),
+            ...$this->sharedProps(),
+        ]);
     }
 
     /**
@@ -78,6 +82,20 @@ class LandingController extends Controller
             'project' => $project,
             ...$this->sharedProps(),
         ]);
+    }
+
+    /**
+     * Proyectos desarrollados para clientes (WebContent tipo `portfolio`)
+     * publicados y en el orden definido en el back-office.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\WebContent>
+     */
+    private function publishedPortfolio()
+    {
+        return WebContent::where('type', 'portfolio')
+            ->where('is_published', true)
+            ->orderBy('sort_order')
+            ->get();
     }
 
     /**

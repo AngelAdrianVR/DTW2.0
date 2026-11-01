@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\VisitAnalyticsController;
 use App\Http\Controllers\PomodoroController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientPaymentController;
@@ -126,6 +127,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/web-contents/{webContent}/update-image', [WebContentController::class, 'updateImage'])->name('webcontents.updateImage');
     Route::delete('/web-contents/{webContent}', [WebContentController::class, 'destroy'])->name('webcontents.destroy');
     Route::delete('/media/{media}', [WebContentController::class, 'destroyMedia'])->name('media.destroy');
+
+    // Métricas de visitas del sitio público.
+    Route::get('/visits', [VisitAnalyticsController::class, 'index'])->name('visits.index');
+    Route::get('/visits/data', [VisitAnalyticsController::class, 'data'])->name('visits.data');
 });
 
 

@@ -1,37 +1,43 @@
 <script setup>
 /**
- * Galería completa de soluciones (/soluciones).
- * Cada tarjeta resume la solución y ofrece contacto directo (el detalle
- * individual de cada solución ya no existe como vista aparte).
+ * Galería completa de proyectos (/soluciones).
+ *
+ * Se pintan todos los proyectos desarrollados para clientes (WebContent tipo
+ * `portfolio` publicados, enviados por LandingController como prop
+ * `portfolio`) en una cuadrícula de imágenes cuadradas con bordes redondeados
+ * y el título debajo. Cada tarjeta enlaza a la ficha del proyecto
+ * (/landing-projects/{id}).
  */
 import { computed } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import LandingShell from '@/Components/Landing/LandingShell.vue';
-import { useSolutions } from '@/Composables/useSolutions';
-import { useContact } from '@/Composables/useContact';
+import { useProjects } from '@/Composables/useProjects';
 import { useT } from '@/Composables/useT';
-import { trackWhatsAppClick } from '@/utils/analytics';
 
-defineProps({
+const props = defineProps({
     contact: { type: Object, default: () => ({}) },
     siteUrl: { type: String, default: '' },
     metaImage: { type: String, default: '' },
     solutions: { type: Array, default: () => [] },
+    portfolio: { type: Array, default: () => [] },
 });
 
 const t = useT();
 const page = usePage();
-const list = useSolutions();
-const { whatsappUrl } = useContact();
+const projects = useProjects(props.portfolio);
 
 const baseUrl = computed(() => (page.props.siteUrl || '').replace(/\/$/, ''));
 const canonicalUrl = computed(() => `${baseUrl.value}/soluciones`);
-const ogImage = computed(() => page.props.metaImage || '');
+const ogImage = computed(() => projects.value[0]?.image || page.props.metaImage || '');
 
-const seoTitle = computed(() => t('All our solutions'));
+const seoTitle = computed(() => t('All our projects'));
 const seoDescription = computed(() =>
-    t('Every solution starts with a diagnosis of your process, not with a technology.'),
+    t(
+        'Software, hardware and AI built for real operations. Every project starts with a process that had to be improved.',
+    ),
 );
+
+const projectCount = computed(() => projects.value.length);
 </script>
 
 <template>
@@ -69,64 +75,89 @@ const seoDescription = computed(() =>
                 <p class="mt-6 max-w-2xl text-base leading-relaxed text-dtw-muted md:text-lg">
                     {{ seoDescription }}
                 </p>
+
+                <p
+                    v-if="projectCount"
+                    class="mt-5 text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-dtw-primary-soft"
+                >
+                    {{ projectCount }} {{ projectCount === 1 ? t('Project') : t('Projects') }}
+                </p>
             </div>
         </section>
 
         <section class="relative bg-transparent pb-24 md:pb-32">
             <div class="mx-auto w-full max-w-7xl px-5 md:px-8">
-                <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    <article
-                        v-for="solution in list"
-                        :key="solution.slug"
-                        class="group relative flex flex-col overflow-hidden rounded-[26px] border border-white/10 bg-dtw-surface transition duration-500 hover:-translate-y-1 hover:border-white/25"
+                <div
+                    v-if="projectCount"
+                    class="grid grid-cols-2 gap-x-4 gap-y-9 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-3 xl:grid-cols-4"
+                >
+                    <Link
+                        v-for="(project, index) in projects"
+                        :key="project.id"
+                        :href="project.href"
+                        class="group block rounded-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-dtw-primary"
+                        :aria-label="project.title"
+                        v-reveal
                     >
-                        <div class="relative aspect-[16/10] overflow-hidden">
+                        <!-- Imagen cuadrada con bordes redondeados -->
+                        <div
+                            class="relative aspect-square overflow-hidden rounded-[24px] border border-white/10 bg-dtw-surface shadow-[0_28px_70px_-46px_rgba(0,0,0,0.95)] transition duration-500 group-hover:-translate-y-1 group-hover:border-white/25 group-focus-visible:-translate-y-1 group-focus-visible:border-white/25"
+                        >
                             <img
-                                :src="solution.image"
-                                :alt="solution.title"
+                                v-if="project.image"
+                                :src="project.image"
+                                :alt="project.title"
                                 loading="lazy"
-                                class="h-full w-full object-cover opacity-75 transition duration-[900ms] group-hover:scale-105 group-hover:opacity-100"
+                                draggable="false"
+                                class="h-full w-full object-cover transition duration-[900ms] ease-out group-hover:scale-[1.06]"
                             />
-                            <div class="absolute inset-0 bg-gradient-to-t from-dtw-surface via-dtw-void/30 to-transparent"></div>
+                            <div
+                                v-else
+                                class="flex h-full w-full items-center justify-center bg-gradient-to-br from-dtw-brand/30 via-dtw-surface-soft to-dtw-void"
+                            >
+                                <img src="/images/white_logo.png" alt="" class="h-8 w-auto opacity-40" />
+                            </div>
+
+                            <div
+                                class="pointer-events-none absolute inset-0 bg-gradient-to-t from-dtw-void/45 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100"
+                            ></div>
 
                             <span
-                                class="absolute left-5 top-5 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-dtw-void/70 backdrop-blur"
-                                :style="{ color: solution.accent }"
+                                class="pointer-events-none absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-dtw-void/70 text-white opacity-0 backdrop-blur transition duration-300 group-hover:opacity-100 md:right-4 md:top-4"
                             >
-                                <i :class="solution.icon"></i>
+                                <i class="pi pi-arrow-up-right text-[0.65rem]"></i>
                             </span>
                         </div>
 
-                        <div class="flex flex-1 flex-col justify-between gap-5 p-6">
-                            <div>
-                                <h2 class="font-display text-xl font-bold leading-snug text-white">
-                                    {{ solution.title }}
+                        <!-- Título debajo de la imagen -->
+                        <div class="mt-4 flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h2
+                                    class="line-clamp-2 font-display text-base font-bold leading-snug text-white transition group-hover:text-dtw-primary-soft md:text-lg"
+                                >
+                                    {{ project.title }}
                                 </h2>
-                                <p class="mt-2 text-sm leading-relaxed text-dtw-muted">
-                                    {{ solution.tagline }}
+                                <p v-if="project.subtitle" class="mt-1 line-clamp-1 text-xs text-dtw-muted md:text-sm">
+                                    {{ project.subtitle }}
                                 </p>
                             </div>
 
-                            <a
-                                :href="whatsappUrl"
-                                target="_blank"
-                                rel="noopener"
-                                class="inline-flex items-center gap-2 text-sm font-semibold transition hover:opacity-80"
-                                :style="{ color: solution.accent }"
-                                @click="trackWhatsAppClick(`gallery_${solution.slug}`)"
+                            <span
+                                class="dtw-tabular shrink-0 pt-1 font-display text-[0.65rem] font-bold tracking-[0.28em] text-white/30"
                             >
-                                <i class="pi pi-whatsapp text-xs"></i>
-                                {{ t('Talk to us about this solution') }}
-                                <i class="pi pi-arrow-right text-xs transition-transform duration-300 group-hover:translate-x-1"></i>
-                            </a>
+                                {{ String(index + 1).padStart(2, '0') }}
+                            </span>
                         </div>
-                    </article>
+                    </Link>
                 </div>
 
-                <p class="mt-12 max-w-2xl text-sm text-dtw-muted">
-                    {{ t('Not sure which one you need?') }}
-                    {{ t('We will help you find out in a 20-minute call, free of charge.') }}
-                </p>
+                <!-- Estado vacío (sin proyectos publicados) -->
+                <div
+                    v-else
+                    class="rounded-[28px] border border-dashed border-white/15 bg-white/[0.02] px-8 py-14 text-center text-sm text-dtw-muted"
+                >
+                    {{ t('The first projects of our gallery are on their way. In the meantime, explore our solutions.') }}
+                </div>
             </div>
         </section>
     </LandingShell>
