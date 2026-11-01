@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Mail\LeadNotification;
 use App\Models\Client;
 use App\Models\Quote;
 use App\Models\Project;
@@ -8,6 +9,7 @@ use App\Models\ClientPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
@@ -334,24 +336,48 @@ class QuoteController extends Controller
         $validator = Validator::make($request->all(), [
             'client_name' => 'required|string|max:255',
             'client_email' => 'required|email|max:255',
-            'client_phone' => 'nullable|string|max:50',
-            'title' => 'required|string|max:255',
+            'client_phone' => 'required|string|max:50',
+            'company' => 'required|string|max:255',
+            'industry' => 'required|string|max:255',
+            'employees' => 'nullable|string|max:50',
+            'title' => 'nullable|string|max:255',
             'description' => 'required|string|max:5000',
+            'locale' => 'nullable|string|in:es,en',
+            // Resultado opcional de la calculadora financiera de la landing.
+            // Los porcentajes se validan con un techo amplio y se acotan
+            // en normalizeCalculatorPayload() para no rechazar un lead válido.
+            'calculator' => 'nullable|array',
+            'calculator.scenario' => 'nullable|string|max:50',
+            'calculator.scenario_label' => 'nullable|string|max:255',
+            'calculator.monthly_cost' => 'nullable|numeric|min:0|max:999999999',
+            'calculator.recoverable' => 'nullable|numeric|min:0|max:999999999',
+            'calculator.annual_saving' => 'nullable|numeric|min:0|max:999999999',
+            'calculator.improvement' => 'nullable|numeric|min:0|max:1000',
+            'calculator.inputs' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
 
+        $calculator = $this->normalizeCalculatorPayload($request->input('calculator'));
+        $description = trim((string) $request->input('description')) . $this->buildCalculatorSummary($calculator);
+        $industry = (string) $request->input('industry');
+
         try {
-            Quote::create([
+            $quote = Quote::create([
                 'user_id' => null,
                 'client_name' => $request->input('client_name'),
                 'client_email' => $request->input('client_email'),
                 'client_phone' => $request->input('client_phone'),
+                'company' => $request->input('company'),
+                'industry' => $industry,
+                'employees' => $request->input('employees'),
+                'calculator_payload' => $calculator,
+                'locale' => $request->input('locale') ?: app()->getLocale(),
                 'quote_code' => $this->generateQuoteCode(),
-                'title' => $request->input('title'),
-                'description' => $request->input('description'),
+                'title' => $request->input('title') ?: Str::limit('Diagnóstico gratuito · ' . $industry, 250, ''),
+                'description' => $description,
                 'amount' => 0.00,
                 'status' => 'Pendiente',
                 'origin' => 'Web',
@@ -365,10 +391,110 @@ class QuoteController extends Controller
             ]);
         }
 
+        $this->notifyNewLead($quote);
+
         return back()->with('flash', [
             'message' => '¡Tu solicitud ha sido enviada con éxito!',
             'type' => 'success'
         ]);
+    }
+
+    /**
+     * Limpia y acota el payload de la calculadora antes de guardarlo.
+     * Devuelve null cuando el prospecto no usó la calculadora.
+     */
+    private function normalizeCalculatorPayload($calculator): ?array
+    {
+        if (!is_array($calculator) || empty($calculator)) {
+            return null;
+        }
+
+        $money = function ($value): float {
+            return round(max(0, (float) $value), 2);
+        };
+
+        $inputs = [];
+        if (isset($calculator['inputs']) && is_array($calculator['inputs'])) {
+            foreach ($calculator['inputs'] as $key => $value) {
+                if (!is_string($key)) {
+                    continue;
+                }
+
+                $inputs[Str::limit($key, 60, '')] = is_numeric($value)
+                    ? round((float) $value, 4)
+                    : Str::limit((string) $value, 120, '');
+            }
+        }
+
+        // La mejora es un porcentaje: se acota entre 0 y 100.
+        $improvement = min(100, max(0, round((float) ($calculator['improvement'] ?? 0), 2)));
+
+        return [
+            'scenario' => isset($calculator['scenario'])
+                ? Str::limit((string) $calculator['scenario'], 50, '')
+                : null,
+            'scenario_label' => isset($calculator['scenario_label'])
+                ? Str::limit((string) $calculator['scenario_label'], 120, '')
+                : null,
+            'monthly_cost' => $money($calculator['monthly_cost'] ?? 0),
+            'recoverable' => $money($calculator['recoverable'] ?? 0),
+            'annual_saving' => $money($calculator['annual_saving'] ?? 0),
+            'improvement' => $improvement,
+            'inputs' => $inputs,
+        ];
+    }
+
+    /**
+     * Añade al texto libre del prospecto un resumen legible de la calculadora
+     * para que el lead sea interpretable desde el panel de cotizaciones.
+     */
+    private function buildCalculatorSummary(?array $calculator): string
+    {
+        if (!$calculator) {
+            return '';
+        }
+
+        $money = fn ($value) => '$' . number_format((float) $value, 2) . ' MXN';
+
+        $lines = [
+            '',
+            '',
+            '--- Resumen de la calculadora financiera ---',
+            'Escenario: ' . ($calculator['scenario_label'] ?: ($calculator['scenario'] ?: 'No especificado')),
+            'Costo mensual estimado del problema: ' . $money($calculator['monthly_cost']),
+            'Monto recuperable al mes: ' . $money($calculator['recoverable']),
+            'Ahorro potencial anual: ' . $money($calculator['annual_saving']),
+            'Mejora estimada: ' . number_format((float) $calculator['improvement'], 1) . '%',
+        ];
+
+        if (!empty($calculator['inputs'])) {
+            $pairs = [];
+            foreach ($calculator['inputs'] as $key => $value) {
+                $pairs[] = $key . ': ' . $value;
+            }
+            $lines[] = 'Datos capturados -> ' . implode(' · ', $pairs);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Avisa al equipo por correo. Nunca interrumpe el envío del prospecto:
+     * si el correo falla, el lead ya quedó guardado y solo se registra un warning.
+     */
+    private function notifyNewLead(Quote $quote): void
+    {
+        $recipient = config('dtw.lead_email');
+
+        if (empty($recipient)) {
+            return;
+        }
+
+        try {
+            Mail::to($recipient)->send(new LeadNotification($quote));
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo enviar la notificación del lead ' . $quote->quote_code . ': ' . $e->getMessage());
+        }
     }
 
     /**

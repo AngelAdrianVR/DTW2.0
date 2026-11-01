@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
+    // La landing consulta `web_contents`: sin migraciones la petición falla.
+    use RefreshDatabase;
+
     /**
      * A basic test example.
      */

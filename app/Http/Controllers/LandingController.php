@@ -3,10 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WebContent;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Foundation\Application;
 
 class LandingController extends Controller
 {
@@ -22,7 +19,7 @@ class LandingController extends Controller
                                  ->where('is_published', true)
                                  ->orderBy('sort_order')
                                  ->get();
-        
+
         // Procesar los logos de clientes para obtener una lista plana
         $clientGroups = WebContent::where('type', 'client_logos')
                              ->where('is_published', true)
@@ -38,7 +35,7 @@ class LandingController extends Controller
                 ];
             });
         });
-        
+
         $advertising = WebContent::where('type', 'advertising')
                              ->where('is_published', true)
                              ->orderBy('sort_order')
@@ -49,7 +46,16 @@ class LandingController extends Controller
             'ownProjects' => $ownProjects,
             'clientLogos' => $clientLogos, // Enviar la lista de logos procesada
             'advertising' => $advertising,
-        ]);    
+            ...$this->sharedProps(),
+        ]);
+    }
+
+    /**
+     * Galería completa de soluciones (/soluciones).
+     */
+    public function solutions()
+    {
+        return Inertia::render('LandingPage/Solutions/Index', $this->sharedProps());
     }
 
     /**
@@ -69,7 +75,39 @@ class LandingController extends Controller
         $project->load('media');
 
         return Inertia::render('LandingPage/ProjectDetails', [
-            'project' => $project
+            'project' => $project,
+            ...$this->sharedProps(),
         ]);
+    }
+
+    /**
+     * Soluciones definidas en config/dtw.php (fuente única de datos).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function solutionDefinitions(): array
+    {
+        return array_values((array) config('dtw.solutions', []));
+    }
+
+    /**
+     * Props compartidas por todas las vistas públicas de la landing.
+     *
+     * @return array<string, mixed>
+     */
+    private function sharedProps(): array
+    {
+        return [
+            'solutions' => $this->solutionDefinitions(),
+            // Datos de contacto reales centralizados en config/dtw.php
+            'contact' => [
+                'email' => config('dtw.contact_email'),
+                'whatsapp' => config('dtw.whatsapp'),
+                'whatsapp_display' => config('dtw.whatsapp_display'),
+            ],
+            // Metadatos para SEO / Open Graph
+            'siteUrl' => rtrim((string) config('app.url'), '/'),
+            'metaImage' => asset('images/branding.webp'),
+        ];
     }
 }

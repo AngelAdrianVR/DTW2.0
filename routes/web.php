@@ -29,6 +29,9 @@ use Inertia\Inertia;
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
 Route::get('/landing-projects/{project}', [LandingController::class, 'showProject'])->name('landing-projects.show');
 
+// Soluciones (sección "Servicios"): galería completa de soluciones.
+Route::get('/soluciones', [LandingController::class, 'solutions'])->name('landing.solutions');
+
 
 // Rutas para mostrar los documentos legales
 Route::get('/terms-of-service', [LegalController::class, 'showTerms'])->name('terms.show');

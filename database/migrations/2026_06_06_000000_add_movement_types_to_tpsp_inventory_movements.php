@@ -12,6 +12,13 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Solo MySQL/MariaDB necesitan el cambio de ENUM. En SQLite (tests) la
+        // columna se crea como string y los valores nuevos se aceptan igual,
+        // por lo que se omite el ALTER para que las migraciones sean portables.
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         // MySQL no permite alterar ENUM directamente con Schema, usamos raw SQL.
         DB::statement("ALTER TABLE tpsp_inventory_movements MODIFY COLUMN type ENUM(
             'Entrada de material',
@@ -29,6 +36,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE tpsp_inventory_movements MODIFY COLUMN type ENUM(
             'Entrada de material',
             'Consumo_Produccion',
