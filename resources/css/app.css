@@ -167,7 +167,7 @@ html {
   height: 0;
 }
 
-/* Riel horizontal anclado (soluciones y galería de detalle) */
+/* Riel horizontal anclado (proyectos y galería de detalle) */
 .dtw-pin-track {
   will-change: transform;
   backface-visibility: hidden;
@@ -207,6 +207,35 @@ html {
 .dtw-fade-bottom {
   -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+
+/* Marquesina de logos de clientes (ClientsSection.vue).
+   La pista pinta la lista dos veces y se desplaza justo la mitad de su ancho,
+   así el bucle cierra sin salto. Se pausa al pasar el cursor o al enfocar. */
+.dtw-marquee {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+
+.dtw-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: dtw-marquee 38s linear infinite;
+  will-change: transform;
+}
+
+.dtw-marquee:hover .dtw-marquee__track,
+.dtw-marquee:focus-within .dtw-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes dtw-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 /* Fondo global del sitio público (SiteBackdrop.vue)
@@ -380,5 +409,12 @@ html {
 
   .dtw-hero-shimmer__sheen {
     display: none;
+  }
+
+  /* Marquesina de clientes: sin desplazamiento automático (queda como fila
+     desplazable a mano, ver `motion-reduce:overflow-x-auto` del componente) */
+  .dtw-marquee__track {
+    animation: none !important;
+    transform: none !important;
   }
 }

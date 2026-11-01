@@ -65,7 +65,7 @@ const t = useT();
                 :href="project.href"
                 class="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-dtw-primary-soft transition hover:text-white"
             >
-                {{ t('View solution') }}
+                {{ t('View project') }}
                 <i class="pi pi-arrow-right text-xs transition-transform duration-300 group-hover:translate-x-1"></i>
             </Link>
         </div>

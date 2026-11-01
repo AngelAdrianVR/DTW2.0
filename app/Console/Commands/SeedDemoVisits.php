@@ -20,7 +20,7 @@ class SeedDemoVisits extends Command
 
     private const PATHS = [
         ['path' => '/', 'route' => 'landing.index', 'weight' => 34],
-        ['path' => '/soluciones', 'route' => 'landing.solutions', 'weight' => 20],
+        ['path' => '/proyectos', 'route' => 'landing.projects', 'weight' => 20],
         ['path' => '/landing-projects/1', 'route' => 'landing-projects.show', 'weight' => 12],
         ['path' => '/landing-projects/2', 'route' => 'landing-projects.show', 'weight' => 9],
         ['path' => '/landing-projects/3', 'route' => 'landing-projects.show', 'weight' => 7],

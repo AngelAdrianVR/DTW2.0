@@ -2,20 +2,25 @@
 /**
  * Landing principal.
  *
- * Dos bloques, texto mínimo:
+ * Cuatro bloques, texto mínimo:
  *   1. Hero con la propuesta de valor.
- *   2. Servicios: riel horizontal anclado con los proyectos realizados +
- *      tarjetas apiladas con el detalle de cada solución.
+ *   2. Proyectos: riel horizontal anclado con los proyectos hechos a clientes.
+ *   3. Servicios: tarjetas apiladas con el detalle de cada solución y, debajo,
+ *      el carrusel de proyectos propios gratis para la comunidad.
+ *   4. Clientes: marquesina con los logos de las empresas que confían en DTW.
  *
  * El contenido vive en config/dtw.php (soluciones) y en el back-office
- * (proyectos), así que no hay textos duplicados en el componente.
+ * (proyectos y logos), así que no hay textos duplicados en el componente.
  */
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import LandingShell from '@/Components/Landing/LandingShell.vue';
 import HeroStage from '@/Components/Landing/HeroStage.vue';
-import SolutionsRail from '@/Components/Landing/SolutionsRail.vue';
+import ProjectsRail from '@/Components/Landing/ProjectsRail.vue';
 import ServiceStack from '@/Components/Landing/ServiceStack.vue';
+import OwnProjectsRail from '@/Components/Landing/OwnProjectsRail.vue';
+import ClientsSection from '@/Components/Landing/ClientsSection.vue';
+import EventsSection from '@/Components/Landing/EventsSection.vue';
 import { useT } from '@/Composables/useT';
 
 defineProps({
@@ -28,6 +33,7 @@ defineProps({
     ownProjects: { type: Array, default: () => [] },
     clientLogos: { type: Array, default: () => [] },
     advertising: { type: Array, default: () => [] },
+    events: { type: Array, default: () => [] },
 });
 
 const t = useT();
@@ -91,7 +97,7 @@ onBeforeUnmount(() => document.getElementById(schemaId)?.remove());
 </script>
 
 <template>
-    <LandingShell>
+    <LandingShell :show-cta="false">
         <Head :title="seoTitle">
             <meta name="description" :content="seoDescription" />
             <link rel="canonical" :href="canonicalUrl" />
@@ -106,8 +112,14 @@ onBeforeUnmount(() => document.getElementById(schemaId)?.remove());
 
         <HeroStage />
 
-        <SolutionsRail :projects="portfolio" />
+        <ProjectsRail :projects="portfolio" />
 
         <ServiceStack />
+
+        <OwnProjectsRail :projects="ownProjects" />
+
+        <EventsSection :events="events" />
+
+        <ClientsSection :logos="clientLogos" />
     </LandingShell>
 </template>

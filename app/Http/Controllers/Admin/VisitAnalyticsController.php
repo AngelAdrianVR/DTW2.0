@@ -13,7 +13,7 @@ class VisitAnalyticsController extends Controller
 {
     private const PAGE_LABELS = [
         'landing.index' => 'Inicio',
-        'landing.solutions' => 'Soluciones',
+        'landing.projects' => 'Proyectos',
         'landing-projects.show' => 'Detalle de proyecto',
         'terms.show' => 'Términos de servicio',
         'privacy.show' => 'Aviso de privacidad',

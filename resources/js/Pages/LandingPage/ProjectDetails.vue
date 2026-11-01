@@ -100,7 +100,7 @@ const description = computed(() => {
             <DetailStage info-in-rail :images="images" :empty-label="t('This project has no images yet')">
                 <template #info>
                     <Link
-                        href="/soluciones"
+                        href="/proyectos"
                         class="group inline-flex items-center gap-2 text-sm font-medium text-dtw-muted transition hover:text-white"
                     >
                         <i class="pi pi-arrow-left text-xs transition-transform duration-300 group-hover:-translate-x-1"></i>

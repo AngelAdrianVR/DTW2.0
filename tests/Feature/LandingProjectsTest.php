@@ -4,36 +4,23 @@ namespace Tests\Feature;
 
 use App\Models\WebContent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
-class LandingSolutionsTest extends TestCase
+class LandingProjectsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_landing_page_shares_the_solutions_from_config(): void
+    public function test_projects_gallery_renders_the_shared_props(): void
     {
-        $response = $this->get('/');
+        $response = $this->get('/proyectos');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->component('LandingPage/Index')
-            ->has('solutions', count(config('dtw.solutions')))
-            ->where('solutions.0.slug', config('dtw.solutions.0.slug'))
-            ->has('solutions.0.title_key')
-            ->has('solutions.0.bullet_keys')
-        );
-    }
-
-    public function test_solutions_gallery_renders_the_shared_props(): void
-    {
-        $response = $this->get('/soluciones');
-
-        $response->assertOk();
-        $response->assertInertia(fn (Assert $page) => $page
-            ->component('LandingPage/Solutions/Index')
+            ->component('LandingPage/Projects/Index')
             ->has('portfolio', 0)
-            ->has('solutions', count(config('dtw.solutions')))
+            ->has('ownProjects', 0)
             ->has('contact.email')
             ->where('contact.email', config('dtw.contact_email'))
             ->has('siteUrl')
@@ -41,7 +28,7 @@ class LandingSolutionsTest extends TestCase
         );
     }
 
-    public function test_solutions_gallery_lists_every_published_client_project_in_order(): void
+    public function test_projects_gallery_lists_every_published_client_project_in_order(): void
     {
         $this->createPortfolioProject('Segundo proyecto', 'Second project', 2);
 
@@ -65,15 +52,49 @@ class LandingSolutionsTest extends TestCase
             'sort_order' => 4,
         ]);
 
-        $response = $this->get('/soluciones');
+        $response = $this->get('/proyectos');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->component('LandingPage/Solutions/Index')
+            ->component('LandingPage/Projects/Index')
             ->has('portfolio', 2)
             ->where('portfolio.0.english_title', 'First project')
             ->where('portfolio.0.spanish_title', 'Primer proyecto')
             ->where('portfolio.1.english_title', 'Second project')
+            // El proyecto propio no se mezcla con los de cliente.
+            ->has('ownProjects', 1)
+            ->where('ownProjects.0.english_title', 'Own project')
+        );
+    }
+
+    public function test_projects_gallery_lists_the_published_community_projects_in_order(): void
+    {
+        $this->createOwnProject('Segundo proyecto propio', 'Second own project', 2);
+
+        $this->createOwnProject('Primer proyecto propio', 'First own project', 1);
+
+        // Sin publicar: no debe aparecer en la galería de la comunidad.
+        WebContent::create([
+            'type' => 'own_projects',
+            'spanish_title' => 'Proyecto propio oculto',
+            'english_title' => 'Hidden own project',
+            'is_published' => false,
+            'sort_order' => 3,
+        ]);
+
+        // Un proyecto de cliente tampoco se mezcla con los de la comunidad.
+        $this->createPortfolioProject('Proyecto de cliente', 'Client project', 4);
+
+        $response = $this->get('/proyectos');
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('LandingPage/Projects/Index')
+            ->has('portfolio', 1)
+            ->has('ownProjects', 2)
+            ->where('ownProjects.0.english_title', 'First own project')
+            ->where('ownProjects.0.spanish_title', 'Primer proyecto propio')
+            ->where('ownProjects.1.english_title', 'Second own project')
         );
     }
 
@@ -89,6 +110,19 @@ class LandingSolutionsTest extends TestCase
             ->where('project.id', $project->id)
             ->where('project.english_title', 'Project with detail')
         );
+    }
+
+    public function test_the_gallery_lives_at_proyectos(): void
+    {
+        $this->assertSame(url('/proyectos'), route('landing.projects'));
+        $this->assertFalse(Route::has('landing.solutions'));
+    }
+
+    public function test_the_old_solutions_url_redirects_to_the_gallery(): void
+    {
+        $this->get('/soluciones')
+            ->assertStatus(301)
+            ->assertRedirect('/proyectos');
     }
 
     public function test_solution_detail_pages_are_no_longer_available(): void
@@ -110,6 +144,20 @@ class LandingSolutionsTest extends TestCase
     {
         return WebContent::create([
             'type' => 'portfolio',
+            'spanish_title' => $spanishTitle,
+            'english_title' => $englishTitle,
+            'is_published' => true,
+            'sort_order' => $sortOrder,
+        ]);
+    }
+
+    /**
+     * Crea un proyecto propio (gratis para la comunidad) publicado.
+     */
+    private function createOwnProject(string $spanishTitle, string $englishTitle, int $sortOrder): WebContent
+    {
+        return WebContent::create([
+            'type' => 'own_projects',
             'spanish_title' => $spanishTitle,
             'english_title' => $englishTitle,
             'is_published' => true,

@@ -1,7 +1,7 @@
 <script setup>
 /**
  * Pie de página de la landing. Limpio, en una sola franja y con los accesos
- * que de verdad usa el visitante: soluciones, contacto y legales.
+ * que de verdad usa el visitante: servicios, proyectos, contacto y legales.
  */
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
@@ -57,10 +57,10 @@ const legalLinks = computed(() => [
                     </div>
                 </div>
 
-                <!-- Soluciones (sin enlace a la ficha: el detalle ya no existe) -->
+                <!-- Servicios (sin enlace a la ficha: el detalle vive en la landing) -->
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.22em] text-dtw-dim">
-                        {{ t('Solutions') }}
+                        {{ t('Services') }}
                     </p>
                     <ul class="mt-5 space-y-3 text-sm text-dtw-muted">
                         <li v-for="solution in solutions" :key="solution.slug">
@@ -92,13 +92,23 @@ const legalLinks = computed(() => [
                         </li>
                     </ul>
 
-                    <Link
-                        href="/soluciones"
-                        class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-dtw-primary-soft transition hover:text-white"
-                    >
-                        {{ t('All solutions') }}
-                        <i class="pi pi-arrow-up-right text-xs"></i>
-                    </Link>
+                    <div class="mt-6 flex flex-col gap-2">
+                        <Link
+                            href="/eventos"
+                            class="inline-flex items-center gap-2 text-sm font-semibold text-dtw-primary-soft transition hover:text-white"
+                        >
+                            {{ t('See all events') }}
+                            <i class="pi pi-arrow-up-right text-xs"></i>
+                        </Link>
+
+                        <Link
+                            href="/proyectos"
+                            class="inline-flex items-center gap-2 text-sm font-semibold text-dtw-primary-soft transition hover:text-white"
+                        >
+                            {{ t('See all projects') }}
+                            <i class="pi pi-arrow-up-right text-xs"></i>
+                        </Link>
+                    </div>
                 </div>
             </div>
 

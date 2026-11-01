@@ -1,11 +1,11 @@
 <script setup>
 /**
- * Bloque "Servicios" (parte 1): riel horizontal anclado.
+ * Bloque "Proyectos" (parte 1): riel horizontal anclado.
  *
  * El scroll vertical de la sección mueve las tarjetas a la derecha mientras la
  * sección queda pegada a la pantalla (con `factor: 1` el riel avanza al mismo
  * ritmo que el scroll vertical, sin obligar a bajar de más). Arriba a la
- * derecha se mantiene visible el acceso a todas las soluciones.
+ * derecha se mantiene visible el acceso a la galería completa de proyectos.
  *
  * Las tarjetas son los proyectos publicados en el back-office (WebContent tipo
  * `portfolio`) que llegan por la prop `projects`; sólo se pintan las primeras
@@ -116,7 +116,7 @@ function onTrackScroll() {
 
 <template>
     <section
-        id="soluciones"
+        id="proyectos"
         ref="sectionRef"
         class="relative bg-transparent"
         :style="sectionHeight ? { height: sectionHeight } : undefined"
@@ -133,17 +133,17 @@ function onTrackScroll() {
                 <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
                     <div class="max-w-2xl" v-reveal>
                         <p class="text-xs font-semibold uppercase tracking-[0.32em] text-dtw-primary-soft">
-                            {{ t('Services') }}
+                            {{ t('Projects') }}
                         </p>
                         <h2
                             class="mt-4 font-display text-[clamp(1.7rem,3.6vw,2.8rem)] font-extrabold leading-[1.08] tracking-tight text-white"
                         >
-                            {{ t('Solutions for any business') }}
+                            {{ t('Projects built for our clients') }}
                         </h2>
                     </div>
 
                     <Link
-                        href="/soluciones"
+                        href="/proyectos"
                         class="group inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.07]"
                     >
                         {{ t('See all projects') }}
@@ -189,7 +189,7 @@ function onTrackScroll() {
                 <div
                     class="rounded-[28px] border border-dashed border-white/15 bg-white/[0.02] px-8 py-14 text-center text-sm text-dtw-muted"
                 >
-                    {{ t('Our projects are on their way. In the meantime, explore our solutions.') }}
+                    {{ t('Our projects are on their way.') }}
                 </div>
             </div>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Event;
 use App\Models\WebContent;
 use Inertia\Inertia;
 
@@ -12,10 +13,7 @@ class LandingController extends Controller
         // Obtener contenido publicado y ordenado
         $portfolio = $this->publishedPortfolio();
 
-        $ownProjects = WebContent::where('type', 'own_projects')
-                                 ->where('is_published', true)
-                                 ->orderBy('sort_order')
-                                 ->get();
+        $ownProjects = $this->publishedOwnProjects();
 
         // Procesar los logos de clientes para obtener una lista plana
         $clientGroups = WebContent::where('type', 'client_logos')
@@ -43,23 +41,91 @@ class LandingController extends Controller
             'ownProjects' => $ownProjects,
             'clientLogos' => $clientLogos, // Enviar la lista de logos procesada
             'advertising' => $advertising,
+            // Eventos vigentes + últimas ediciones para la sección de la landing.
+            'events' => $this->landingEvents(),
             ...$this->sharedProps(),
         ]);
     }
 
     /**
-     * Galería completa de proyectos (/soluciones).
+     * Galería completa de proyectos (/proyectos).
      *
-     * Se listan todos los proyectos desarrollados para clientes (WebContent
-     * tipo `portfolio` publicados), en el mismo orden del back-office. Cada
-     * tarjeta enlaza a su ficha (/landing-projects/{id}).
+     * La vista tiene un selector con dos galerías, ambas en el mismo orden del
+     * back-office:
+     *
+     *  - `portfolio`: proyectos desarrollados para clientes (WebContent tipo
+     *    `portfolio` publicados). Cada tarjeta enlaza a su ficha
+     *    (/landing-projects/{id}).
+     *  - `ownProjects`: proyectos propios liberados gratis para la comunidad
+     *    (WebContent tipo `own_projects` publicados). Cada tarjeta enlaza al
+     *    sitio o repositorio externo guardado en `link_url`.
      */
-    public function solutions()
+    public function projects()
     {
-        return Inertia::render('LandingPage/Solutions/Index', [
+        return Inertia::render('LandingPage/Projects/Index', [
             'portfolio' => $this->publishedPortfolio(),
+            'ownProjects' => $this->publishedOwnProjects(),
             ...$this->sharedProps(),
         ]);
+    }
+
+    /**
+     * Página pública de eventos (/eventos).
+     *
+     * Lista las ediciones publicadas, tanto la que está abierta como el
+     * historial. Cada tarjeta enlaza a la ficha del evento, donde vive el
+     * formulario de registro.
+     */
+    public function events()
+    {
+        $events = Event::query()
+            ->published()
+            ->with(['media', 'publishedWinners'])
+            ->withCount(['registrations', 'publishedWinners as winners_count'])
+            ->ordered()
+            ->paginate(9)
+            ->withQueryString();
+
+        return Inertia::render('LandingPage/Events/Index', [
+            'events' => $events,
+            ...$this->sharedProps(),
+        ]);
+    }
+
+    /**
+     * Ficha pública de un evento (/eventos/{slug}): reto, premios, ganadores y
+     * formulario de registro mientras la ventana esté abierta.
+     */
+    public function showEvent(Event $event)
+    {
+        abort_unless($event->is_published, 404);
+
+        $event->load(['media', 'publishedWinners'])->loadCount([
+            'registrations',
+            'publishedWinners as winners_count',
+        ]);
+
+        return Inertia::render('LandingPage/Events/Show', [
+            'event' => $event,
+            ...$this->sharedProps(),
+        ]);
+    }
+
+    /**
+     * Eventos que se muestran en la portada: se limita la lista para no alargar
+     * la landing (el resto vive en /eventos).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Event>
+     */
+    private function landingEvents()
+    {
+        return Event::query()
+            ->published()
+            ->with(['media', 'publishedWinners'])
+            ->withCount(['registrations', 'publishedWinners as winners_count'])
+            ->ordered()
+            ->limit(6)
+            ->get();
     }
 
     /**
@@ -93,6 +159,20 @@ class LandingController extends Controller
     private function publishedPortfolio()
     {
         return WebContent::where('type', 'portfolio')
+            ->where('is_published', true)
+            ->orderBy('sort_order')
+            ->get();
+    }
+
+    /**
+     * Proyectos propios (gratis para la comunidad) publicados y en el orden
+     * definido en el back-office.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\WebContent>
+     */
+    private function publishedOwnProjects()
+    {
+        return WebContent::where('type', 'own_projects')
             ->where('is_published', true)
             ->orderBy('sort_order')
             ->get();

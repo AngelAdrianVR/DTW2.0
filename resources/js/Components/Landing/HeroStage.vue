@@ -48,8 +48,8 @@ function onWhatsApp() {
     trackWhatsAppClick('hero');
 }
 
-function onSeeSolutions() {
-    trackCtaClick('hero_see_solutions');
+function onSeeProjects() {
+    trackCtaClick('hero_see_projects');
 }
 </script>
 
@@ -128,11 +128,11 @@ function onSeeSolutions() {
                 </a>
 
                 <a
-                    href="#soluciones"
+                    href="#proyectos"
                     class="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.03] px-7 py-3.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.07] sm:w-auto"
-                    @click="onSeeSolutions"
+                    @click="onSeeProjects"
                 >
-                    {{ t('See solutions') }}
+                    {{ t('See projects') }}
                     <i class="pi pi-arrow-down text-xs transition-transform duration-300 group-hover:translate-y-0.5"></i>
                 </a>
             </div>

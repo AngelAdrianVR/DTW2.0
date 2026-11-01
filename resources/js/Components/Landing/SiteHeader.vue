@@ -20,9 +20,9 @@ const locale = computed(() => page.props.locale || 'es');
 const isHome = computed(() => page.component === 'LandingPage/Index');
 
 const links = computed(() => [
-    { id: 'soluciones', label: t('Solutions') },
+    { id: 'proyectos', label: t('Projects') },
     { id: 'detalle-servicios', label: t('Services') },
-    { id: 'contacto', label: t('Contact') },
+    { id: 'clientes', label: t('Clients') },
 ]);
 
 const hidden = ref(false);
@@ -130,10 +130,17 @@ onBeforeUnmount(() => {
                 </button>
 
                 <Link
-                    href="/soluciones"
+                    href="/eventos"
                     class="rounded-full px-4 py-2 text-sm font-medium text-dtw-muted transition-colors hover:bg-white/5 hover:text-white"
                 >
-                    {{ t('All solutions') }}
+                    {{ t('Events') }}
+                </Link>
+
+                <Link
+                    href="/proyectos"
+                    class="rounded-full px-4 py-2 text-sm font-medium text-dtw-muted transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    {{ t('All projects') }}
                 </Link>
             </nav>
 
@@ -211,7 +218,15 @@ onBeforeUnmount(() => {
                     </button>
 
                     <Link
-                        href="/soluciones"
+                        href="/eventos"
+                        class="rounded-xl px-3 py-3 text-base font-medium text-dtw-ink transition hover:bg-white/5"
+                        @click="closeMenu"
+                    >
+                        {{ t('Events') }}
+                    </Link>
+
+                    <Link
+                        href="/proyectos"
                         class="rounded-xl px-3 py-3 text-base font-medium text-dtw-ink transition hover:bg-white/5"
                         @click="closeMenu"
                     >
