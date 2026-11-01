@@ -11,13 +11,64 @@
  *     → slide down para entrar.
  *
  * Con `prefers-reduced-motion` no se anima nada (la navegación es inmediata).
+ *
+ * La cortina es parte del lenguaje visual del sitio público: sólo se anima
+ * cuando la vista de destino pertenece a la landing (ver `routes/web.php`). En
+ * el back-office las vistas cambian de inmediato, sin cortina.
  */
 import { onBeforeUnmount, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 
-const COVER_MS = 420;
-const REVEAL_MS = 560;
-const MIN_COVER_MS = 440;
+/* Las duraciones se inyectan como variables CSS en el elemento para que la
+   animación (app.css) y los temporizadores de JS usen exactamente el mismo
+   valor. */
+const COVER_MS = 640;
+const REVEAL_MS = 900;
+const MIN_COVER_MS = 700;
+
+/**
+ * Rutas públicas de la landing. Se comparan por ruta (no por nombre de ruta)
+ * porque en el evento `start` de Inertia todavía no existe la página de
+ * destino.
+ */
+const LANDING_PATHS = [
+    /^\/$/, // portada
+    /^\/proyectos(\/|$)/, // galería de proyectos
+    /^\/soluciones(\/|$)/, // enlace antiguo (redirige a /proyectos)
+    /^\/landing-projects(\/|$)/, // detalle de un proyecto
+    /^\/eventos(\/|$)/, // eventos y ficha de cada evento
+    /^\/terms-of-service$/, // documentos legales (misma plantilla pública)
+    /^\/privacy-policy$/,
+];
+
+/** Normaliza la ruta para que `/proyectos/` y `/proyectos` sean iguales. */
+function normalizePath(path) {
+    return path.replace(/\/+$/, '') || '/';
+}
+
+/**
+ * Ruta a la que apunta la visita, tomada del evento de Inertia. Si faltara se
+ * usa la actual, que es el mejor aproximado disponible.
+ */
+function targetPath(visit) {
+    const raw = visit?.url;
+    const fallback = typeof window !== 'undefined' ? window.location.pathname : '/';
+
+    if (!raw) {
+        return normalizePath(fallback);
+    }
+
+    try {
+        return normalizePath(new URL(String(raw), window.location.origin).pathname);
+    } catch {
+        return normalizePath(fallback);
+    }
+}
+
+/** True si la ruta pertenece al sitio público. */
+function isLandingPath(path) {
+    return LANDING_PATHS.some((pattern) => pattern.test(path));
+}
 
 const state = ref('idle');
 let startedAt = 0;
@@ -44,8 +95,14 @@ function reset() {
     state.value = 'idle';
 }
 
-function onStart() {
+function onStart(event) {
     if (prefersReducedMotion()) {
+        return;
+    }
+
+    // Fuera de la landing (back-office, autenticación, TPSP…) no hay cortina.
+    if (!isLandingPath(targetPath(event?.detail?.visit))) {
+        reset();
         return;
     }
 
@@ -55,7 +112,9 @@ function onStart() {
 }
 
 function onFinish() {
-    if (prefersReducedMotion()) {
+    // Si la navegación no arrancó cortina (destino fuera de la landing) no hay
+    // nada que revelar.
+    if (state.value === 'idle' || prefersReducedMotion()) {
         reset();
         return;
     }
@@ -96,12 +155,20 @@ onBeforeUnmount(() => {
 
 // Exportado solo para pruebas manuales en consola.
 defineExpose({ COVER_MS, REVEAL_MS });
+
+/* Duraciones para la animación de app.css (deben coincidir con los valores de
+   respaldo declarados allí). */
+const curtainTiming = {
+    '--dtw-curtain-cover': `${COVER_MS}ms`,
+    '--dtw-curtain-reveal': `${REVEAL_MS}ms`,
+};
 </script>
 
 <template>
     <div
         class="dtw-curtain fixed inset-0 z-[150] flex items-center justify-center overflow-hidden bg-dtw-void"
         :data-state="state"
+        :style="curtainTiming"
         aria-hidden="true"
     >
         <div class="pointer-events-none absolute inset-0 bg-dtw-halo opacity-60"></div>

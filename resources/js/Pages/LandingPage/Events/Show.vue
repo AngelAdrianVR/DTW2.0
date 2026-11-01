@@ -175,9 +175,9 @@ onBeforeUnmount(() => document.getElementById(schemaId)?.remove());
                             {{ t('Winners') }}
                         </h2>
 
-                        <ul v-if="winners.length" class="mt-4 space-y-3">
+                        <ul v-if="ev.winners.length" class="mt-4 space-y-3">
                             <li
-                                v-for="(winner, index) in winners"
+                                v-for="(winner, index) in ev.winners"
                                 :key="winner.id"
                                 class="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4"
                             >
