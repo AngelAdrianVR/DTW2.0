@@ -244,28 +244,27 @@ html {
 }
 
 /* Fondo global del sitio público (SiteBackdrop.vue)
-   Capa fija y decorativa: líneas orgánicas + cuadrícula fina + halos suaves.
+   Capa fija y decorativa: cuadrícula fina + halos suaves. Sin líneas curvas:
+   el fondo queda limpio para que los iconos decorativos de cada vista (la copa
+   de /eventos, etc.) se lean sin patrones que los crucen.
    Se monta dentro de un contenedor `relative isolate` y con `-z-10`, así que
    queda por encima del color base y por debajo de todo el contenido. */
 .dtw-site-backdrop {
   background-color: transparent;
   background-image:
-    /* Líneas orgánicas (curvas bezier en violeta y cian) */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1440' height='900' viewBox='0 0 1440 900' fill='none'%3E%3Cg stroke='%23A855F7' stroke-opacity='0.16' stroke-width='1'%3E%3Cpath d='M-120 640C200 500 420 780 740 650s420-240 820-90'/%3E%3Cpath d='M-120 700C200 560 420 840 740 710s420-240 820-90'/%3E%3C/g%3E%3Cg stroke='%2317EDF4' stroke-opacity='0.12' stroke-width='1'%3E%3Cpath d='M-120 240C240 360 420 90 760 200s440 250 800 140'/%3E%3C/g%3E%3C/svg%3E"),
-    /* Cuadrícula de 64px */
-    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 64px),
-    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 64px),
+    /* Cuadrícula de 64px (un poco más clara para que se distinga) */
+    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 64px),
     /* Halos de marca para que el fondo no se vea plano */
     radial-gradient(60rem 40rem at 10% -12%, rgba(168, 85, 247, 0.1), transparent 62%),
     radial-gradient(52rem 38rem at 92% 6%, rgba(23, 237, 244, 0.06), transparent 66%);
   background-size:
-    1440px 900px,
     64px 64px,
     64px 64px,
     100% 100%,
     100% 100%;
-  background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
-  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
   opacity: 0.9;
 }
 
