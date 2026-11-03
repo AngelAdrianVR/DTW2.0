@@ -5,8 +5,9 @@ import { usePage } from '@inertiajs/vue3';
  * Normaliza un proyecto del back-office (WebContent) para la landing.
  *
  * El panel guarda un título en español y otro en inglés; se elige según el
- * idioma activo y se deja la ficha lista para enlazar. La primera imagen de la
- * colección llega ya resuelta en `image_url` (accessor del modelo).
+ * idioma activo y se deja la ficha lista para enlazar. `cover_url` es la
+ * portada elegida en el back-office e `image_url` ya viene resuelta (portada o,
+ * si no hay, la primera imagen de la galería).
  *
  * @param {Record<string, any>|null} project
  * @param {'es'|'en'|string} locale
@@ -25,7 +26,7 @@ export function translateProject(project, locale = 'es') {
         id: project.id,
         title,
         subtitle: project.subtitle || '',
-        image: project.image_url || null,
+        image: project.cover_url || project.image_url || null,
         href: `/landing-projects/${project.id}`,
     };
 }

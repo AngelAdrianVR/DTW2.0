@@ -147,18 +147,33 @@ onBeforeUnmount(() => {
                         data-stack-card
                         class="relative overflow-hidden rounded-[28px] border border-white/10 bg-dtw-surface shadow-[0_40px_120px_-70px_rgba(0,0,0,1)]"
                     >
+                        <!-- Resplandor superior izquierdo: capa ancha + núcleo -->
                         <div
                             class="pointer-events-none absolute inset-0"
                             :style="{
-                                background: `radial-gradient(90% 70% at 15% 0%, ${solution.accent}1f, transparent 65%)`,
+                                background: `radial-gradient(105% 80% at 12% 0%, ${solution.accent}3d, transparent 66%)`,
+                            }"
+                        ></div>
+                        <div
+                            class="pointer-events-none absolute inset-0"
+                            :style="{
+                                background: `radial-gradient(38% 30% at 12% 0%, ${solution.accent}5c, transparent 72%)`,
                             }"
                         ></div>
                         <div
                             class="pointer-events-none absolute inset-x-0 top-0 h-px"
                             :style="{
-                                background: `linear-gradient(to right, transparent, ${solution.accent}66, transparent)`,
+                                background: `linear-gradient(to right, transparent, ${solution.accent}99, transparent)`,
                             }"
                         ></div>
+
+                        <!-- El icono deja de competir con el texto: pasa a marca de agua -->
+                        <i
+                            :class="solution.icon"
+                            aria-hidden="true"
+                            class="pointer-events-none absolute left-2 top-1 select-none text-[7rem] leading-none opacity-[0.10] md:left-4 md:top-2 md:text-[11rem]"
+                            :style="{ color: solution.accent }"
+                        ></i>
 
                         <div
                             class="relative grid gap-8 p-6 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-10 md:p-10 lg:p-12"
@@ -166,11 +181,10 @@ onBeforeUnmount(() => {
                             <div>
                                 <div class="flex items-center gap-3">
                                     <span
-                                        class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]"
-                                        :style="{ color: solution.accent }"
-                                    >
-                                        <i :class="solution.icon"></i>
-                                    </span>
+                                        class="inline-flex h-px w-10 rounded-full"
+                                        aria-hidden="true"
+                                        :style="{ background: solution.accent }"
+                                    ></span>
                                     <span class="font-display text-xs font-bold tracking-[0.32em] text-white/35">
                                         {{ String(index + 1).padStart(2, '0') }}
                                     </span>

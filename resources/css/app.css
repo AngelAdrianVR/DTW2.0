@@ -222,10 +222,12 @@ html {
   mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
 }
 
+/* Los logos son más grandes que antes (h-24 w-52 en desktop), así que la pista
+   recorre la misma distancia en más tiempo para conservar la velocidad. */
 .dtw-marquee__track {
   display: flex;
   width: max-content;
-  animation: dtw-marquee 38s linear infinite;
+  animation: dtw-marquee 52s linear infinite;
   will-change: transform;
 }
 

@@ -160,6 +160,7 @@ class LandingController extends Controller
     {
         return WebContent::where('type', 'portfolio')
             ->where('is_published', true)
+            ->with('media') // portada + galería ya cargadas (sin N+1 en image_url)
             ->orderBy('sort_order')
             ->get();
     }
@@ -174,6 +175,7 @@ class LandingController extends Controller
     {
         return WebContent::where('type', 'own_projects')
             ->where('is_published', true)
+            ->with('media') // portada + galería ya cargadas (sin N+1 en image_url)
             ->orderBy('sort_order')
             ->get();
     }

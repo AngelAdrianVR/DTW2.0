@@ -4,9 +4,10 @@
  * texto breve a la izquierda y carrusel anclado de imágenes cuadradas a la
  * derecha, con lightbox.
  *
- * Las imágenes miden 70% del alto de la pantalla y son cuadradas; el riel
- * avanza con el scroll mientras la sección queda pegada. En móvil se convierte
- * en un carrusel con snap.
+ * Las imágenes miden 70% del alto de la pantalla y son cuadradas (`aspect-ratio`
+ * sobre el alto, que es el único valor que se fija); el riel avanza con el
+ * scroll mientras la sección queda pegada. En móvil se convierte en un carrusel
+ * con snap.
  *
  * Con `infoInRail` el resumen (slot `info`) se pinta como primera tarjeta del
  * riel y el recorrido cambia de modelo: cada tarjeta se detiene CENTRADA en el
@@ -84,8 +85,14 @@ const activeIndex = computed(() => {
 });
 
 // 70% del alto de la pantalla, cuadrado, con tope por ancho de columna.
-const pinnedFigureStyle = { width: 'min(70svh, 44vw)', height: 'min(70svh, 44vw)' };
-const figureStyle = { width: 'min(78vw, 70svh)', height: 'min(78vw, 70svh)' };
+// El alto es la única fuente de verdad y `aspect-ratio` deriva el ancho: así
+// ninguna restricción de la columna (o del propio contenido) puede dejar la
+// tarjeta más alta que ancha.
+const CARD_HEIGHT = 'min(70svh, 44vw)';
+const CARD_HEIGHT_MOBILE = 'min(78vw, 70svh)';
+
+const pinnedFigureStyle = { height: CARD_HEIGHT, aspectRatio: '1 / 1' };
+const figureStyle = { height: CARD_HEIGHT_MOBILE, aspectRatio: '1 / 1' };
 
 /* ---------------------------------------------
    Riel centrado, un paso de scroll por tarjeta
@@ -97,14 +104,14 @@ const RAIL_STEP_SCREENS = 0.9;
 // Tamaño de tarjeta y separación: una sola fuente de verdad para las tarjetas,
 // los espaciadores y el paso del riel.
 const railVars = {
-    '--dtw-card': 'min(70svh, 44vw)',
+    '--dtw-card': CARD_HEIGHT,
     '--dtw-rail-gap': '1.5rem',
     '--dtw-rail-step': 'calc(var(--dtw-card) + var(--dtw-rail-gap))',
 };
 
 const railCardStyle = {
-    width: 'var(--dtw-card)',
     height: 'var(--dtw-card)',
+    aspectRatio: '1 / 1',
     marginRight: 'var(--dtw-rail-gap)',
 };
 
@@ -346,18 +353,18 @@ onBeforeUnmount(() => {
                                         :src="image.url"
                                         :alt="image.alt"
                                         loading="lazy"
-                                        class="h-full w-full object-cover transition duration-[800ms] ease-out group-hover:scale-[1.03]"
+                                        class="absolute inset-0 h-full w-full object-cover transition duration-[800ms] ease-out group-hover:scale-[1.03]"
                                     />
                                     <span
-                                        class="absolute inset-0 bg-gradient-to-t from-dtw-void/70 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100"
+                                        class="absolute inset-0 z-10 bg-gradient-to-t from-dtw-void/70 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100"
                                     ></span>
                                     <span
-                                        class="absolute bottom-5 left-5 text-[0.65rem] font-semibold tracking-[0.3em] text-white/70"
+                                        class="absolute bottom-5 left-5 z-10 text-[0.65rem] font-semibold tracking-[0.3em] text-white/70"
                                     >
                                         {{ String(index + 1).padStart(2, '0') }}
                                     </span>
                                     <span
-                                        class="absolute right-5 top-5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-dtw-void/60 text-white opacity-0 backdrop-blur transition duration-300 group-hover:opacity-100"
+                                        class="absolute right-5 top-5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-dtw-void/60 text-white opacity-0 backdrop-blur transition duration-300 group-hover:opacity-100"
                                     >
                                         <i class="pi pi-search text-xs"></i>
                                     </span>
@@ -387,9 +394,9 @@ onBeforeUnmount(() => {
                                     :src="image.url"
                                     :alt="image.alt"
                                     loading="lazy"
-                                    class="h-full w-full object-cover"
+                                    class="absolute inset-0 h-full w-full object-cover"
                                 />
-                                <span class="absolute bottom-4 left-4 text-[0.65rem] font-semibold tracking-[0.3em] text-white/70">
+                                <span class="absolute bottom-4 left-4 z-10 text-[0.65rem] font-semibold tracking-[0.3em] text-white/70">
                                     {{ String(index + 1).padStart(2, '0') }}
                                 </span>
                             </button>

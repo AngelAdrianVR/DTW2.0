@@ -44,15 +44,17 @@ class WebContent extends Model implements HasMedia
     ];
 
     /**
-     * Appends a custom attribute for the primary image URL.
+     * Appends the URLs the front-end needs: la portada del proyecto y la
+     * imagen principal (portada si existe, si no la primera de la galería).
      *
      * @var array
      */
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'cover_url'];
 
     /**
      * Define the media collections.
-     * A collection is created for each type of content.
+     * A collection is created for each type of content, más `cover`: la
+     * portada opcional que el back-office usa como miniatura del proyecto.
      */
     public function registerMediaCollections(): void
     {
@@ -63,16 +65,48 @@ class WebContent extends Model implements HasMedia
         $this->addMediaCollection('client_logos');
 
         $this->addMediaCollection('advertising');
+
+        // Portada: una sola imagen por contenido (subir otra reemplaza la anterior).
+        $this->addMediaCollection('cover')->singleFile();
     }
-    
+
     /**
-     * Accessor to get the URL of the first image in any collection.
+     * Accessor for the optional cover image chosen by the back-office.
+     *
+     * @return string|null
+     */
+    public function getCoverUrlAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('cover') ?: null;
+    }
+
+    /**
+     * Accessor to get the primary image URL: la portada manda y, si no hay,
+     * se usa la primera imagen de la galería del contenido.
+     *
+     * Ojo: `getFirstMediaUrl()` sin argumentos busca la colección `default`,
+     * pero el back-office guarda la galería en la colección del propio tipo
+     * (`portfolio`, `own_projects`, `client_logos`, `advertising`).
      *
      * @return string|null
      */
     public function getImageUrlAttribute(): ?string
     {
-        return $this->getFirstMediaUrl() ?: null;
+        if ($coverUrl = $this->getFirstMediaUrl('cover')) {
+            return $coverUrl;
+        }
+
+        // Galería del tipo de contenido; si no hay, cualquier otra colección
+        // que no sea la portada (contenidos antiguos guardados en `default`).
+        $gallery = $this->getMedia($this->type);
+
+        if ($gallery->isEmpty()) {
+            $gallery = $this->getMedia()
+                ->reject(fn ($media) => $media->collection_name === 'cover')
+                ->values();
+        }
+
+        return $gallery->first()?->getUrl() ?: null;
     }
 
     /**

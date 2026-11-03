@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useForm, Head, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue'; // O el layout de tu ERP
 
@@ -32,6 +32,11 @@ const confirm = useConfirm();
 const toast = useToast();
 const fileUploadRef = ref(null);
 const editFileUploadRef = ref(null); // <-- Referencia para el FileUpload de edición
+// Portada: un único archivo, tanto en el alta como en la edición
+const coverUploadRef = ref(null);
+const editCoverUploadRef = ref(null);
+const coverPreview = ref(null);
+const editCoverPreview = ref(null);
 const isEditModalVisible = ref(false);
 
 // Watcher para notificaciones de éxito y error
@@ -64,6 +69,7 @@ const form = useForm({
     english_content: '',
     link_url: '',
     images: [],
+    cover: null,
     is_published: true,
     end_date: null,
 });
@@ -80,6 +86,9 @@ const editForm = useForm({
     end_date: null,
     media: [], // <-- Para almacenar las imágenes existentes
     new_images: [], // <-- Para las nuevas imágenes a subir
+    cover: null, // <-- Nueva portada (una sola)
+    remove_cover: false, // <-- Quitar la portada actual
+    cover_url: null, // <-- Portada actual guardada
     _method: 'put', // <-- Para "engañar" al método POST
 });
 
@@ -89,6 +98,10 @@ const submit = () => {
     if (fileUploadRef.value) {
         form.images = fileUploadRef.value.files;
     }
+
+    // Portada opcional: archivo único (null si el admin no eligió ninguna)
+    form.cover = selectedCover(coverUploadRef.value);
+
     form.post(route('admin.webcontents.store'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -96,6 +109,10 @@ const submit = () => {
             if (fileUploadRef.value) {
                 fileUploadRef.value.clear();
             }
+            if (coverUploadRef.value) {
+                coverUploadRef.value.clear();
+            }
+            clearCoverPreview();
         },
     });
 };
@@ -111,6 +128,12 @@ const editContent = (content) => {
     editForm.is_published = content.is_published;
     editForm.end_date = content.end_date ? new Date(content.end_date) : null;
     editForm.media = content.media; // <-- Cargar las imágenes existentes
+    // Portada: estado limpio en cada apertura del modal
+    editForm.cover = null;
+    editForm.remove_cover = false;
+    editForm.cover_url = content.cover_url || null;
+    clearEditCoverPreview();
+    editCoverUploadRef.value?.clear();
     isEditModalVisible.value = true;
 };
 
@@ -121,6 +144,9 @@ const updateContent = () => {
         editForm.new_images = editFileUploadRef.value.files;
     }
 
+    // Portada: sólo el archivo nuevo (o null para no tocarla)
+    editForm.cover = selectedCover(editCoverUploadRef.value);
+
     // Usamos POST porque PUT no soporta multipart/form-data de forma nativa
     editForm.post(route('admin.webcontents.update', editForm.id), {
         preserveScroll: true,
@@ -130,9 +156,65 @@ const updateContent = () => {
              if (editFileUploadRef.value) {
                 editFileUploadRef.value.clear();
             }
+            clearEditCoverPreview();
         },
     });
 };
+
+/* -------------------------------------------------------------------------
+ * Portada de proyecto
+ * Sólo portafolio y proyectos propios usan portada; los logos y la
+ * publicidad siguen funcionando únicamente con su galería.
+ * ---------------------------------------------------------------------- */
+const canHaveCover = computed(() => ['portfolio', 'own_projects'].includes(form.type));
+
+/** Media guardada como portada (colección `cover`), si existe. */
+const coverOf = (content) =>
+    (content.media || []).find((media) => media.collection_name === 'cover') || null;
+
+/** Imágenes de la galería: todo menos la portada. */
+const galleryOf = (content) =>
+    (content.media || []).filter((media) => media.collection_name !== 'cover');
+
+/** Crea la vista previa local del archivo elegido y libera la anterior. */
+function setPreview(target, file) {
+    const current = target === 'edit' ? editCoverPreview : coverPreview;
+
+    if (current.value) {
+        URL.revokeObjectURL(current.value);
+    }
+
+    current.value = file ? URL.createObjectURL(file) : null;
+}
+
+/**
+ * El FileUpload de PrimeVue acumula los archivos elegidos (aunque sea de uno en
+ * uno), así que la portada válida es siempre la última que seleccionó el admin.
+ */
+function selectedCover(uploadRef) {
+    const files = uploadRef?.files || [];
+
+    return files.length ? files[files.length - 1] : null;
+}
+
+function clearCoverPreview() {
+    setPreview('create', null);
+}
+
+function clearEditCoverPreview() {
+    setPreview('edit', null);
+}
+
+function onCoverSelect(event, target = 'create') {
+    const files = event?.files || [];
+
+    setPreview(target, files.length ? files[files.length - 1] : null);
+}
+
+onBeforeUnmount(() => {
+    clearCoverPreview();
+    clearEditCoverPreview();
+});
 
 // Función para eliminar un item con confirmación
 const deleteContent = (id) => {
@@ -244,11 +326,53 @@ const formatDate = (value) => {
                             <label for="edit_is_published" class="ml-2 dark:text-zinc-300">Publicado</label>
                         </div>
 
+                        <!-- INICIO: Portada del proyecto (imagen única) -->
+                        <div class="field mt-6 border-t pt-4 border-gray-100 dark:border-zinc-800">
+                            <h4 class="font-semibold mb-3 text-gray-800 dark:text-zinc-200">Imagen de Portada</h4>
+
+                            <template v-if="editForm.cover_url && !editForm.remove_cover">
+                                <div class="flex items-center gap-4">
+                                    <img :src="editForm.cover_url" alt="Portada actual" class="h-24 w-40 object-cover rounded-lg shadow-md border dark:border-zinc-700">
+                                    <Button label="Quitar portada" icon="pi pi-times" text severity="danger" @click="editForm.remove_cover = true" />
+                                </div>
+                            </template>
+                            <div v-else-if="editForm.remove_cover" class="flex items-center gap-3 text-sm text-amber-600 dark:text-amber-400">
+                                <i class="pi pi-exclamation-triangle"></i>
+                                <span>La portada se eliminará al guardar los cambios.</span>
+                                <Button label="Deshacer" text @click="editForm.remove_cover = false" />
+                            </div>
+                            <p v-else class="text-sm text-gray-500 dark:text-zinc-500">Este contenido no tiene portada.</p>
+
+                            <div class="mt-4">
+                                <label class="block font-medium text-sm text-gray-700 dark:text-zinc-300 mb-2">Reemplazar Portada (Opcional)</label>
+                                <FileUpload
+                                    ref="editCoverUploadRef"
+                                    name="cover"
+                                    :multiple="false"
+                                    :showUploadButton="false"
+                                    :showCancelButton="true"
+                                    accept="image/*"
+                                    chooseLabel="Seleccionar Portada"
+                                    @select="onCoverSelect($event, 'edit')"
+                                    @clear="clearEditCoverPreview"
+                                    class="!text-[var(--primary-text-color)]"
+                                >
+                                    <template #empty>
+                                        <p class="text-gray-500 dark:text-zinc-400">Arrastra y suelta la nueva portada aquí.</p>
+                                    </template>
+                                </FileUpload>
+                                <img v-if="editCoverPreview" :src="editCoverPreview" alt="Vista previa de la nueva portada" class="mt-3 h-24 w-40 object-cover rounded-lg shadow-md border dark:border-zinc-700">
+                                <small v-if="editForm.errors.cover" class="p-error">{{ editForm.errors.cover }}</small>
+                            </div>
+                        </div>
+                        <!-- FIN: Portada del proyecto -->
+
                         <!-- INICIO: Sección para gestionar imágenes -->
                         <div class="field mt-6 border-t pt-4 border-gray-100 dark:border-zinc-800">
                             <h4 class="font-semibold mb-3 text-gray-800 dark:text-zinc-200">Imágenes Actuales</h4>
-                            <div v-if="editForm.media.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div v-for="image in editForm.media" :key="image.id" class="relative group">
+                            <!-- La portada se gestiona arriba: aquí sólo va la galería -->
+                            <div v-if="galleryOf(editForm).length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div v-for="image in galleryOf(editForm)" :key="image.id" class="relative group">
                                     <img :src="image.original_url" :alt="image.name" class="w-full h-24 object-cover rounded-lg shadow-md border dark:border-zinc-700">
                                     <Button
                                         icon="pi pi-times"
@@ -336,6 +460,32 @@ const formatDate = (value) => {
                                 <small class="text-gray-500 dark:text-zinc-500">El contenido se ocultará automáticamente después de esta fecha.</small>
                             </div>
 
+                            <!-- Portada opcional: sólo para proyectos (portafolio / propios) -->
+                            <div v-if="canHaveCover" class="md:col-span-2">
+                                <label for="cover" class="block font-medium text-sm text-gray-700 dark:text-zinc-300 mb-2">Imagen de Portada (Opcional)</label>
+                                <p class="text-xs text-gray-500 dark:text-zinc-500 mb-2">
+                                    Se usa como miniatura del proyecto en la landing, el listado y la galería. Si no subes portada se usará la primera imagen de la galería.
+                                </p>
+                                <FileUpload
+                                    ref="coverUploadRef"
+                                    name="cover"
+                                    :multiple="false"
+                                    :showUploadButton="false"
+                                    :showCancelButton="true"
+                                    accept="image/*"
+                                    chooseLabel="Seleccionar Portada"
+                                    @select="onCoverSelect($event, 'create')"
+                                    @clear="clearCoverPreview"
+                                    class="!text-[var(--primary-text-color)]"
+                                >
+                                    <template #empty>
+                                        <p class="text-gray-500 dark:text-zinc-400">Arrastra y suelta la portada aquí.</p>
+                                    </template>
+                                </FileUpload>
+                                <img v-if="coverPreview" :src="coverPreview" alt="Vista previa de la portada" class="mt-3 h-32 w-full max-w-xs object-cover rounded-xl border border-gray-200 dark:border-zinc-700 shadow-sm">
+                                <small v-if="form.errors.cover" class="p-error">{{ form.errors.cover }}</small>
+                            </div>
+
                             <div class="md:col-span-2">
                                 <label for="images" class="block font-medium text-sm text-gray-700 dark:text-zinc-300 mb-2">Imágenes</label>
                                 <FileUpload ref="fileUploadRef" name="images[]" :multiple="true" :showUploadButton="false" :showCancelButton="false" accept="image/*" chooseLabel="Seleccionar Imágenes" class="!text-[var(--primary-text-color)]">
@@ -367,7 +517,12 @@ const formatDate = (value) => {
                                 <div v-if="group.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                                 <Card v-for="content in group" :key="content.id" class="overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg dark:bg-zinc-900 dark:border-zinc-800 border border-gray-100 shadow-sm !rounded-xl flex flex-col">
                                         <template #header>
-                                        <Carousel :value="content.media" :numVisible="1" :numScroll="1" :show-indicators="content.media.length > 1" 
+                                        <!-- Portada del proyecto: se usa como miniatura destacada -->
+                                        <div v-if="coverOf(content)" class="relative">
+                                            <img :src="coverOf(content).original_url" :alt="content.spanish_title || content.english_title" class="h-48 w-full object-cover">
+                                            <Tag value="Portada" severity="success" class="absolute top-2 left-2" />
+                                        </div>
+                                        <Carousel v-if="galleryOf(content).length" :value="galleryOf(content)" :numVisible="1" :numScroll="1" :show-indicators="galleryOf(content).length > 1" 
                                             :pt="{ root: { class: 'dark:border-zinc-800' } }">
                                             <template #item="slotProps">
                                                 <div class="p-2 bg-gray-50 dark:bg-zinc-950/50 flex items-center justify-center h-48">

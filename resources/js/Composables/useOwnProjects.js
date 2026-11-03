@@ -45,7 +45,7 @@ export function translateOwnProject(project, locale = 'es') {
         title,
         subtitle: project.subtitle || '',
         description: plainText(content),
-        image: project.image_url || null,
+        image: project.cover_url || project.image_url || null,
         url: project.link_url || '',
         linkText: project.link_text || '',
     };

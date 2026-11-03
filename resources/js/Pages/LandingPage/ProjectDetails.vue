@@ -55,18 +55,44 @@ const plainContent = computed(() =>
 const subtitle = computed(() => props.project.subtitle || '');
 const projectUrl = computed(() => props.project.link_url || '');
 
-const images = computed(() =>
+/**
+ * Portada del proyecto (colección `cover`): se usa como imagen social y NO se
+ * repite en la galería.
+ */
+const coverImage = computed(() => {
+    const cover = (props.project.media || []).find(
+        (media) => media?.collection_name === 'cover' && media.original_url,
+    );
+
+    return cover?.original_url || props.project.cover_url || '';
+});
+
+const galleryImages = computed(() =>
     (props.project.media || [])
-        .filter((media) => media?.original_url)
+        .filter((media) => media?.original_url && media.collection_name !== 'cover')
         .map((media, index) => ({
             url: media.original_url,
             alt: `${title.value || t('Project')} (${index + 1})`,
         })),
 );
 
+/**
+ * Si el proyecto sólo tiene portada (sin galería), la portada ocupa el
+ * escenario para que la ficha no quede vacía.
+ */
+const images = computed(() => {
+    if (galleryImages.value.length) {
+        return galleryImages.value;
+    }
+
+    return coverImage.value
+        ? [{ url: coverImage.value, alt: title.value || t('Project') }]
+        : [];
+});
+
 const baseUrl = computed(() => (page.props.siteUrl || '').replace(/\/$/, ''));
 const canonicalUrl = computed(() => `${baseUrl.value}/landing-projects/${props.project.id}`);
-const ogImage = computed(() => images.value[0]?.url || page.props.metaImage || '');
+const ogImage = computed(() => coverImage.value || images.value[0]?.url || page.props.metaImage || '');
 
 const description = computed(() => {
     if (plainContent.value.length > 158) {

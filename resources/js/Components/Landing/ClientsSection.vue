@@ -58,20 +58,20 @@ const items = computed(() => {
                 <div
                     v-for="group in 2"
                     :key="`group-${group}`"
-                    class="flex shrink-0 items-center gap-10 px-5 md:gap-14 md:px-7"
+                    class="flex shrink-0 items-center gap-10 px-5 md:gap-16 md:px-6"
                     :aria-hidden="group === 2 ? 'true' : undefined"
                 >
                     <div
                         v-for="(logo, index) in items"
                         :key="`logo-${group}-${index}`"
-                        class="flex h-16 w-[8.5rem] shrink-0 items-center justify-center md:h-20 md:w-40"
+                        class="flex h-20 w-[10.5rem] shrink-0 items-center justify-center md:h-24 md:w-52"
                     >
                         <img
                             :src="logo.url"
                             :alt="group === 2 ? '' : logo.name || ''"
                             loading="lazy"
                             draggable="false"
-                            class="max-h-10 w-auto max-w-full object-contain opacity-55 transition duration-300 hover:scale-105 hover:opacity-100 md:max-h-12"
+                            class="max-h-12 w-auto max-w-full object-contain opacity-55 transition duration-300 hover:scale-105 hover:opacity-100 md:max-h-16"
                         />
                     </div>
                 </div>
