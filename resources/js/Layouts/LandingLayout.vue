@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, h } from 'vue';
 import { Link, usePage, Head } from '@inertiajs/vue3';
 import AplicationLogo from '@/Components/ApplicationLogo.vue';
+import SiteBackdrop from '@/Components/Landing/SiteBackdrop.vue';
 import Button from 'primevue/button';
 import MiniGlobe from '@/Components/MyComponents/MiniGlobe.vue'; // Asegúrate de que la ruta sea correcta
 
@@ -141,8 +142,8 @@ const handleClickOutside = (event) => {
 // --- Lógica de Navegación ---
 const navLinks = ref([
     { id: 'home', key: 'Home', href: '/#inicio' },
-    { id: 'services', key: 'Services', href: '/#servicios' },
-    { id: 'projects', key: 'Projects', href: '/#proyectos' },
+    { id: 'services', key: 'Services', href: '/#detalle-servicios' },
+    { id: 'solutions', key: 'Solutions', href: '/#soluciones' },
     { id: 'contact', key: 'Contact', href: '/#contacto' },
 ]);
 
@@ -185,7 +186,9 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
 
 <template>
     <Head :title="title" />
-    <div class="bg-[#050510] min-h-screen text-gray-200 font-sans selection:bg-violet-500/30">
+    <div class="relative isolate min-h-screen bg-[#050510] text-gray-200 font-sans selection:bg-violet-500/30">
+        <SiteBackdrop />
+
         <!-- =========== Notch Interactivo =========== -->
         <header
             ref="notchRef"
@@ -296,7 +299,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
         </transition>
 
         <!-- ================== FOOTER MEJORADO ================== -->
-        <footer class="bg-[#030308] border-t border-white/5 mt-20 relative overflow-hidden">
+        <footer class="bg-[#030308]/85 backdrop-blur-sm border-t border-white/5 mt-20 relative overflow-hidden">
             <!-- Efecto de borde animado con gradiente -->
             <div class="absolute top-0 left-0 w-full h-px" style="background: linear-gradient(to right, transparent, #a855f7, #eab308, #3b82f6, transparent);"></div>
             
@@ -343,8 +346,8 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                          <h3 class="font-semibold text-white/90 tracking-wider uppercase text-sm">{{ t('Contact') }}</h3>
                         <ul class="mt-4 space-y-4">
                             <li class="flex items-center justify-center md:justify-start">
-                                <a href="https://wa.me/5213321705650" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-violet-400 transition-colors duration-300 flex items-center gap-3 group">
-                                    <span>+52 1 33 2170 5650</span>
+                                <a href="https://wa.me/523315314045" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-violet-400 transition-colors duration-300 flex items-center gap-3 group">
+                                    <span>+52 33 1531 4045</span>
                                 </a>
                             </li>
                             <li class="flex items-center justify-center md:justify-start">

@@ -44,11 +44,17 @@ class Quote extends Model implements HasMedia
         'client_name',
         'client_email',
         'client_phone',
+        'company',
+        'industry',
+        'employees',
+        'calculator_payload',
+        'locale',
     ];
 
     protected $casts = [
         'valid_until' => 'date',
         'budgeted_hours' => 'integer',
+        'calculator_payload' => 'array',
         'show_process' => 'boolean',
         'show_benefits' => 'boolean',
         'show_bank_info' => 'boolean',

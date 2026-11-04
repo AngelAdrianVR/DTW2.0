@@ -63,3 +63,364 @@ body {
 body:hover {
   scrollbar-color: #cccccc transparent;
 }
+
+/* =========================================
+   LANDING DTW · utilidades de presentación
+   (clases propias, sin sobrescribir utilidades de Tailwind
+   que usa el back-office)
+   ========================================= */
+
+/* Desplazamiento suave para los enlaces internos de la landing */
+html {
+  scroll-behavior: smooth;
+  /* Compensa el navbar fijo al saltar a un ancla */
+  scroll-padding-top: 5.5rem;
+}
+
+/* Revelado al hacer scroll (lo activa la directiva v-reveal) */
+.dtw-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dtw-reveal--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Foco visible dentro de la landing (no afecta al back-office) */
+.dtw-scope :focus-visible {
+  outline: 2px solid #a855f7;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.dtw-scope ::selection {
+  background-color: rgba(168, 85, 247, 0.3);
+}
+
+/* Cifras alineadas en tablas/resultados de la calculadora */
+.dtw-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* =========================================
+   LANDING DTW 2.0 · transiciones, rieles y apilado
+   ========================================= */
+
+/* Cortina de transición entre vistas (components/Landing/PageCurtain.vue).
+   - idle: fuera de pantalla (abajo)
+   - out:  sube y cubre (slide up al salir de la vista)
+   - in:   vuelve a bajar (slide down al entrar a la nueva vista)
+
+   Las duraciones las inyecta el componente como variables CSS
+   (`--dtw-curtain-cover` / `--dtw-curtain-reveal`) para que el temporizador de
+   JS y la animación nunca se desincronicen. Los valores de respaldo aquí son
+   solo el fallback si el estilo en línea no llega a aplicarse. */
+.dtw-curtain {
+  transform: translate3d(0, 100%, 0);
+  transition: transform var(--dtw-curtain-reveal, 900ms) cubic-bezier(0.76, 0, 0.24, 1);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.dtw-curtain[data-state='out'] {
+  transform: translate3d(0, 0, 0);
+  transition-duration: var(--dtw-curtain-cover, 640ms);
+  pointer-events: auto;
+}
+
+.dtw-curtain[data-state='in'] {
+  transform: translate3d(0, 100%, 0);
+  transition-duration: var(--dtw-curtain-reveal, 900ms);
+  pointer-events: auto;
+}
+
+.dtw-curtain__line {
+  animation: dtw-curtain-progress 1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  transform-origin: left center;
+}
+
+@keyframes dtw-curtain-progress {
+  0% {
+    transform: scaleX(0.05);
+    opacity: 0.35;
+  }
+  60% {
+    transform: scaleX(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0.2;
+  }
+}
+
+/* Carruseles: ocultar la barra de scroll nativa (el control es propio) */
+.dtw-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dtw-no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Riel horizontal anclado (proyectos y galería de detalle) */
+.dtw-pin-track {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Recorte lateral sin crear un contenedor de scroll.
+   `overflow: hidden` convierte al elemento en destino de la rueda del ratón:
+   si el cursor está encima del carrusel, el gesto se queda dentro del recorte
+   y la página deja de avanzar (Chromium). `overflow-x: clip` recorta igual
+   pero NO es scrollable, así que la rueda sigue llegando a la página.
+   El fallback mantiene el comportamiento anterior en navegadores sin `clip`. */
+.dtw-clip-x {
+  overflow: hidden;
+}
+
+@supports (overflow: clip) {
+  .dtw-clip-x {
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+}
+
+/* Tarjetas apiladas (ServiceStack.vue) */
+.dtw-stack-card {
+  will-change: transform, opacity;
+  transform-origin: center top;
+}
+
+/* Arrastre de carruseles con mouse */
+.dtw-dragging,
+.dtw-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+/* Degradado suave para cortar secciones */
+.dtw-fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+
+/* Marquesina de logos de clientes (ClientsSection.vue).
+   La pista pinta la lista dos veces y se desplaza justo la mitad de su ancho,
+   así el bucle cierra sin salto. Se pausa al pasar el cursor o al enfocar. */
+.dtw-marquee {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+
+/* Los logos son más grandes que antes (h-24 w-52 en desktop), así que la pista
+   recorre la misma distancia en más tiempo para conservar la velocidad. */
+.dtw-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: dtw-marquee 52s linear infinite;
+  will-change: transform;
+}
+
+.dtw-marquee:hover .dtw-marquee__track,
+.dtw-marquee:focus-within .dtw-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes dtw-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Fondo global del sitio público (SiteBackdrop.vue)
+   Capa fija y decorativa: cuadrícula fina + halos suaves. Sin líneas curvas:
+   el fondo queda limpio para que los iconos decorativos de cada vista (la copa
+   de /eventos, etc.) se lean sin patrones que los crucen.
+   Se monta dentro de un contenedor `relative isolate` y con `-z-10`, así que
+   queda por encima del color base y por debajo de todo el contenido. */
+.dtw-site-backdrop {
+  background-color: transparent;
+  background-image:
+    /* Cuadrícula de 64px (un poco más clara para que se distinga) */
+    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 64px),
+    /* Halos de marca para que el fondo no se vea plano */
+    radial-gradient(60rem 40rem at 10% -12%, rgba(168, 85, 247, 0.1), transparent 62%),
+    radial-gradient(52rem 38rem at 92% 6%, rgba(23, 237, 244, 0.06), transparent 66%);
+  background-size:
+    64px 64px,
+    64px 64px,
+    100% 100%,
+    100% 100%;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+  opacity: 0.9;
+}
+
+/* =========================================
+   HERO · cuadrícula, destellos y barrido de brillo
+   ========================================= */
+
+/* Cuadrícula propia del hero: algo más marcada que la global y difuminada
+   hacia los bordes para que no se lea como un mosaico plano. */
+.dtw-hero-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.075) 1px, transparent 1px);
+  background-size: 54px 54px, 54px 54px;
+  background-position: center top, center top;
+  -webkit-mask-image: radial-gradient(115% 85% at 50% 32%, #000 0%, rgba(0, 0, 0, 0.55) 58%, transparent 88%);
+  mask-image: radial-gradient(115% 85% at 50% 32%, #000 0%, rgba(0, 0, 0, 0.55) 58%, transparent 88%);
+  opacity: 0.85;
+}
+
+/* Destellos: puntos con halo que titilan a distinto ritmo.
+   El tamaño/desfase llegan por variables CSS desde HeroStage.vue. */
+.dtw-hero-sparkle {
+  position: absolute;
+  width: var(--sparkle-size, 2px);
+  height: var(--sparkle-size, 2px);
+  border-radius: 9999px;
+  background-color: #ffffff;
+  box-shadow:
+    0 0 6px 1px rgba(192, 132, 252, 0.85),
+    0 0 16px 4px rgba(168, 85, 247, 0.35);
+  opacity: 0;
+  transform: scale(0.35);
+  animation: dtw-sparkle-twinkle var(--sparkle-duration, 5.5s) ease-in-out infinite;
+  animation-delay: var(--sparkle-delay, 0s);
+  will-change: opacity, transform;
+}
+
+@keyframes dtw-sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  45% {
+    opacity: 0.2;
+    transform: scale(0.6);
+  }
+  62% {
+    opacity: 0.85;
+    transform: scale(0.9);
+  }
+  82% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+/* Titular del hero con barrido de brillo periódico (izquierda → derecha).
+   `.dtw-hero-shimmer__sheen` repite el texto, recorta el degradado a las
+   letras y lo desplaza; el resto del ciclo queda quieto hasta el siguiente
+   barrido (7 s por vuelta, ~1.8 s de brillo). */
+.dtw-hero-shimmer {
+  position: relative;
+  display: block;
+}
+
+.dtw-hero-shimmer__sheen {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 32%,
+    rgba(255, 255, 255, 0.35) 44%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.35) 56%,
+    rgba(255, 255, 255, 0) 68%
+  );
+  background-repeat: no-repeat;
+  background-size: 220% 100%;
+  background-position: 180% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+  animation: dtw-hero-sheen 7s ease-in-out infinite;
+  will-change: background-position;
+}
+
+@keyframes dtw-hero-sheen {
+  0% {
+    background-position: 180% 0;
+  }
+  26% {
+    background-position: -80% 0;
+  }
+  100% {
+    background-position: -80% 0;
+  }
+}
+
+/* =========================================
+   ACCESIBILIDAD: respeto a prefers-reduced-motion
+   ========================================= */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .dtw-reveal,
+  .dtw-reveal--visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .dtw-motion-safe *,
+  .dtw-motion-safe {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* La cortina se desactiva: la navegación es instantánea */
+  .dtw-curtain,
+  .dtw-curtain[data-state='out'],
+  .dtw-curtain[data-state='in'] {
+    transition: none !important;
+    transform: translate3d(0, 100%, 0) !important;
+  }
+
+  .dtw-curtain__line {
+    animation: none !important;
+  }
+
+  /* Hero: se conserva la cuadrícula y los destellos fijos, sin barrido */
+  .dtw-hero-sparkle {
+    animation: none !important;
+    opacity: 0.35;
+    transform: none;
+  }
+
+  .dtw-hero-shimmer__sheen {
+    display: none;
+  }
+
+  /* Marquesina de clientes: sin desplazamiento automático (queda como fila
+     desplazable a mano, ver `motion-reduce:overflow-x-auto` del componente) */
+  .dtw-marquee__track {
+    animation: none !important;
+    transform: none !important;
+  }
+}

@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\EventRegistrationController as AdminEventRegistrationController;
+use App\Http\Controllers\Admin\EventWinnerController as AdminEventWinnerController;
+use App\Http\Controllers\Admin\VisitAnalyticsController;
+use App\Http\Controllers\EventRegistrationController;
 use App\Http\Controllers\PomodoroController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientPaymentController;
@@ -28,6 +33,24 @@ use Inertia\Inertia;
 // --------------------------------------------------------------------------------------------
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
 Route::get('/landing-projects/{project}', [LandingController::class, 'showProject'])->name('landing-projects.show');
+
+// Proyectos: galería completa de los proyectos desarrollados para clientes.
+Route::get('/proyectos', [LandingController::class, 'projects'])->name('landing.projects');
+
+// La galería antes vivía en /soluciones: se conserva el enlace antiguo para
+// no romper marcadores ni resultados de buscadores ya indexados.
+Route::redirect('/soluciones', '/proyectos', 301);
+
+
+// Eventos: la edición vigente (con su formulario de registro) y el historial
+// de ediciones anteriores con sus ganadores.
+Route::get('/eventos', [LandingController::class, 'events'])->name('events.index');
+Route::get('/eventos/{event:slug}', [LandingController::class, 'showEvent'])->name('events.show');
+
+// Registro público a un evento. El límite evita que un script llene la lista.
+Route::post('/eventos/{event:slug}/registro', [EventRegistrationController::class, 'store'])
+    ->middleware('throttle:20,1')
+    ->name('events.register');
 
 
 // Rutas para mostrar los documentos legales
@@ -123,6 +146,18 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/web-contents/{webContent}/update-image', [WebContentController::class, 'updateImage'])->name('webcontents.updateImage');
     Route::delete('/web-contents/{webContent}', [WebContentController::class, 'destroy'])->name('webcontents.destroy');
     Route::delete('/media/{media}', [WebContentController::class, 'destroyMedia'])->name('media.destroy');
+
+    // Eventos: CRUD, publicación, participantes y ganadores.
+    Route::patch('/events/{event}/publish', [AdminEventController::class, 'togglePublish'])->name('events.publish');
+    Route::delete('/events/{event}/registrations/{registration}', [AdminEventRegistrationController::class, 'destroy'])->name('events.registrations.destroy');
+    Route::post('/events/{event}/winners', [AdminEventWinnerController::class, 'store'])->name('events.winners.store');
+    Route::put('/events/{event}/winners/{winner}', [AdminEventWinnerController::class, 'update'])->name('events.winners.update');
+    Route::delete('/events/{event}/winners/{winner}', [AdminEventWinnerController::class, 'destroy'])->name('events.winners.destroy');
+    Route::resource('events', AdminEventController::class);
+
+    // Métricas de visitas del sitio público.
+    Route::get('/visits', [VisitAnalyticsController::class, 'index'])->name('visits.index');
+    Route::get('/visits/data', [VisitAnalyticsController::class, 'data'])->name('visits.data');
 });
 
 

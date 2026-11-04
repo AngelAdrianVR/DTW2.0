@@ -1,10 +1,12 @@
 import './bootstrap';
 import '../css/app.css';
 
-import { createApp, h } from 'vue';
+import { createApp, Fragment, h } from 'vue';
 import { createInertiaApp, usePage } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+import reveal from './directives/reveal';
+import PageCurtain from './Components/Landing/PageCurtain.vue';
 
 // Importa PrimeVue y su configuración
 import PrimeVue from 'primevue/config';
@@ -22,7 +24,13 @@ createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
-        const vueApp = createApp({ render: () => h(App, props) });
+        // La cortina de transición se monta junto a la página (no dentro) para
+        // que sobreviva a cada navegación de Inertia.
+        const Root = {
+            render: () => h(Fragment, [h(App, props), h(PageCurtain)]),
+        };
+
+        const vueApp = createApp(Root);
         
         // Hacemos la función de traducción 't()' disponible globalmente en todos los componentes
         vueApp.mixin({
@@ -66,9 +74,10 @@ createInertiaApp({
             .component('Chart', Chart)
             .use(ConfirmationService)
             .use(ToastService)
+            .directive('reveal', reveal)
             .mount(el);
     },
     progress: {
-        color: '#6365F1',
+        color: '#A855F7',
     },
 });
