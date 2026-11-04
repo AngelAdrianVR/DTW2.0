@@ -12,7 +12,8 @@
  * `limit` (5 por defecto) para no alargar la landing en exceso.
  *
  * En móvil (<1024px) o con prefers-reduced-motion se degrada a un carrusel
- * con scroll-snap nativo, sin anclaje.
+ * con scroll-snap nativo, sin anclaje y sin flechas ni puntos: se desliza con
+ * el dedo y la barra de progreso indica la posición.
  */
 import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
@@ -37,6 +38,7 @@ const cards = computed(() => allCards.value.slice(0, Math.max(0, props.limit)));
 
 const sectionRef = ref(null);
 const trackRef = ref(null);
+const nativeTrackRef = ref(null);
 const mobileIndex = ref(0);
 
 const { progress, offset, pinned, sectionHeight, scrollToProgress } = useHorizontalPin(
@@ -69,11 +71,11 @@ function goToProject(index) {
         return;
     }
 
-    const track = trackRef.value;
-    const card = track?.children?.[index];
+    const scroller = nativeTrackRef.value;
+    const card = nativeCards()[index];
 
-    if (track && card) {
-        track.scrollTo({ left: card.offsetLeft - 20, behavior: 'smooth' });
+    if (scroller && card) {
+        scroller.scrollTo({ left: card.offsetLeft - 20, behavior: 'smooth' });
     }
 }
 
@@ -83,26 +85,36 @@ function step(direction) {
         return;
     }
 
-    const track = trackRef.value;
+    const scroller = nativeTrackRef.value;
 
-    if (track) {
-        track.scrollBy({ left: direction * track.clientWidth * 0.85, behavior: 'smooth' });
+    if (scroller) {
+        scroller.scrollBy({ left: direction * scroller.clientWidth * 0.85, behavior: 'smooth' });
     }
 }
 
-/** Sincroniza los puntos con el carrusel nativo (móvil). */
-function onTrackScroll() {
-    const track = trackRef.value;
+/**
+ * Tarjetas del carrusel nativo (móvil). El elemento que scrollea es el
+ * contenedor con `overflow-x-auto`; las tarjetas viven dentro del track flex.
+ */
+function nativeCards() {
+    const track = nativeTrackRef.value?.firstElementChild;
 
-    if (!track) {
+    return track ? Array.from(track.children) : [];
+}
+
+/** Sincroniza la barra de progreso con el carrusel nativo (móvil). */
+function onTrackScroll() {
+    const scroller = nativeTrackRef.value;
+
+    if (!scroller) {
         return;
     }
 
     let best = 0;
     let bestDistance = Number.POSITIVE_INFINITY;
 
-    Array.from(track.children).forEach((child, index) => {
-        const distance = Math.abs(child.offsetLeft - 20 - track.scrollLeft);
+    nativeCards().forEach((card, index) => {
+        const distance = Math.abs(card.offsetLeft - 20 - scroller.scrollLeft);
 
         if (distance < bestDistance) {
             bestDistance = distance;
@@ -169,12 +181,13 @@ function onTrackScroll() {
             </div>
 
             <!-- Carrusel nativo (móvil / reduced motion) -->
-            <div v-else class="dtw-no-scrollbar relative w-full snap-x snap-mandatory overflow-x-auto">
-                <div
-                    ref="trackRef"
-                    class="relative flex items-stretch gap-4 px-5 pb-2 md:px-8"
-                    @scroll.passive="onTrackScroll"
-                >
+            <div
+                v-else
+                ref="nativeTrackRef"
+                class="dtw-no-scrollbar relative w-full snap-x snap-mandatory overflow-x-auto"
+                @scroll.passive="onTrackScroll"
+            >
+                <div class="relative flex items-stretch gap-4 px-5 pb-2 md:px-8">
                     <ProjectRailCard
                         v-for="(card, index) in cards"
                         :key="card.id"
@@ -196,7 +209,8 @@ function onTrackScroll() {
             <!-- Controles -->
             <div v-if="total" class="mx-auto mt-7 w-full max-w-7xl px-5 md:mt-9 md:px-8">
                 <div class="flex items-center gap-5">
-                    <div class="flex items-center gap-1.5">
+                    <!-- Puntos: sólo en escritorio; en móvil se desliza con el dedo -->
+                    <div class="hidden items-center gap-1.5 lg:flex">
                         <button
                             v-for="(card, index) in cards"
                             :key="`dot-${card.id}`"
@@ -225,7 +239,8 @@ function onTrackScroll() {
                         {{ String(currentIndex + 1).padStart(2, '0') }} / {{ String(total).padStart(2, '0') }}
                     </span>
 
-                    <div class="flex items-center gap-2">
+                    <!-- Flechas: sólo en escritorio; en móvil se desliza con el dedo -->
+                    <div class="hidden items-center gap-2 lg:flex">
                         <button
                             type="button"
                             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-white/35 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"

@@ -7,7 +7,8 @@
  * Las imágenes miden 70% del alto de la pantalla y son cuadradas (`aspect-ratio`
  * sobre el alto, que es el único valor que se fija); el riel avanza con el
  * scroll mientras la sección queda pegada. En móvil se convierte en un carrusel
- * con snap.
+ * con snap, sin puntos: se desliza con el dedo y la barra de progreso indica la
+ * posición.
  *
  * Con `infoInRail` el resumen (slot `info`) se pinta como primera tarjeta del
  * riel y el recorrido cambia de modelo: cada tarjeta se detiene CENTRADA en el
@@ -40,6 +41,8 @@ const t = useT();
 
 const sectionRef = ref(null);
 const trackRef = ref(null);
+const nativeTrackRef = ref(null);
+const mobileIndex = ref(0);
 const stageRef = ref(null);
 
 const { progress, offset, pinned: measuredPin, canPin, sectionHeight, scrollToProgress, measure } =
@@ -75,6 +78,11 @@ watch(total, () => measure(), { flush: 'post' });
 const activeIndex = computed(() => {
     if (!total.value) {
         return 0;
+    }
+
+    // Sin anclaje (móvil / reduced-motion) manda el carrusel nativo.
+    if (!pinned.value) {
+        return mobileIndex.value;
     }
 
     const position = hasIntro.value
@@ -153,12 +161,42 @@ function goTo(index) {
         return;
     }
 
-    const track = trackRef.value;
-    const figure = track?.children?.[index];
+    const scroller = nativeTrackRef.value;
+    const figure = nativeFigures()[index];
 
-    if (track && figure) {
-        track.scrollTo({ left: figure.offsetLeft - 20, behavior: 'smooth' });
+    if (scroller && figure) {
+        scroller.scrollTo({ left: figure.offsetLeft, behavior: 'smooth' });
     }
+}
+
+/** Imágenes del carrusel nativo (móvil): son hijas directas del scroller. */
+function nativeFigures() {
+    const scroller = nativeTrackRef.value;
+
+    return scroller ? Array.from(scroller.children) : [];
+}
+
+/** Sincroniza puntos y barra de progreso con el carrusel nativo (móvil). */
+function onNativeScroll() {
+    const scroller = nativeTrackRef.value;
+
+    if (!scroller) {
+        return;
+    }
+
+    let best = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    nativeFigures().forEach((figure, index) => {
+        const distance = Math.abs(figure.offsetLeft - scroller.scrollLeft);
+
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            best = index;
+        }
+    });
+
+    mobileIndex.value = best;
 }
 
 /* ---------------------------------------------
@@ -380,8 +418,13 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
 
-                        <!-- Carrusel nativo -->
-                        <div v-else class="dtw-no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+                        <!-- Carrusel nativo (móvil / reduced motion) -->
+                        <div
+                            v-else
+                            ref="nativeTrackRef"
+                            class="dtw-no-scrollbar relative flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
+                            @scroll.passive="onNativeScroll"
+                        >
                             <button
                                 v-for="(image, index) in images"
                                 :key="`${image.url}-${index}-mobile`"
@@ -403,7 +446,8 @@ onBeforeUnmount(() => {
                         </div>
                         <!-- Controles -->
                         <div class="mt-5 flex items-center gap-4">
-                            <div class="flex items-center gap-1.5">
+                            <!-- Puntos: sólo en escritorio; en móvil se desliza con el dedo -->
+                            <div class="hidden items-center gap-1.5 lg:flex">
                                 <button
                                     v-for="(image, index) in images"
                                     :key="`detail-dot-${index}`"
@@ -419,7 +463,12 @@ onBeforeUnmount(() => {
                             <div class="h-px flex-1 bg-white/10">
                                 <div
                                     class="h-px bg-gradient-to-r from-dtw-primary to-dtw-cyan"
-                                    :style="{ width: `${Math.max(4, progress * 100)}%` }"
+                                    :style="{
+                                        width: `${Math.max(
+                                            4,
+                                            (pinned ? progress : (activeIndex + 1) / (total || 1)) * 100,
+                                        )}%`,
+                                    }"
                                 ></div>
                             </div>
 

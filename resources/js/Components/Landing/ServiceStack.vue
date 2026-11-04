@@ -175,10 +175,9 @@ onBeforeUnmount(() => {
                             :style="{ color: solution.accent }"
                         ></i>
 
-                        <div
-                            class="relative grid gap-8 p-6 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-10 md:p-10 lg:p-12"
-                        >
-                            <div>
+                        <!-- Cuerpo: el texto conserva su padding; la imagen sangra hasta el borde derecho -->
+                        <div class="relative grid md:grid-cols-[1.05fr_0.95fr] md:items-stretch">
+                            <div class="p-6 md:p-9 lg:p-11">
                                 <div class="flex items-center gap-3">
                                     <span
                                         class="inline-flex h-px w-10 rounded-full"
@@ -208,18 +207,9 @@ onBeforeUnmount(() => {
                                         <span>{{ bullet }}</span>
                                     </li>
                                 </ul>
-                            </div>
-                            <div class="relative">
-                                <div class="overflow-hidden rounded-2xl border border-white/10">
-                                    <img
-                                        :src="solution.image"
-                                        :alt="solution.title"
-                                        loading="lazy"
-                                        class="aspect-[4/3] h-full w-full object-cover opacity-90 transition duration-700 hover:scale-[1.03] hover:opacity-100"
-                                    />
-                                </div>
 
-                                <div class="mt-6 flex flex-wrap items-center gap-3">
+                                <!-- El CTA vive en la columna de texto porque la imagen ocupa el borde derecho -->
+                                <div class="mt-7 flex flex-wrap items-center gap-3">
                                     <a
                                         :href="whatsappUrl"
                                         target="_blank"
@@ -231,6 +221,30 @@ onBeforeUnmount(() => {
                                         {{ t('Talk to us about this solution') }}
                                     </a>
                                 </div>
+                            </div>
+
+                            <!-- Imagen a sangre: sin padding, al borde derecho y a toda la altura de la tarjeta -->
+                            <div class="relative min-h-[15rem] md:min-h-0">
+                                <img
+                                    :src="solution.image"
+                                    :alt="solution.title"
+                                    loading="lazy"
+                                    decoding="async"
+                                    class="absolute inset-0 h-full w-full object-cover object-center transition duration-[900ms] ease-out hover:scale-[1.04]"
+                                />
+
+                                <!-- Fundido corto en la unión (arriba en móvil, izquierda en desktop) -->
+                                <div
+                                    class="pointer-events-none absolute inset-0 bg-gradient-to-b from-dtw-surface from-0% via-dtw-surface/0 via-25% to-transparent md:bg-gradient-to-r"
+                                ></div>
+
+                                <!-- Filo de acento en la unión texto/imagen (solo desktop) -->
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 left-0 hidden w-px md:block"
+                                    :style="{
+                                        background: `linear-gradient(to bottom, transparent, ${solution.accent}55, transparent)`,
+                                    }"
+                                ></div>
                             </div>
                         </div>
                     </article>

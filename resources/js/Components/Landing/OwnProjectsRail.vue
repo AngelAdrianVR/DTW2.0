@@ -5,6 +5,9 @@
  * Se muestra debajo de la galería de clientes. El desplazamiento es nativo
  * (scroll + snap) para que funcione igual con trackpad, rueda horizontal,
  * teclado y gestos táctiles; las flechas y los puntos sólo lo acompañan.
+ *
+ * En móvil (<1024px) las flechas y los puntos se ocultan: sólo se desliza con
+ * el dedo y una barra de progreso fina indica la posición.
  */
 import { computed, ref } from 'vue';
 import OwnProjectCard from './OwnProjectCard.vue';
@@ -22,22 +25,32 @@ const projects = useOwnProjects(props.projects);
 const cards = computed(() => projects.value.slice(0, Math.max(0, props.limit)));
 const total = computed(() => cards.value.length);
 
-const trackRef = ref(null);
+const nativeTrackRef = ref(null);
 const currentIndex = ref(0);
 
-/** Sincroniza puntos y flechas con la posición real del carrusel. */
-function onTrackScroll() {
-    const track = trackRef.value;
+/**
+ * Tarjetas del carrusel. El elemento que scrollea es el contenedor con
+ * `overflow-x-auto`; las tarjetas viven dentro del track flex.
+ */
+function nativeCards() {
+    const track = nativeTrackRef.value?.firstElementChild;
 
-    if (!track) {
+    return track ? Array.from(track.children) : [];
+}
+
+/** Sincroniza puntos, flechas y progreso con la posición real del carrusel. */
+function onTrackScroll() {
+    const scroller = nativeTrackRef.value;
+
+    if (!scroller) {
         return;
     }
 
     let best = 0;
     let bestDistance = Number.POSITIVE_INFINITY;
 
-    Array.from(track.children).forEach((child, index) => {
-        const distance = Math.abs(child.offsetLeft - 20 - track.scrollLeft);
+    nativeCards().forEach((card, index) => {
+        const distance = Math.abs(card.offsetLeft - 20 - scroller.scrollLeft);
 
         if (distance < bestDistance) {
             bestDistance = distance;
@@ -49,14 +62,14 @@ function onTrackScroll() {
 }
 
 function goToProject(index) {
-    const track = trackRef.value;
-    const card = track?.children[index];
+    const scroller = nativeTrackRef.value;
+    const card = nativeCards()[index];
 
-    if (!track || !card) {
+    if (!scroller || !card) {
         return;
     }
 
-    track.scrollTo({ left: card.offsetLeft - 20, behavior: 'smooth' });
+    scroller.scrollTo({ left: card.offsetLeft - 20, behavior: 'smooth' });
 }
 
 function step(direction) {
@@ -92,7 +105,8 @@ const canGoForward = computed(() => currentIndex.value < total.value - 1);
                     </p>
                 </div>
 
-                <div v-if="total > 1" class="flex items-center gap-2">
+                <!-- Flechas: sólo en escritorio; en móvil se desliza con el dedo -->
+                <div v-if="total > 1" class="hidden items-center gap-2 lg:flex">
                     <button
                         type="button"
                         class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-white/35 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
@@ -118,13 +132,11 @@ const canGoForward = computed(() => currentIndex.value < total.value - 1);
         <!-- Carrusel -->
         <div
             v-if="total"
+            ref="nativeTrackRef"
             class="dtw-no-scrollbar relative mt-10 w-full snap-x snap-mandatory overflow-x-auto pb-3"
+            @scroll.passive="onTrackScroll"
         >
-            <div
-                ref="trackRef"
-                class="flex items-stretch gap-4 px-5 md:gap-6 md:px-8"
-                @scroll.passive="onTrackScroll"
-            >
+            <div class="flex items-stretch gap-4 px-5 md:gap-6 md:px-8">
                 <OwnProjectCard
                     v-for="(project, index) in cards"
                     :key="project.id"
@@ -146,10 +158,10 @@ const canGoForward = computed(() => currentIndex.value < total.value - 1);
             </div>
         </div>
 
-        <!-- Puntos -->
+        <!-- Puntos: sólo en escritorio; en móvil se desliza con el dedo -->
         <div
             v-if="total > 1"
-            class="mx-auto mt-6 flex w-full max-w-7xl items-center justify-center gap-2 px-5 md:px-8"
+            class="mx-auto mt-6 hidden w-full max-w-7xl items-center justify-center gap-2 px-5 md:px-8 lg:flex"
         >
             <button
                 v-for="(project, index) in cards"
@@ -161,6 +173,16 @@ const canGoForward = computed(() => currentIndex.value < total.value - 1);
                 :aria-current="index === currentIndex ? 'true' : undefined"
                 @click="goToProject(index)"
             ></button>
+        </div>
+
+        <!-- Progreso (móvil): el carrusel se desliza con el dedo -->
+        <div v-if="total > 1" class="mx-auto mt-6 w-full max-w-7xl px-5 md:px-8 lg:hidden">
+            <div class="h-px bg-white/10">
+                <div
+                    class="h-px bg-gradient-to-r from-dtw-primary via-dtw-primary-soft to-dtw-cyan"
+                    :style="{ width: `${Math.max(4, ((currentIndex + 1) / total) * 100)}%` }"
+                ></div>
+            </div>
         </div>
     </section>
 </template>
