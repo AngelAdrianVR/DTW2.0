@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Noche de Día de Muertos con luna, panteón y campo de cempasúchil">
+    <defs>
+        <linearGradient id="dmSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#06030d" />
+            <stop offset="42%" stop-color="#170a28" />
+            <stop offset="72%" stop-color="#35102f" />
+            <stop offset="100%" stop-color="#6d2339" />
+        </linearGradient>
+        <radialGradient id="dmHorizon" cx="50%" cy="100%" r="72%">
+            <stop offset="0" stop-color="#ff8a00" stop-opacity=".40" />
+            <stop offset="48%" stop-color="#c9426b" stop-opacity=".18" />
+            <stop offset="100%" stop-color="#c9426b" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="dmMoonGlow">
+            <stop offset="0" stop-color="#ffe7a8" stop-opacity=".50" />
+            <stop offset="45%" stop-color="#ffcf73" stop-opacity=".16" />
+            <stop offset="100%" stop-color="#ffcf73" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="dmMoon" cx="36%" cy="30%" r="76%">
+            <stop offset="0" stop-color="#fffdf2" />
+            <stop offset="52%" stop-color="#ffe9ae" />
+            <stop offset="100%" stop-color="#e2ab55" />
+        </radialGradient>
+        <linearGradient id="dmRidge" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2b1038" />
+            <stop offset="100%" stop-color="#160a22" />
+        </linearGradient>
+        <linearGradient id="dmSoil" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0e0618" />
+            <stop offset="100%" stop-color="#05020a" />
+        </linearGradient>
+        <radialGradient id="dmFieldGlow" cx="50%" cy="100%" r="62%">
+            <stop offset="0" stop-color="#ff9d00" stop-opacity=".50" />
+            <stop offset="100%" stop-color="#ff9d00" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="dmBloom" cx="40%" cy="34%" r="60%">
+            <stop offset="0" stop-color="#ffd166" />
+            <stop offset="55%" stop-color="#ff9e00" />
+            <stop offset="100%" stop-color="#e05e00" />
+        </radialGradient>
+    </defs>
+
+    <rect width="1600" height="1000" fill="url(#dmSky)" />
+    <rect width="1600" height="1000" fill="url(#dmHorizon)" />
+
+    <!-- Estrellas -->
+    <g fill="#ffeccf">
+        <circle cx="120" cy="118" r="1.7" opacity=".85" />
+        <circle cx="214" cy="62" r="1.2" opacity=".55" />
+        <circle cx="330" cy="148" r="1.4" opacity=".65" />
+        <circle cx="452" cy="78" r="1.9" opacity=".9" />
+        <circle cx="560" cy="190" r="1.2" opacity=".5" />
+        <circle cx="640" cy="52" r="1.5" opacity=".7" />
+        <circle cx="742" cy="128" r="1.1" opacity=".45" />
+        <circle cx="838" cy="66" r="1.8" opacity=".8" />
+        <circle cx="930" cy="210" r="1.3" opacity=".55" />
+        <circle cx="1010" cy="96" r="1.6" opacity=".7" />
+        <circle cx="1096" cy="52" r="1.2" opacity=".5" />
+        <circle cx="1180" cy="260" r="1.4" opacity=".45" />
+        <circle cx="1470" cy="90" r="1.8" opacity=".8" />
+        <circle cx="1540" cy="210" r="1.3" opacity=".55" />
+        <circle cx="1520" cy="330" r="1.5" opacity=".4" />
+        <circle cx="70" cy="286" r="1.4" opacity=".5" />
+        <circle cx="250" cy="330" r="1.1" opacity=".4" />
+        <circle cx="960" cy="330" r="1.2" opacity=".35" />
+    </g>
+
+    <!-- Luna llena y halo cálido -->
+    <circle cx="1280" cy="182" r="250" fill="url(#dmMoonGlow)" />
+    <circle cx="1280" cy="182" r="94" fill="url(#dmMoon)" />
+    <g fill="#d59a44" opacity=".26">
+        <circle cx="1250" cy="152" r="13" />
+        <circle cx="1310" cy="198" r="17" />
+        <circle cx="1266" cy="214" r="9" />
+        <circle cx="1328" cy="148" r="7" />
+        <circle cx="1290" cy="236" r="5" />
+    </g>
+
+    <!-- Nubes tenues -->
+    <g fill="#2c1339" opacity=".55">
+        <ellipse cx="320" cy="208" rx="250" ry="24" />
+        <ellipse cx="980" cy="138" rx="210" ry="15" />
+        <ellipse cx="612" cy="296" rx="290" ry="17" opacity=".6" />
+        <ellipse cx="1420" cy="352" rx="230" ry="15" opacity=".45" />
+    </g>
+
+    <!-- Montañas lejanas -->
+    <path
+        d="M0 720 L120 620 L230 690 L380 570 L520 675 L690 600 L830 690 L990 590 L1140 680 L1310 600 L1460 690 L1600 620 L1600 1000 L0 1000 Z"
+        fill="url(#dmRidge)"
+        opacity=".92"
+    />
+
+    <!-- Suelo -->
+    <path
+        d="M0 806 C210 770 360 792 540 778 C730 762 900 786 1080 772 C1260 758 1450 784 1600 770 L1600 1000 L0 1000 Z"
+        fill="url(#dmSoil)"
+    />
+
+    <!-- Panteón -->
+    <g fill="#080310" opacity=".95">
+        <path d="M248 772V690h58v-16l29-34 29 34v16h58v82z" />
+        <rect x="332" y="618" width="4" height="28" />
+
+        <g transform="translate(118 702)">
+            <rect x="-5" y="0" width="10" height="70" rx="2" />
+            <rect x="-27" y="18" width="54" height="10" rx="2" />
+            <path d="M-34 70h68l-8 10h-52z" />
+        </g>
+        <g transform="translate(520 728)">
+            <rect x="-4" y="0" width="8" height="58" rx="2" />
+            <rect x="-22" y="15" width="44" height="8" rx="2" />
+            <path d="M-28 58h56l-7 9h-42z" />
+        </g>
+        <g transform="translate(1028 716)">
+            <rect x="-5" y="0" width="10" height="68" rx="2" />
+            <rect x="-26" y="17" width="52" height="9" rx="2" />
+            <path d="M-33 68h66l-8 10h-50z" />
+        </g>
+        <g transform="translate(1420 732)">
+            <rect x="-4" y="0" width="8" height="56" rx="2" />
+            <rect x="-21" y="14" width="42" height="8" rx="2" />
+            <path d="M-27 56h54l-7 9h-40z" />
+        </g>
+
+        <g transform="translate(184 762)">
+            <path d="M-25 0v-32c0-15 11-25 25-25s25 10 25 25V0z" />
+        </g>
+        <g transform="translate(430 760)">
+            <path d="M-20 0v-26c0-12 9-20 20-20s20 8 20 20V0z" />
+        </g>
+        <g transform="translate(748 756)">
+            <path d="M-26 0v-34c0-15 12-26 26-26s26 11 26 26V0z" />
+        </g>
+        <g transform="translate(1206 760)">
+            <path d="M-22 0v-28c0-13 10-22 22-22s22 9 22 22V0z" />
+        </g>
+        <g transform="translate(1520 754)">
+            <path d="M-19 0v-24c0-11 8-19 19-19s19 8 19 19V0z" />
+        </g>
+    </g>
+
+    <!-- Campo de cempasúchil -->
+    <ellipse cx="800" cy="1000" rx="900" ry="230" fill="url(#dmFieldGlow)" />
+
+    <g stroke="#2a5d33" stroke-width="3" opacity=".5" stroke-linecap="round">
+        <path d="M120 1000c8-58 18-98 34-132" />
+        <path d="M250 1000c4-52 16-92 30-124" />
+        <path d="M400 1000c6-56 20-96 36-126" />
+        <path d="M560 1000c2-50 12-88 26-118" />
+        <path d="M720 1000c6-58 18-98 34-130" />
+        <path d="M900 1000c2-52 14-92 30-122" />
+        <path d="M1070 1000c6-56 18-96 34-128" />
+        <path d="M1240 1000c2-54 14-94 30-124" />
+        <path d="M1400 1000c6-56 20-96 36-126" />
+        <path d="M1530 1000c2-50 12-88 26-118" />
+    </g>
+
+    <g fill="url(#dmBloom)">
+        <circle cx="152" cy="866" r="11" />
+        <circle cx="322" cy="906" r="13" />
+        <circle cx="488" cy="878" r="10" />
+        <circle cx="640" cy="916" r="14" />
+        <circle cx="824" cy="884" r="12" />
+        <circle cx="1012" cy="912" r="13" />
+        <circle cx="1180" cy="878" r="10" />
+        <circle cx="1350" cy="908" r="12" />
+        <circle cx="1498" cy="880" r="9" />
+        <circle cx="250" cy="952" r="16" />
+        <circle cx="560" cy="962" r="15" />
+        <circle cx="890" cy="956" r="17" />
+        <circle cx="1240" cy="960" r="15" />
+        <circle cx="1430" cy="948" r="13" />
+    </g>
+    <g fill="#ffd166" opacity=".9">
+        <circle cx="322" cy="906" r="5" />
+        <circle cx="640" cy="916" r="5" />
+        <circle cx="1012" cy="912" r="5" />
+        <circle cx="250" cy="952" r="6" />
+        <circle cx="890" cy="956" r="6" />
+        <circle cx="1240" cy="960" r="5" />
+        <circle cx="152" cy="866" r="4" />
+        <circle cx="824" cy="884" r="4" />
+        <circle cx="1350" cy="908" r="4" />
+    </g>
+
+    <!-- Luces de las ánimas -->
+    <g fill="#ffd166">
+        <circle cx="366" cy="404" r="3" opacity=".8" />
+        <circle cx="492" cy="330" r="2.2" opacity=".55" />
+        <circle cx="720" cy="432" r="2.6" opacity=".6" />
+        <circle cx="1096" cy="380" r="2.2" opacity=".5" />
+        <circle cx="1180" cy="466" r="3" opacity=".7" />
+        <circle cx="604" cy="248" r="2" opacity=".45" />
+    </g>
+</svg>

@@ -117,6 +117,12 @@ class TrackPageVisits
             return false;
         }
 
+        // La portada temática es sólo una transición: la visita real es la
+        // landing a la que entra después.
+        if ($request->route()?->getName() === 'landing.splash') {
+            return false;
+        }
+
         $path = trim($request->path(), '/');
 
         foreach (self::EXCLUDED_PREFIXES as $prefix) {

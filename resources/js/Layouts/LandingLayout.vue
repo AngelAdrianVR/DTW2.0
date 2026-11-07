@@ -228,7 +228,7 @@ const XIcon = () => h('svg', commonSvgProps('h-6 w-6'), [
                 <!-- Contenido Normal -->
                 <template v-else-if="isNotchExpanded">
                     <!-- Izquierda: Logo -->
-                    <Link href="/" class="shrink-0">
+                    <Link href="/inicio" class="shrink-0">
                         <AplicationLogo class="h-8 w-auto" />
                     </Link>
 

@@ -222,7 +222,7 @@ const medalSparkles = [
 
             <div class="relative mx-auto w-full max-w-7xl px-5 md:px-8">
                 <Link
-                    href="/"
+                    href="/inicio"
                     class="group inline-flex items-center gap-2 text-sm font-medium text-dtw-muted transition hover:text-white"
                 >
                     <i class="pi pi-arrow-left text-xs transition-transform duration-300 group-hover:-translate-x-1"></i>

@@ -19,7 +19,7 @@ class SeedDemoVisits extends Command
     protected $description = 'Genera visitas de ejemplo para el módulo de métricas (solo desarrollo)';
 
     private const PATHS = [
-        ['path' => '/', 'route' => 'landing.index', 'weight' => 34],
+        ['path' => '/inicio', 'route' => 'landing.index', 'weight' => 34],
         ['path' => '/proyectos', 'route' => 'landing.projects', 'weight' => 20],
         ['path' => '/landing-projects/1', 'route' => 'landing-projects.show', 'weight' => 12],
         ['path' => '/landing-projects/2', 'route' => 'landing-projects.show', 'weight' => 9],
@@ -147,7 +147,7 @@ class SeedDemoVisits extends Command
             $visitedAt = $now->copy()->subDays(random_int(0, $days - 1))->subMinutes(random_int(0, 600));
 
             $rows[] = [
-                'path' => '/',
+                'path' => '/inicio',
                 'route_name' => 'landing.index',
                 'referrer' => null,
                 'referrer_host' => null,
