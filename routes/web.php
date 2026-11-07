@@ -29,9 +29,14 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 
+// Portada temática: pantalla de carga de temporada. Al terminar, la propia
+// vista navega a /inicio. Para cambiar el tema (Halloween / Día de Muertos)
+// basta con editar `resources/js/Pages/LandingPage/Splash.vue`.
+Route::get('/', fn () => Inertia::render('LandingPage/Splash'))->name('landing.splash');
+
 // ruta principal que muestra la página de inicio ---------------------------------------------
 // --------------------------------------------------------------------------------------------
-Route::get('/', [LandingController::class, 'index'])->name('landing.index');
+Route::get('/inicio', [LandingController::class, 'index'])->name('landing.index');
 Route::get('/landing-projects/{project}', [LandingController::class, 'showProject'])->name('landing-projects.show');
 
 // Proyectos: galería completa de los proyectos desarrollados para clientes.

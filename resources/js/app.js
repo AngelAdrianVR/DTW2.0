@@ -7,6 +7,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import reveal from './directives/reveal';
 import PageCurtain from './Components/Landing/PageCurtain.vue';
+import CempasuchilCurtain from './Components/Landing/CempasuchilCurtain.vue';
 
 // Importa PrimeVue y su configuración
 import PrimeVue from 'primevue/config';
@@ -27,7 +28,7 @@ createInertiaApp({
         // La cortina de transición se monta junto a la página (no dentro) para
         // que sobreviva a cada navegación de Inertia.
         const Root = {
-            render: () => h(Fragment, [h(App, props), h(PageCurtain)]),
+            render: () => h(Fragment, [h(App, props), h(PageCurtain), h(CempasuchilCurtain)]),
         };
 
         const vueApp = createApp(Root);

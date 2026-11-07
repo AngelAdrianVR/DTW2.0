@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
     >
         <div class="mx-auto flex h-20 w-full max-w-7xl items-center justify-between gap-6 px-5 md:px-8">
             <!-- Logo -->
-            <Link href="/" class="group flex items-center gap-3" :aria-label="t('Home')">
+            <Link href="/inicio" class="group flex items-center gap-3" :aria-label="t('Home')">
                 <img
                     src="/images/white_logo.png"
                     :alt="t('DTW logo')"

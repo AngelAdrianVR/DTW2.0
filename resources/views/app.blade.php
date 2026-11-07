@@ -22,7 +22,8 @@
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased">
+    {{-- Fondo oscuro desde el primer render en la portada temática (evita el flash blanco). --}}
+    <body class="font-sans antialiased" @if (($page['component'] ?? '') === 'LandingPage/Splash') style="background-color: #0a0412" @endif>
         @inertia
     </body>
 </html>

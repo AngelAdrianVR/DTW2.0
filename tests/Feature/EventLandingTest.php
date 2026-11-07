@@ -120,7 +120,7 @@ class EventLandingTest extends TestCase
         $this->makeEvent(['slug' => 'reto-abierto']);
         $this->makeEvent(['slug' => 'reto-borrador', 'is_published' => false]);
 
-        $response = $this->get('/');
+        $response = $this->get('/inicio');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page

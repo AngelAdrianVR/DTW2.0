@@ -18,6 +18,7 @@
  */
 import { onBeforeUnmount, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { cempasuchilState } from './cempasuchilTransition';
 
 /* Las duraciones se inyectan como variables CSS en el elemento para que la
    animación (app.css) y los temporizadores de JS usen exactamente el mismo
@@ -32,7 +33,8 @@ const MIN_COVER_MS = 700;
  * destino.
  */
 const LANDING_PATHS = [
-    /^\/$/, // portada
+    /^\/$/, // portada temática
+    /^\/inicio$/, // landing principal
     /^\/proyectos(\/|$)/, // galería de proyectos
     /^\/soluciones(\/|$)/, // enlace antiguo (redirige a /proyectos)
     /^\/landing-projects(\/|$)/, // detalle de un proyecto
@@ -97,6 +99,12 @@ function reset() {
 
 function onStart(event) {
     if (prefersReducedMotion()) {
+        return;
+    }
+
+    // La salida de la portada temática la cubre la cortina de cempasúchil.
+    if (cempasuchilState.value !== 'idle') {
+        reset();
         return;
     }
 

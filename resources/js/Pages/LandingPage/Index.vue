@@ -41,7 +41,7 @@ const page = usePage();
 
 const locale = computed(() => page.props.locale || 'es');
 const baseUrl = computed(() => (page.props.siteUrl || '').replace(/\/$/, ''));
-const canonicalUrl = computed(() => `${baseUrl.value}/`);
+const canonicalUrl = computed(() => `${baseUrl.value}/inicio`);
 const ogImage = computed(() => page.props.metaImage || `${baseUrl.value}/images/branding.webp`);
 
 /* ---------------------------------------------

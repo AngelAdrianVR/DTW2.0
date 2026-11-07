@@ -11,9 +11,19 @@ class LandingPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_landing_page_renders_with_contact_and_seo_props(): void
+    public function test_the_root_shows_the_thematic_splash(): void
     {
         $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('LandingPage/Splash')
+        );
+    }
+
+    public function test_landing_page_renders_with_contact_and_seo_props(): void
+    {
+        $response = $this->get('/inicio');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -34,7 +44,7 @@ class LandingPageTest extends TestCase
 
     public function test_landing_page_shares_the_services_from_config(): void
     {
-        $response = $this->get('/');
+        $response = $this->get('/inicio');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -52,7 +62,7 @@ class LandingPageTest extends TestCase
         $this->createOwnProject('Primer proyecto propio', 'First own project', 1);
         $this->createOwnProject('Proyecto propio oculto', 'Hidden own project', 0, false);
 
-        $response = $this->get('/');
+        $response = $this->get('/inicio');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -65,7 +75,7 @@ class LandingPageTest extends TestCase
 
     public function test_landing_page_keeps_spanish_translations_by_default(): void
     {
-        $response = $this->get('/');
+        $response = $this->get('/inicio');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -78,7 +88,7 @@ class LandingPageTest extends TestCase
 
     public function test_landing_page_loads_english_translations(): void
     {
-        $response = $this->withSession(['locale' => 'en'])->get('/');
+        $response = $this->withSession(['locale' => 'en'])->get('/inicio');
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
