@@ -4,14 +4,16 @@
  *
  * Muestra el loader de la temporada y, al terminar, entra a la landing real
  * (`/inicio`). Los loaders viven en `Components/MyComponents` y comparten el
- * mismo contrato (`duration` + evento `finished`), así que para cambiar de
- * temática basta con enviar otra prop `theme` desde la ruta o cambiar el
- * valor por defecto de abajo.
+ * mismo contrato (`duration` + evento `finished`).
+ *
+ * El tema activo ya no se edita aquí: se elige desde el back-office
+ * (Recursos Web → Estado de carga inicial) y llega como prop desde la ruta.
  */
 import { defineAsyncComponent, onBeforeUnmount } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import DayOfTheDeadLoader from '@/Components/MyComponents/DayOfTheDeadLoader.vue';
 import { playCempasuchilTransition } from '@/Components/Landing/cempasuchilTransition';
+import { playSnowTransition } from '@/Components/Landing/snowTransition';
 
 const THEMES = {
     'day-of-the-dead': {
@@ -19,6 +21,19 @@ const THEMES = {
         title: 'Día de Muertos',
         status: 'Preparando la ofrenda',
         flowerTransition: true,
+    },
+    'buen-fin': {
+        component: defineAsyncComponent(() => import('@/Components/MyComponents/BuenFinLoader.vue')),
+        title: 'Buen Fin',
+        status: 'Aplicando los descuentos',
+        flowerTransition: false,
+    },
+    christmas: {
+        component: defineAsyncComponent(() => import('@/Components/MyComponents/ChristmasLoader.vue')),
+        title: 'Navidad',
+        status: 'Preparando la magia navideña',
+        flowerTransition: false,
+        snowTransition: true,
     },
     // Se carga sólo si se usa: la portada de Día de Muertos no arrastra el
     // componente de Halloween en su bundle inicial.
@@ -31,7 +46,7 @@ const THEMES = {
 };
 
 const props = defineProps({
-    /** `day-of-the-dead` (por defecto) o `halloween`. */
+    /** `day-of-the-dead` (por defecto), `buen-fin`, `christmas` o `halloween`. */
     theme: { type: String, default: 'day-of-the-dead' },
 });
 
@@ -39,6 +54,11 @@ const activeTheme = THEMES[props.theme] ?? THEMES['day-of-the-dead'];
 
 const goHome = () => {
     const enter = () => router.visit('/inicio');
+
+    if (activeTheme.snowTransition) {
+        playSnowTransition(enter);
+        return;
+    }
 
     if (activeTheme.flowerTransition) {
         playCempasuchilTransition(enter);

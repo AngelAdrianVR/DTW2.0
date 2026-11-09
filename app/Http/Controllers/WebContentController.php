@@ -2,14 +2,51 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SiteSetting;
 use App\Models\WebContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class WebContentController extends Controller
 {
+    /**
+     * Portadas de carga disponibles para la raíz del sitio.
+     *
+     * @return array<int, array{value: string, label: string, preview: string|null, description: string}>
+     */
+    private static function splashThemes(): array
+    {
+        return [
+            [
+                'value' => 'day-of-the-dead',
+                'label' => 'Día de Muertos',
+                'preview' => '/images/day-of-the-dead-bg.svg',
+                'description' => 'Ofrenda nocturna con cempasúchil, papel picado y mariposas monarca.',
+            ],
+            [
+                'value' => 'buen-fin',
+                'label' => 'Buen Fin (13 al 17 de noviembre)',
+                'preview' => '/images/buen-fin-bg.svg',
+                'description' => 'Fondo festivo rojo con descuentos de hasta 20% y confeti.',
+            ],
+            [
+                'value' => 'christmas',
+                'label' => 'Navidad',
+                'preview' => '/images/christmas-bg.webp',
+                'description' => 'Noche nevada con corona navideña, luces cálidas y nieve cayendo.',
+            ],
+            [
+                'value' => 'halloween',
+                'label' => 'Halloween',
+                'preview' => null,
+                'description' => 'Escena de Halloween con calabazas y murciélagos.',
+            ],
+        ];
+    }
+
     public function index(Request $request)
     {
         $contents = WebContent::query()
@@ -21,7 +58,27 @@ class WebContentController extends Controller
 
         return Inertia::render('WebContent/Index', [
             'webcontents' => $contents,
+            'splashTheme' => SiteSetting::splashTheme(),
+            'splashThemes' => self::splashThemes(),
         ]);
+    }
+
+    /**
+     * Guarda la portada que se muestra al cargar la raíz del sitio (`/`).
+     */
+    public function updateSplashTheme(Request $request)
+    {
+        $validated = $request->validate([
+            'theme' => [
+                'required',
+                'string',
+                Rule::in(array_column(self::splashThemes(), 'value')),
+            ],
+        ]);
+
+        SiteSetting::put(SiteSetting::SPLASH_THEME_KEY, $validated['theme']);
+
+        return redirect()->back()->with('success', 'Portada de carga actualizada.');
     }
 
     public function store(Request $request)

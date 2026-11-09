@@ -25,6 +25,8 @@ import { useToast } from 'primevue/usetoast';
 // Props
 const props = defineProps({
     webcontents: Object,
+    splashTheme: { type: String, default: 'day-of-the-dead' },
+    splashThemes: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -38,6 +40,17 @@ const editCoverUploadRef = ref(null);
 const coverPreview = ref(null);
 const editCoverPreview = ref(null);
 const isEditModalVisible = ref(false);
+
+// Portada de carga inicial de la raiz del sitio (`/`).
+const splashThemeForm = useForm({
+    theme: props.splashTheme,
+});
+
+const saveSplashTheme = () => {
+    splashThemeForm.put(route('admin.webcontents.splashTheme'), {
+        preserveScroll: true,
+    });
+};
 
 // Watcher para notificaciones de éxito y error
 watch(() => page.props.flash.success, (newValue) => {
@@ -416,6 +429,59 @@ const formatDate = (value) => {
                     <h1 class="text-3xl font-bold dark:text-zinc-100 text-[#212121]">Gestor de Contenido</h1>
                     <p class="text-gray-400 dark:text-zinc-400 mt-1">Administra tu portafolio, logos y banners publicitarios.</p>
                 </header>
+
+                <!-- ESTADO DE CARGA INICIAL (portada temática de la raíz `/`) -->
+                <section class="p-6 mb-8 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 transition-colors duration-300">
+                    <div class="max-w-3xl">
+                        <div class="flex items-center gap-2">
+                            <i class="pi pi-bolt text-[var(--primary-text-color)]"></i>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-zinc-100">Estado de carga inicial</h3>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-zinc-400 mt-2">
+                            Elige la portada temática que verán los visitantes al entrar a la raíz del sitio.
+                            El contenido de Día de Muertos se conserva para que puedas volver a activarlo cuando quieras.
+                        </p>
+
+                        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <div class="p-fluid flex-1">
+                                <label for="splash_theme" class="block font-medium text-sm text-gray-700 dark:text-zinc-300 mb-2">Portada activa</label>
+                                <Dropdown id="splash_theme" v-model="splashThemeForm.theme" :options="splashThemes" optionLabel="label" optionValue="value" class="w-full" />
+                            </div>
+                            <Button label="Guardar portada" icon="pi pi-save" :loading="splashThemeForm.processing" @click="saveSplashTheme" class="!text-[var(--primary-text-color)]" />
+                        </div>
+                        <small v-if="splashThemeForm.errors.theme" class="p-error">{{ splashThemeForm.errors.theme }}</small>
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-2 gap-3">
+                        <button
+                            v-for="option in splashThemes"
+                            :key="option.value"
+                            type="button"
+                            :title="option.description"
+                            @click="splashThemeForm.theme = option.value"
+                            class="group relative overflow-hidden rounded-xl border-2 text-left transition-all duration-200"
+                            :class="splashThemeForm.theme === option.value
+                                ? 'border-[var(--primary-text-color)] shadow-md'
+                                : 'border-gray-200 dark:border-zinc-700 hover:border-gray-300 dark:hover:border-zinc-500'"
+                        >
+                            <span
+                                class="block h-24 sm:h-28 w-full"
+                                :style="option.preview
+                                    ? { backgroundImage: `url(${option.preview})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                                    : { background: 'radial-gradient(circle at 50% 120%, #3d2b05 0%, #0c0710 70%)' }"
+                            ></span>
+                            <span class="block p-2">
+                                <span class="block text-xs font-semibold text-gray-800 dark:text-zinc-100 truncate">{{ option.label }}</span>
+                            </span>
+                            <span
+                                v-if="splashThemeForm.theme === option.value"
+                                class="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--primary-text-color)] text-white text-[10px]"
+                            >
+                                <i class="pi pi-check"></i>
+                            </span>
+                        </button>
+                    </div>
+                </section>
 
                 <!-- FORMULARIO PARA AGREGAR NUEVO CONTENIDO -->
                 <div class="p-6 mb-8 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 transition-colors duration-300">
