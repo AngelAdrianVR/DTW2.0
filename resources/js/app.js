@@ -8,6 +8,7 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import reveal from './directives/reveal';
 import PageCurtain from './Components/Landing/PageCurtain.vue';
 import CempasuchilCurtain from './Components/Landing/CempasuchilCurtain.vue';
+import SnowCurtain from './Components/Landing/SnowCurtain.vue';
 
 // Importa PrimeVue y su configuración
 import PrimeVue from 'primevue/config';
@@ -28,7 +29,7 @@ createInertiaApp({
         // La cortina de transición se monta junto a la página (no dentro) para
         // que sobreviva a cada navegación de Inertia.
         const Root = {
-            render: () => h(Fragment, [h(App, props), h(PageCurtain), h(CempasuchilCurtain)]),
+            render: () => h(Fragment, [h(App, props), h(PageCurtain), h(CempasuchilCurtain), h(SnowCurtain)]),
         };
 
         const vueApp = createApp(Root);

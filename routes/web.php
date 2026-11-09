@@ -24,15 +24,18 @@ use App\Http\Controllers\TpspProductController;
 use App\Http\Controllers\TpspProductionOrderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebContentController;
+use App\Models\SiteSetting;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 
 // Portada temática: pantalla de carga de temporada. Al terminar, la propia
-// vista navega a /inicio. Para cambiar el tema (Halloween / Día de Muertos)
-// basta con editar `resources/js/Pages/LandingPage/Splash.vue`.
-Route::get('/', fn () => Inertia::render('LandingPage/Splash'))->name('landing.splash');
+// vista navega a /inicio. El tema activo se elige desde el back-office
+// (Recursos Web → Estado de carga inicial) y se guarda en `site_settings`.
+Route::get('/', fn () => Inertia::render('LandingPage/Splash', [
+    'theme' => SiteSetting::splashTheme(),
+]))->name('landing.splash');
 
 // ruta principal que muestra la página de inicio ---------------------------------------------
 // --------------------------------------------------------------------------------------------
@@ -146,6 +149,7 @@ Route::middleware('auth:sanctum')->prefix('pomodoro')->group(function () {
 // Asegúrate de proteger estas rutas con tu middleware de autenticación (ej. 'auth', 'admin')
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/web-contents', [WebContentController::class, 'index'])->name('webcontents.index');
+    Route::put('/splash-theme', [WebContentController::class, 'updateSplashTheme'])->name('webcontents.splashTheme');
     Route::post('/web-contents', [WebContentController::class, 'store'])->name('webcontents.store');
     Route::put('/web-contents/{webContent}', [WebContentController::class, 'update'])->name('webcontents.update');
     Route::post('/web-contents/{webContent}/update-image', [WebContentController::class, 'updateImage'])->name('webcontents.updateImage');
