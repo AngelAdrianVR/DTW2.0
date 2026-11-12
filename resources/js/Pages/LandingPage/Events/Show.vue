@@ -142,10 +142,18 @@ onBeforeUnmount(() => document.getElementById(schemaId)?.remove());
             </div>
         </section>
 
-        <!-- Portada -->
+        <!-- Portada: se muestra completa y centrada. La altura la dicta la
+             imagen (sin proporción impuesta), con un tope para que una portada
+             vertical no empuje el resto de la ficha fuera de pantalla. Las
+             bandas que deja `object-contain` se funden con el fondo. -->
         <div v-if="ev.image" class="mx-auto w-full max-w-7xl px-5 md:px-8">
-            <div class="overflow-hidden rounded-[30px] border border-white/10">
-                <img :src="ev.image" :alt="ev.title" class="aspect-[16/7] w-full object-cover" />
+            <div class="overflow-hidden rounded-[30px] border border-white/10 bg-dtw-void">
+                <img
+                    :src="ev.image"
+                    :alt="ev.title"
+                    decoding="async"
+                    class="mx-auto block h-auto max-h-[72vh] w-full object-contain"
+                />
             </div>
         </div>
         <section class="py-12 md:py-16">
