@@ -2,10 +2,11 @@
 /**
  * Formulario compartido por el alta y la edición de eventos.
  *
- * Envía todo como FormData (hay portada) y usa el `_method` de Laravel para el
- * PUT de la edición. Las fechas viajan como texto local (`YYYY-MM-DD` y
- * `YYYY-MM-DDTHH:mm`), que es exactamente lo que el backend guarda, sin
- * conversiones de zona horaria de por medio.
+ * Envía todo como FormData (hay portada). En la edición usa POST con
+ * `_method=put`, porque PHP no parsea el cuerpo multipart/form-data de un PUT
+ * y el payload llegaría vacío al backend. Las fechas viajan como texto local
+ * (`YYYY-MM-DD` y `YYYY-MM-DDTHH:mm`), que es exactamente lo que el backend
+ * guarda, sin conversiones de zona horaria de por medio.
  */
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
@@ -73,7 +74,13 @@ function submit() {
     const options = { forceFormData: true, preserveScroll: true };
 
     if (isEdit.value) {
-        form.put(route('admin.events.update', props.event.id), options);
+        // La portada obliga a mandar multipart/form-data y PHP no parsea ese
+        // cuerpo en un PUT: los campos llegarían vacíos (de ahí el
+        // "spanish_title es obligatorio" al editar). POST + `_method=put` deja
+        // que Laravel enrute al update y sí lea los campos y el archivo.
+        form.transform((data) => ({ ...data, _method: 'put' }))
+            .post(route('admin.events.update', props.event.id), options);
+
         return;
     }
 

@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -77,6 +79,33 @@ class AdminEventTest extends TestCase
         $this->assertSame('reto-2026', $event->slug);
         $this->assertFalse($event->is_published);
         $this->assertSame(5, $event->sort_order);
+    }
+
+    public function test_an_event_can_be_updated_with_the_method_spoofing_the_form_uses(): void
+    {
+        Storage::fake('public');
+
+        $event = $this->makeEvent(['slug' => 'reto-2026']);
+
+        // El formulario de edición manda POST + `_method=put` porque la portada
+        // fuerza multipart/form-data y PHP no parsea ese cuerpo en un PUT.
+        $response = $this->actingAs(User::factory()->create())->post('/admin/events/' . $event->id, [
+            '_method' => 'put',
+            'slug' => 'reto-2026',
+            'spanish_title' => 'Reto 2026 (actualizado)',
+            'is_published' => false,
+            'image' => UploadedFile::fake()->image('portada.jpg'),
+        ]);
+
+        $response->assertRedirect(route('admin.events.index'));
+        $response->assertSessionHasNoErrors();
+
+        $event->refresh();
+
+        $this->assertSame('Reto 2026 (actualizado)', $event->spanish_title);
+        $this->assertSame('reto-2026', $event->slug);
+        $this->assertFalse($event->is_published);
+        $this->assertNotNull($event->getFirstMedia('events'));
     }
 
     public function test_the_publish_state_can_be_toggled(): void
