@@ -3,8 +3,8 @@
  * Bloque "Servicios" (parte 2): tarjetas apiladas.
  *
  * Cada solución se presenta en una tarjeta que se queda pegada arriba
- * mientras entra la siguiente: la tarjeta anterior se encoge y se atenúa
- * ligeramente, dando profundidad al scroll (scroll-stacked cards).
+ * mientras entra la siguiente: la tarjeta anterior se encoge ligeramente,
+ * dando profundidad al scroll (scroll-stacked cards) sin perder opacidad.
  *
  * En móvil o con prefers-reduced-motion las tarjetas fluyen normalmente.
  */
@@ -48,7 +48,6 @@ function apply() {
 
         if (!stacked.value) {
             card.style.transform = '';
-            card.style.opacity = '';
             return;
         }
 
@@ -64,10 +63,9 @@ function apply() {
 
         const scale = 1 - covered * 0.055;
         const shift = -covered * 18;
-        const opacity = 1 - covered * 0.45;
 
+        // Sólo se escalona y se desplaza: la tarjeta nunca pierde opacidad.
         card.style.transform = `translate3d(0, ${shift.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
-        card.style.opacity = opacity.toFixed(3);
     });
 }
 
@@ -230,7 +228,7 @@ onBeforeUnmount(() => {
                                     :alt="solution.title"
                                     loading="lazy"
                                     decoding="async"
-                                    class="absolute inset-0 h-full w-full object-cover object-center transition duration-[900ms] ease-out hover:scale-[1.04]"
+                                    class="absolute inset-0 h-full w-full object-cover object-center"
                                 />
 
                                 <!-- Fundido corto en la unión (arriba en móvil, izquierda en desktop) -->

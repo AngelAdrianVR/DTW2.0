@@ -330,14 +330,10 @@ html {
 }
 
 /* Titular del hero con barrido de brillo periódico (izquierda → derecha).
-   `.dtw-hero-shimmer__sheen` repite el texto, recorta el degradado a las
-   letras y lo desplaza; el resto del ciclo queda quieto hasta el siguiente
-   barrido (7 s por vuelta, ~1.8 s de brillo). */
-.dtw-hero-shimmer {
-  position: relative;
-  display: block;
-}
-
+   `.dtw-hero-shimmer__sheen` repite la frase activa, recorta el degradado a
+   las letras y lo desplaza; el resto del ciclo queda quieto hasta el siguiente
+   barrido (7 s por vuelta, ~1.8 s de brillo). Se monta con `v-if` en la frase
+   visible, así cada frase recibe su propio barrido al entrar. */
 .dtw-hero-shimmer__sheen {
   position: absolute;
   inset: 0;
@@ -371,6 +367,33 @@ html {
   100% {
     background-position: -80% 0;
   }
+}
+
+/* Rotador del titular: las frases se apilan en la misma celda de una
+   cuadrícula, así la altura queda reservada por la frase más larga y el
+   cambio no mueve el resto del hero. La frase entrante sube y aparece. */
+.dtw-hero-rotator {
+  position: relative;
+  display: grid;
+  align-items: center;
+  overflow: hidden;
+  padding-block: 0.12em;
+}
+
+.dtw-hero-rotator__item {
+  grid-area: 1 / 1;
+  position: relative;
+  opacity: 0;
+  transform: translate3d(0, 0.28em, 0);
+  transition:
+    opacity 700ms ease,
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.dtw-hero-rotator__item--active {
+  opacity: 1;
+  transform: none;
 }
 
 /* =========================================
@@ -417,6 +440,16 @@ html {
     display: none;
   }
 
+  /* Titular rotativo: sin transición y sólo la frase activa ocupa espacio */
+  .dtw-hero-rotator__item {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .dtw-hero-rotator__item:not(.dtw-hero-rotator__item--active) {
+    display: none;
+  }
+
   /* Marquesina de clientes: sin desplazamiento automático (queda como fila
      desplazable a mano, ver `motion-reduce:overflow-x-auto` del componente) */
   .dtw-marquee__track {
@@ -424,3 +457,21 @@ html {
     transform: none !important;
   }
 }
+
+/* =========================================
+   IMPRESIÓN · cortinas de la landing
+   ========================================= */
+@media print {
+  /* `PageCurtain` (y las cortinas temáticas) se montan globalmente en
+     `app.js`, así que también existen en el back-office. Al ser
+     `position: fixed`, el navegador las repite en cada hoja impresa: una
+     cotización de varias páginas mostraba el estado de carga (fondo negro,
+     logo y barra) desde la hoja 2. La cortina pertenece sólo a la landing,
+     nunca al papel. */
+  .dtw-curtain,
+  .cem-curtain,
+  .snow-curtain {
+    display: none !important;
+  }
+}
+

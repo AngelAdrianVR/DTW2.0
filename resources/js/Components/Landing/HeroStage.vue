@@ -2,8 +2,11 @@
 /**
  * Hero: una sola frase con la propuesta de valor, dos acciones y el
  * respaldo visual del producto. Sin párrafos largos.
+ *
+ * La segunda línea del titular rota entre varios beneficios; el cierre
+ * "para tu negocio" es siempre el mismo (ver `PHRASE_KEYS`).
  */
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useT } from '@/Composables/useT';
 import { useContact } from '@/Composables/useContact';
 import { trackCtaClick, trackWhatsAppClick } from '@/utils/analytics';
@@ -25,6 +28,7 @@ const chips = computed(() => [
  * Las posiciones son fijas (nada de Math.random) para que el render del
  * servidor y el del cliente coincidan; el titileo lo hace el CSS con
  * `--sparkle-delay` / `--sparkle-duration`, así cada punto va a su aire.
+ * Los de 3–4 px son las "estrellas" grandes que más se notan.
  */
 const sparkles = [
     { top: '12%', left: '7%', size: 3, delay: '0s', duration: '5.4s' },
@@ -41,7 +45,90 @@ const sparkles = [
     { top: '88%', left: '41%', size: 2, delay: '3.7s', duration: '5.3s' },
     { top: '61%', left: '95%', size: 2, delay: '0.7s', duration: '6.7s' },
     { top: '33%', left: '36%', size: 2, delay: '4.1s', duration: '5.7s' },
+    // Refuerzo: zonas que quedaban vacías y un par de estrellas grandes.
+    { top: '6%', left: '49%', size: 2, delay: '1.4s', duration: '6.8s' },
+    { top: '5%', left: '68%', size: 4, delay: '2.9s', duration: '7.2s' },
+    { top: '18%', left: '45%', size: 1.5, delay: '2.6s', duration: '5.4s' },
+    { top: '8%', left: '91%', size: 2, delay: '3.9s', duration: '5.2s' },
+    { top: '26%', left: '5%', size: 2, delay: '3.6s', duration: '5.9s' },
+    { top: '43%', left: '88%', size: 2, delay: '5.4s', duration: '6.9s' },
+    { top: '50%', left: '3%', size: 3, delay: '4.4s', duration: '6.3s' },
+    { top: '55%', left: '76%', size: 1.5, delay: '0.9s', duration: '7.6s' },
+    { top: '66%', left: '92%', size: 3, delay: '3.3s', duration: '7.4s' },
+    { top: '77%', left: '8%', size: 2, delay: '2.2s', duration: '6.6s' },
+    { top: '80%', left: '20%', size: 4, delay: '5.1s', duration: '7.8s' },
+    { top: '92%', left: '88%', size: 2, delay: '1.1s', duration: '6s' },
+    { top: '94%', left: '12%', size: 2, delay: '4.8s', duration: '7.1s' },
 ];
+
+/**
+ * Titular rotativo.
+ *
+ * La frase completa se repite dentro del degradado y sólo cambia el beneficio
+ * inicial: el cierre "para tu negocio" es siempre el mismo. Se rota la frase
+ * entera (no sólo el prefijo) para que cada una quede centrada bajo el `h1`
+ * sin que el sufijo salte de sitio al cambiar el ancho del texto.
+ */
+const PHRASE_KEYS = [
+    'More time and money for your business.',
+    'Better organization for your business.',
+    'More satisfied customers for your business.',
+    'Fewer errors and rework for your business.',
+];
+
+/** Milisegundos que cada frase permanece visible. */
+const PHRASE_INTERVAL = 3800;
+
+const phrases = computed(() => PHRASE_KEYS.map((key) => t(key)));
+const activePhrase = ref(0);
+
+let phraseTimer = null;
+let reducedQuery = null;
+
+function startPhrases() {
+    if (phraseTimer !== null) {
+        clearInterval(phraseTimer);
+        phraseTimer = null;
+    }
+
+    // Con movimiento reducido la frase se queda fija en la primera.
+    if (reducedQuery?.matches) {
+        activePhrase.value = 0;
+        return;
+    }
+
+    phraseTimer = setInterval(() => {
+        activePhrase.value = (activePhrase.value + 1) % PHRASE_KEYS.length;
+    }, PHRASE_INTERVAL);
+}
+
+/** No gastamos un temporizador mientras la pestaña está en segundo plano. */
+function onVisibilityChange() {
+    if (document.hidden) {
+        clearInterval(phraseTimer);
+        phraseTimer = null;
+        return;
+    }
+
+    startPhrases();
+}
+
+onMounted(() => {
+    reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    reducedQuery.addEventListener?.('change', startPhrases);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    startPhrases();
+});
+
+onBeforeUnmount(() => {
+    clearInterval(phraseTimer);
+    phraseTimer = null;
+
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    reducedQuery?.removeEventListener?.('change', startPhrases);
+});
 
 function onWhatsApp() {
     trackCtaClick('hero');
@@ -97,15 +184,25 @@ function onSeeProjects() {
                 class="mt-8 font-display text-[clamp(2rem,5.6vw,4.4rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-white"
             >
                 {{ t('Less manual work.') }}
-                <span class="dtw-hero-shimmer mt-1">
+                <!-- Frases rotativas: cada una ocupa la misma celda del grid,
+                     así la altura queda reservada y nada salta al cambiar. -->
+                <span class="dtw-hero-rotator mt-1">
                     <span
-                        class="block bg-gradient-to-r from-dtw-primary-soft via-dtw-primary to-dtw-cyan bg-clip-text pb-2 text-transparent"
+                        v-for="(phrase, index) in phrases"
+                        :key="phrase"
+                        class="dtw-hero-rotator__item"
+                        :class="{ 'dtw-hero-rotator__item--active': index === activePhrase }"
+                        :aria-hidden="index !== activePhrase"
                     >
-                        {{ t('More time and money for your business.') }}
-                    </span>
-                    <!-- Copia del texto que sólo pinta el brillo en barrido -->
-                    <span aria-hidden="true" class="dtw-hero-shimmer__sheen">
-                        {{ t('More time and money for your business.') }}
+                        <span
+                            class="block bg-gradient-to-r from-dtw-primary-soft via-dtw-primary to-dtw-cyan bg-clip-text pb-2 text-transparent"
+                        >
+                            {{ phrase }}
+                        </span>
+                        <!-- Copia del texto que sólo pinta el brillo en barrido -->
+                        <span v-if="index === activePhrase" aria-hidden="true" class="dtw-hero-shimmer__sheen">
+                            {{ phrase }}
+                        </span>
                     </span>
                 </span>
             </h1>

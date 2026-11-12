@@ -11,11 +11,12 @@
  * posición.
  *
  * Con `infoInRail` el resumen (slot `info`) se pinta como primera tarjeta del
- * riel y el recorrido cambia de modelo: cada tarjeta se detiene CENTRADA en el
- * escenario y consume ~0.9 pantallas de scroll, así que la galería no se puede
- * saltar (hacia abajo avanza, hacia arriba retrocede). Sin anclaje (móvil o
- * reduced-motion) el resumen se queda arriba del carrusel para que el texto
- * siga siendo legible.
+ * riel y el recorrido cambia de modelo: cada tarjeta se detiene ALINEADA A LA
+ * IZQUIERDA del escenario (el resumen queda ajustado a la izquierda y la
+ * primera imagen asoma clara a su derecha) y consume ~0.9 pantallas de scroll,
+ * así que la galería no se puede saltar (hacia abajo avanza, hacia arriba
+ * retrocede). Sin anclaje (móvil o reduced-motion) el resumen se queda arriba
+ * del carrusel para que el texto siga siendo legible.
  *
  * La rueda del ratón debe mover la página aunque el cursor esté encima del
  * resumen o de una imagen: el escenario recorta su desborde para que el riel
@@ -68,7 +69,8 @@ const hasIntro = computed(() => props.infoInRail && pinned.value && total.value 
 const steps = computed(() => total.value + (hasIntro.value ? 1 : 0));
 
 // Posición continua del riel en "unidades de tarjeta" (0 = primera tarjeta
-// centrada). Con el resumen delante, la imagen `i` queda centrada en `i + 1`.
+// alineada a la izquierda). Con el resumen delante, la imagen `i` queda activa
+// (pegada a la izquierda) en `i + 1`.
 const railShift = computed(() => progress.value * Math.max(0, steps.value - 1));
 
 // Al cambiar el número de imágenes cambia el largo del riel: se vuelve a medir
@@ -103,14 +105,14 @@ const pinnedFigureStyle = { height: CARD_HEIGHT, aspectRatio: '1 / 1' };
 const figureStyle = { height: CARD_HEIGHT_MOBILE, aspectRatio: '1 / 1' };
 
 /* ---------------------------------------------
-   Riel centrado, un paso de scroll por tarjeta
+   Riel alineado a la izquierda, un paso de scroll por tarjeta
    --------------------------------------------- */
 
 /** Pantallas de scroll que consume cada tarjeta del riel. */
 const RAIL_STEP_SCREENS = 0.9;
 
-// Tamaño de tarjeta y separación: una sola fuente de verdad para las tarjetas,
-// los espaciadores y el paso del riel.
+// Tamaño de tarjeta y separación: una sola fuente de verdad para las tarjetas
+// y el paso del riel.
 const railVars = {
     '--dtw-card': CARD_HEIGHT,
     '--dtw-rail-gap': '1.5rem',
@@ -123,10 +125,9 @@ const railCardStyle = {
     marginRight: 'var(--dtw-rail-gap)',
 };
 
-// Espaciadores simétricos: dejan la tarjeta activa centrada en el escenario
-// (el de salida descuenta el margen que arrastra la última tarjeta).
-const railLeadStyle = { width: 'calc((100% - var(--dtw-card)) / 2)' };
-const railTrailStyle = { width: 'calc((100% - var(--dtw-card)) / 2 - var(--dtw-rail-gap))' };
+// Sin espaciadores: la tarjeta activa se detiene pegada al borde izquierdo del
+// contenedor, así el resumen se lee ajustado a la izquierda y la imagen
+// siguiente queda claramente a la vista a su derecha.
 
 // Un viewport para la primera tarjeta y ~0.9 más por cada una de las
 // restantes: la sección cubre toda la galería antes de soltar el scroll.
@@ -357,14 +358,9 @@ onBeforeUnmount(() => {
                                 :class="infoInRail ? 'items-stretch' : 'gap-6'"
                                 :style="trackStyle"
                             >
-                                <!-- Espaciador de entrada: centra la primera tarjeta -->
-                                <span
-                                    v-if="infoInRail"
-                                    aria-hidden="true"
-                                    class="shrink-0"
-                                    :style="railLeadStyle"
-                                ></span>
-
+                                <!-- Sin espaciador de entrada: el resumen abre el
+                                     riel pegado al borde izquierdo del
+                                     escenario. -->
                                 <!-- Resumen: primera tarjeta del riel.
                                      Sin `overscroll-contain`: si el texto no
                                      cupiera, el scroll sigue de largo hacia la
@@ -407,14 +403,6 @@ onBeforeUnmount(() => {
                                         <i class="pi pi-search text-xs"></i>
                                     </span>
                                 </button>
-
-                                <!-- Espaciador de salida: centra la última tarjeta -->
-                                <span
-                                    v-if="infoInRail"
-                                    aria-hidden="true"
-                                    class="shrink-0"
-                                    :style="railTrailStyle"
-                                ></span>
                             </div>
                         </div>
 
